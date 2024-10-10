@@ -7,6 +7,15 @@ localparam ID_WIDTH = 3;
 
 // README: Your code here.
 
+parameter IP6_HDR_TYPE_ICMPv6 = 8'd58;
+
+parameter ICMPv6_HDR_TYPE_NS = 8'd135;
+parameter ICMPv6_HDR_TYPE_NA = 8'd136;
+parameter ICMPv6_HDR_TYPE_RS = 8'd133;
+parameter ICMPv6_HDR_TYPE_RA = 8'd134;
+
+parameter IP6_HDR_HOP_LIMIT_DEFAULT = 8'd255;
+
 typedef struct packed
 {
     logic [(DATAW_WIDTH - 8 * 40 - 8 * 14) - 1:0] p;
@@ -22,11 +31,66 @@ typedef struct packed
 
 typedef struct packed
 {
+    logic [127:0] dst;
+    logic [127:0] src;
+    logic [7:0] hop_limit;
+    logic [7:0] next_hdr;
+    logic [15:0] payload_len;
+    logic [23:0] flow_lo;
+    logic [3:0] version;
+    logic [3:0] flow_hi;
+} ip6_hdr_clean;
+
+// TODO: Add options field in ICMPv6 header later.
+typedef struct packed
+{
+    logic [127:0] target_addr;
+    logic [ 23:0] reserved_lo;
+    logic R;
+    logic S;
+    logic O;
+    logic [  4:0] reserved_hi;
+    logic [ 15:0] checksum;
+    logic [  7:0] code;
+    logic [  7:0] icmpv6_type;
+} icmpv6_hdr; // now without options
+
+typedef struct packed
+{
+    logic [47:0] mac_addr;
+    logic [ 7:0] len;
+    logic [ 7:0] option_type;
+} icmpv6_option;
+
+typedef struct packed
+{
     ip6_hdr ip6;
     logic [15:0] ethertype;
     logic [47:0] src;
     logic [47:0] dst;
 } ether_hdr;
+
+typedef struct packed
+{
+    ip6_hdr_clean ip6;
+    logic [15:0] ethertype;
+    logic [47:0] src;
+    logic [47:0] dst;
+} ether_hdr_clean;
+
+typedef struct packed
+{
+    icmpv6_option option;
+    icmpv6_hdr icmpv6;
+    ether_hdr_clean ether;
+} NS_packet;
+
+typedef struct packed
+{
+    icmpv6_option option; // 8 bytes
+    icmpv6_hdr icmpv6; // 24 bytes
+    ether_hdr_clean ether; // includes IPv6 header, 54 bytes
+} NA_packet; // 86 bytes
 
 typedef struct packed
 {

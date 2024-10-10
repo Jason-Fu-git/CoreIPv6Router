@@ -77,16 +77,44 @@ module frame_datapath
     // README: Your code here.
     // See the guide to figure out what you need to do with frames.
 
+    reg [ 47:0] mac_addrs  [0:3];
+    reg [127:0] ipv6_addrs [0:3];
+
+    addr_controller addr_controller_i(
+        .clk(eth_clk),
+        .rst(reset),
+        .mac_addr_out(mac_addrs),
+        .ipv6_addr_out(ipv6_addrs)
+    );
+
     frame_beat out;
+
+    datapath_sm datapath_sm_i(
+        .clk(eth_clk),
+        .rst(reset),
+        .in(in),
+        .s_ready(in.valid),
+        .in_ready(in_ready),
+        .out(out),
+        .out_ready(out_ready),
+        .mac_addrs(mac_addrs),
+        .ipv6_addrs(ipv6_addrs)
+    );
 
     always @ (*)
     begin
-        out = in;
-        out.meta.dest = 0;  // All frames are forwarded to interface 0!
+        // out.meta.dest = 0;  // All frames are forwarded to interface 0!
+        // if (`should_handle(in)) begin
+        //     out = in;
+        //     out.data.src = in.data.dst;
+        //     out.data.dst = in.data.src;
+        // end else begin
+        //     out = in;
+        // end
     end
 
     wire out_ready;
-    assign in_ready = out_ready || !out.valid;
+    //assign in_ready = out_ready || !out.valid;
 
     reg out_is_first;
     always @ (posedge eth_clk or posedge reset)
