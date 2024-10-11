@@ -27,7 +27,17 @@ module frame_datapath
     output wire [DATA_WIDTH / 8 - 1:0] m_user,
     output wire [ID_WIDTH - 1:0] m_dest,
     output wire m_valid,
-    input wire m_ready
+    input wire m_ready,
+
+    // added ip addrs and valids
+    input wire [127:0] ip_addr_0,
+    input wire ip_valid_0,
+    input wire [127:0] ip_addr_1,
+    input wire ip_valid_1,
+    input wire [127:0] ip_addr_2,
+    input wire ip_valid_2,
+    input wire [127:0] ip_addr_3,
+    input wire ip_valid_3
 );
 
     frame_beat in8, in;
@@ -76,16 +86,29 @@ module frame_datapath
 
     // README: Your code here.
     // See the guide to figure out what you need to do with frames.
-
-    reg [ 47:0] mac_addrs  [0:3];
-    reg [127:0] ipv6_addrs [0:3];
-
+    wire [127:0] ipv6_addrs [0:3];
+    wire [ 47:0] mac_addrs  [0:3]; // from reg to wire as we don't need them changed
+    /* // ip config through buttons and switches
     addr_controller addr_controller_i(
         .clk(eth_clk),
         .rst(reset),
         .mac_addr_out(mac_addrs),
         .ipv6_addr_out(ipv6_addrs)
     );
+    */
+
+    assign ipv6_addrs[0] = ip_valid_0 ? ip_addr_0 : 128'h0;
+    assign ipv6_addrs[1] = ip_valid_1 ? ip_addr_1 : 128'h0;
+    assign ipv6_addrs[2] = ip_valid_2 ? ip_addr_2 : 128'h0;
+    assign ipv6_addrs[3] = ip_valid_3 ? ip_addr_3 : 128'h0;
+
+    // mac addresses are set when reset and then fixed
+    assign mac_addrs[0] = 48'h541069641f8c;
+    assign mac_addrs[1] = 48'h551069641f8c;
+    assign mac_addrs[2] = 48'h561069641f8c;
+    assign mac_addrs[3] = 48'h571069641f8c;
+
+    // ipv6 addresses are set by the addr_controller
 
     frame_beat out;
 

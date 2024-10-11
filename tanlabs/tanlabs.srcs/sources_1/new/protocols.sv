@@ -108,6 +108,10 @@ module datapath_sm(
     logic NS_valid;
     assign NS_valid = ((NS_option_len > 0) && (NS_packet_i.icmpv6.target_addr[7:0] != 8'hff) && NS_checksum_OK);
 
+    // we also need to check if the target ip is our ip
+    logic Address_match;
+    assign Address_match = NA_packet_i.ether.ip6.src == NS_packet_i.icmpv6.target_addr;
+
     logic [2:0] in_meta_dst;
     logic [2:0] in_meta_src;
     assign in_meta_dst = first_beat.meta.dest;
@@ -196,11 +200,76 @@ module datapath_sm(
         ND_last
     } ND_state_t;
 
-    ND_state_t nd_state, nd_next_state;
+    reg [127:0] sender_IPv6_addr;
+    reg [47:0] sender_MAC_addr;
+    reg update_enable;
+    reg write_enable;
+    reg read_enable;
+
+    wire [47:0]read_MAC_addr;
+
+    wire exists;
+    wire ready;
+
+    neighbor_cache ND_cache(
+        .clk(clk),
+        .rst_p(rst),
+
+        .IPv6_addr(sender_IPv6_addr),
+        .w_MAC_addr(sender_MAC_addr),
+        .r_MAC_addr(read_MAC_addr),
+
+        .uea_p(update_enable),
+        .wea_p(write_enable),
+        .rea_p(read_enable),
+
+        .exists(exists),
+        .ready(ready)
+    );
+
+    // define a new small fsm to handle the ND cache
+    typedef enum logic [3:0] {
+        REQUIRE_UPDATE, // valid NS received and in stage ND_LAST
+        SIGNAL_SENT, // we'll set signal to ND_cache, and this state is for waiting for the cache to be ready
+        SLEEP // Normal state, transition happens when the cache is ready
+    } ND_cache_state_t;
+
+    ND_cache_state_t ND_cache_state, ND_cache_next_state;
 
     always_ff @(posedge clk or posedge rst) begin
         if (rst) begin
-            
+            ND_cache_state <= SLEEP;
+        end else begin
+            ND_cache_state <= ND_cache_next_state;
+        end
+    end
+
+    reg valid_NS_received;
+
+    ND_state_t nd_state, nd_next_state;
+
+    always_comb begin
+        case (ND_cache_state)
+            SLEEP : begin
+                ND_cache_next_state = (valid_NS_received & nd_state == ND_4 ? REQUIRE_UPDATE : SLEEP);
+                // if it is going to ND_last, we need to update the cache
+            end
+            REQUIRE_UPDATE : begin
+                ND_cache_next_state = (write_enable ? SIGNAL_SENT : REQUIRE_UPDATE);
+                // wait for ready to set the signal
+            end
+            SIGNAL_SENT : begin
+                ND_cache_next_state = (ready ? SLEEP : SIGNAL_SENT);
+                // if the cache is ready, we can go back to sleep
+            end
+        endcase
+    end
+
+    always_ff @(posedge clk or posedge rst) begin
+        if (rst) begin
+            valid_NS_received <= 0;
+            sender_IPv6_addr <= 0;
+            sender_MAC_addr <= 0;
         end else begin
             if ((state == DP_ND) && (nd_state == ND_1)) begin // construct the first pack of NA
                 out.data <= NA_packet_i[447:0]; // 56 bytes
@@ -212,9 +281,13 @@ module datapath_sm(
                 out.meta.drop_next <= 1'b0;
                 out.meta.dest <= in_meta_src;
                 out.meta.id <= in_meta_dst;
+            end else if ((state == DP_ND) && (nd_state == ND_2)) begin // we do ND cache stuff here
+                // load in sender's IP and MAC
+                sender_IPv6_addr <= NS_packet_i.ether.ip6.src;
+                sender_MAC_addr <= NS_packet_i.option.mac_addr;
             end else if ((state == DP_ND) && (nd_state == ND_3)) begin // send the first pack of NA
                 out.valid <= 1'b1;
-                out.meta.drop <= !NS_valid;
+                out.meta.drop <= !(NS_valid & Address_match); // drop if not valid or not match
                 // out.meta.drop <= 1'b0; // DEBUG: send NA even if NS is not valid
             end else if ((state == DP_ND) && (nd_state == ND_last)) begin // construct & send the second pack of NA
                 out.data <= {208'h0, NA_packet_i[687:448]}; // 86 - 56 = 30 bytes
@@ -232,6 +305,51 @@ module datapath_sm(
             end
         end
     end
+    
+    always_ff @(posedge clk)begin
+        if (rst) begin
+            // reset ND cache regs
+            update_enable <= 0;
+            write_enable <= 0;
+            read_enable <= 0;
+        end else begin
+            case (ND_cache_state)
+                SLEEP: begin
+                    // we are done here
+                    write_enable <= 0;
+                    read_enable <= 0;
+                    update_enable <= 0;
+
+                    if (nd_state == ND_3) begin
+                        // we have received a valid NS
+                        valid_NS_received <= NS_valid & Address_match; // set the flag
+                    end
+                end
+                REQUIRE_UPDATE: begin
+                    if (ready == 1) begin // only update when the cache is ready
+                        write_enable <= 1;
+                        read_enable <= 0;
+                        update_enable <= 0;
+                    end else begin
+                        write_enable <= 0;
+                        read_enable <= 0;
+                        update_enable <= 0;
+                    end
+                end
+                SIGNAL_SENT: begin
+                    write_enable <= 1;
+                    read_enable <= 0;
+                    update_enable <= 0;
+                    valid_NS_received <= 0; // reset the flag so that we can go to SLEEP
+                end
+                default: begin
+                    write_enable <= 0;
+                    read_enable <= 0;
+                    update_enable <= 0;
+                end
+            endcase
+        end
+    end
 
     always_ff @(posedge clk or posedge rst) begin
         if (rst) begin
@@ -243,26 +361,50 @@ module datapath_sm(
 
     always_comb begin
         case (nd_state)
-            ND_IDLE: begin
+            ND_IDLE: begin // waiting for the first pack of NS
                 nd_next_state = ((next_state == DP_ND) ? ND_1 : ND_IDLE);
             end
-            ND_1: begin
+            ND_1: begin // construct the first pack of NA
                 nd_next_state = (s_ready ? ND_2 : ND_1);
             end
-            ND_2: begin
+            ND_2: begin // wait for checksum
                 nd_next_state = (NS_checksum_valid ? ND_3 : ND_2);
             end
-            ND_3: begin
+            ND_3: begin // send the first pack of NA
                 nd_next_state = (out_ready ? ND_4 : ND_3);
             end
-            ND_4: begin
+            ND_4: begin // wait for the second pack of NA
                 nd_next_state = (NA_checksum_valid ? ND_last : ND_4);
             end
-            ND_last: begin
+            ND_last: begin // construct & send the second pack of NA
                 nd_next_state = (out_ready ? ND_IDLE : ND_last);
             end
         endcase
     end
+
+    // ND cache update
+    // first instantiate the ND cache
+    /*
+    module neighbor_cache #(
+    parameter NUM_ENTRIES = 16,
+    parameter ENTRY_ADDR_WIDTH = 4,
+    parameter REACHABLE_LIMIT = 32'hFFFFFFF0
+    ) (
+    input wire clk,
+    input wire rst_p,
+
+    input  wire [127:0] IPv6_addr,   // Key : IPv6 address
+    input  wire [ 47:0] w_MAC_addr,  // Value : MAC address (write)
+    output reg  [ 47:0] r_MAC_addr,  // Value : MAC address (read)
+
+    input wire uea_p,  // update enable, should be positive when notifying that the entry is reachable
+    input wire wea_p,  // write enable, should be positive when writing mac address
+    input wire rea_p,  // read enable, should be positive when reading
+
+    output reg exists,  // FLAG : whether the key exists
+    output reg ready    // FLAG : whether the module is ready for next operation
+    );
+    */
 
     // prepare the first beat for other states
     always_ff @(posedge clk or posedge rst) begin
