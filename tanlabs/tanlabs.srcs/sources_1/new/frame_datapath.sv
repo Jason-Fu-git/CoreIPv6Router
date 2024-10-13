@@ -27,7 +27,23 @@ module frame_datapath
     output wire [DATA_WIDTH / 8 - 1:0] m_user,
     output wire [ID_WIDTH - 1:0] m_dest,
     output wire m_valid,
-    input wire m_ready
+    input wire m_ready,
+
+    // added ip addrs and valids
+    input wire [127:0] ip_addr_0,
+    input wire ip_valid_0,
+    input wire [127:0] ip_addr_1,
+    input wire ip_valid_1,
+    input wire [127:0] ip_addr_2,
+    input wire ip_valid_2,
+    input wire [127:0] ip_addr_3,
+    input wire ip_valid_3,
+
+    // added mac addrs
+    output wire [47:0] mac_addr_0,
+    output wire [47:0] mac_addr_1,
+    output wire [47:0] mac_addr_2,
+    output wire [47:0] mac_addr_3
 );
 
     frame_beat in8, in;
@@ -76,17 +92,58 @@ module frame_datapath
 
     // README: Your code here.
     // See the guide to figure out what you need to do with frames.
+    wire [127:0] ipv6_addrs [0:3];
+    wire [ 47:0] mac_addrs  [0:3]; // from reg to wire as we don't need them changed
+    /* // ip config through buttons and switches
+    addr_controller addr_controller_i(
+        .clk(eth_clk),
+        .rst(reset),
+        .mac_addr_out(mac_addrs),
+        .ipv6_addr_out(ipv6_addrs)
+    );
+    */
+
+    assign ipv6_addrs[0] = ip_valid_0 ? ip_addr_0 : 128'h0;
+    assign ipv6_addrs[1] = ip_valid_1 ? ip_addr_1 : 128'h0;
+    assign ipv6_addrs[2] = ip_valid_2 ? ip_addr_2 : 128'h0;
+    assign ipv6_addrs[3] = ip_valid_3 ? ip_addr_3 : 128'h0;
+
+    // mac addresses are set when reset and then fixed
+    assign mac_addrs[0] = mac_addr_0;
+    assign mac_addrs[1] = mac_addr_1;
+    assign mac_addrs[2] = mac_addr_2;
+    assign mac_addrs[3] = mac_addr_3;
+
+    // ipv6 addresses are set by the addr_controller
 
     frame_beat out;
 
+    datapath_sm datapath_sm_i(
+        .clk(eth_clk),
+        .rst(reset),
+        .in(in),
+        .s_ready(in.valid),
+        .in_ready(in_ready),
+        .out(out),
+        .out_ready(out_ready),
+        .mac_addrs(mac_addrs),
+        .ipv6_addrs(ipv6_addrs)
+    );
+
     always @ (*)
     begin
-        out = in;
-        out.meta.dest = 0;  // All frames are forwarded to interface 0!
+        // out.meta.dest = 0;  // All frames are forwarded to interface 0!
+        // if (`should_handle(in)) begin
+        //     out = in;
+        //     out.data.src = in.data.dst;
+        //     out.data.dst = in.data.src;
+        // end else begin
+        //     out = in;
+        // end
     end
 
     wire out_ready;
-    assign in_ready = out_ready || !out.valid;
+    //assign in_ready = out_ready || !out.valid;
 
     reg out_is_first;
     always @ (posedge eth_clk or posedge reset)

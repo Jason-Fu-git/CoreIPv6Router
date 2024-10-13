@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="tb_frame_datapath_behav.wdb" id="1">
+         <top_modules>
+            <top_module name="\$unit_checksum_calculator_sv " />
+            <top_module name="glbl" />
+            <top_module name="tb_frame_datapath" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="907350fs"></ZoomStartTime>
+      <ZoomEndTime time="1001751fs"></ZoomEndTime>
+      <Cursor1Time time="388100fs"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="207"></NameColumnWidth>
+      <ValueColumnWidth column_width="202"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="43" />
+   <wvobject fp_name="/tb_frame_datapath/ip_addrs" type="array">
+      <obj_property name="ElementShortName">ip_addrs[3:0][127:0]</obj_property>
+      <obj_property name="ObjectShortName">ip_addrs[3:0][127:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/ip_valid" type="array">
+      <obj_property name="ElementShortName">ip_valid[3:0]</obj_property>
+      <obj_property name="ObjectShortName">ip_valid[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/reset" type="logic">
+      <obj_property name="ElementShortName">reset</obj_property>
+      <obj_property name="ObjectShortName">reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/clk_125M" type="logic">
+      <obj_property name="ElementShortName">clk_125M</obj_property>
+      <obj_property name="ObjectShortName">clk_125M</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/in_data" type="array">
+      <obj_property name="ElementShortName">in_data[63:0]</obj_property>
+      <obj_property name="ObjectShortName">in_data[63:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/in_keep" type="array">
+      <obj_property name="ElementShortName">in_keep[7:0]</obj_property>
+      <obj_property name="ObjectShortName">in_keep[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/in_last" type="logic">
+      <obj_property name="ElementShortName">in_last</obj_property>
+      <obj_property name="ObjectShortName">in_last</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/in_user" type="array">
+      <obj_property name="ElementShortName">in_user[7:0]</obj_property>
+      <obj_property name="ObjectShortName">in_user[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/in_id" type="array">
+      <obj_property name="ElementShortName">in_id[2:0]</obj_property>
+      <obj_property name="ObjectShortName">in_id[2:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/in_valid" type="logic">
+      <obj_property name="ElementShortName">in_valid</obj_property>
+      <obj_property name="ObjectShortName">in_valid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/in_ready" type="logic">
+      <obj_property name="ElementShortName">in_ready</obj_property>
+      <obj_property name="ObjectShortName">in_ready</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/out_data" type="array">
+      <obj_property name="ElementShortName">out_data[63:0]</obj_property>
+      <obj_property name="ObjectShortName">out_data[63:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/out_keep" type="array">
+      <obj_property name="ElementShortName">out_keep[7:0]</obj_property>
+      <obj_property name="ObjectShortName">out_keep[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/out_last" type="logic">
+      <obj_property name="ElementShortName">out_last</obj_property>
+      <obj_property name="ObjectShortName">out_last</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/out_user" type="array">
+      <obj_property name="ElementShortName">out_user[7:0]</obj_property>
+      <obj_property name="ObjectShortName">out_user[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/out_dest" type="array">
+      <obj_property name="ElementShortName">out_dest[2:0]</obj_property>
+      <obj_property name="ObjectShortName">out_dest[2:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/out_valid" type="logic">
+      <obj_property name="ElementShortName">out_valid</obj_property>
+      <obj_property name="ObjectShortName">out_valid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/out_ready" type="logic">
+      <obj_property name="ElementShortName">out_ready</obj_property>
+      <obj_property name="ObjectShortName">out_ready</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/DATA_WIDTH" type="array">
+      <obj_property name="ElementShortName">DATA_WIDTH[31:0]</obj_property>
+      <obj_property name="ObjectShortName">DATA_WIDTH[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/ID_WIDTH" type="array">
+      <obj_property name="ElementShortName">ID_WIDTH[31:0]</obj_property>
+      <obj_property name="ObjectShortName">ID_WIDTH[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/ND_cache/clk" type="logic">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/ND_cache/rst_p" type="logic">
+      <obj_property name="ElementShortName">rst_p</obj_property>
+      <obj_property name="ObjectShortName">rst_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/ND_cache/IPv6_addr" type="array">
+      <obj_property name="ElementShortName">IPv6_addr[127:0]</obj_property>
+      <obj_property name="ObjectShortName">IPv6_addr[127:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/ND_cache/w_MAC_addr" type="array">
+      <obj_property name="ElementShortName">w_MAC_addr[47:0]</obj_property>
+      <obj_property name="ObjectShortName">w_MAC_addr[47:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/ND_cache/r_MAC_addr" type="array">
+      <obj_property name="ElementShortName">r_MAC_addr[47:0]</obj_property>
+      <obj_property name="ObjectShortName">r_MAC_addr[47:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/ND_cache/uea_p" type="logic">
+      <obj_property name="ElementShortName">uea_p</obj_property>
+      <obj_property name="ObjectShortName">uea_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/ND_cache/wea_p" type="logic">
+      <obj_property name="ElementShortName">wea_p</obj_property>
+      <obj_property name="ObjectShortName">wea_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/ND_cache/rea_p" type="logic">
+      <obj_property name="ElementShortName">rea_p</obj_property>
+      <obj_property name="ObjectShortName">rea_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/ND_cache/exists" type="logic">
+      <obj_property name="ElementShortName">exists</obj_property>
+      <obj_property name="ObjectShortName">exists</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/ND_cache/ready" type="logic">
+      <obj_property name="ElementShortName">ready</obj_property>
+      <obj_property name="ObjectShortName">ready</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/ND_cache/neighbor_cache_entries" type="array">
+      <obj_property name="ElementShortName">neighbor_cache_entries[0:15]</obj_property>
+      <obj_property name="ObjectShortName">neighbor_cache_entries[0:15]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/ND_cache/prev_wea_p" type="logic">
+      <obj_property name="ElementShortName">prev_wea_p</obj_property>
+      <obj_property name="ObjectShortName">prev_wea_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/ND_cache/prev_uea_p" type="logic">
+      <obj_property name="ElementShortName">prev_uea_p</obj_property>
+      <obj_property name="ObjectShortName">prev_uea_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/ND_cache/state" type="array">
+      <obj_property name="ElementShortName">state[1:0]</obj_property>
+      <obj_property name="ObjectShortName">state[1:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/ND_cache/update_addr" type="array">
+      <obj_property name="ElementShortName">update_addr[3:0]</obj_property>
+      <obj_property name="ObjectShortName">update_addr[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/ND_cache/insert_addr" type="array">
+      <obj_property name="ElementShortName">insert_addr[3:0]</obj_property>
+      <obj_property name="ObjectShortName">insert_addr[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/ND_cache/next_replace_addr" type="array">
+      <obj_property name="ElementShortName">next_replace_addr[3:0]</obj_property>
+      <obj_property name="ObjectShortName">next_replace_addr[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/ND_cache/insertable" type="logic">
+      <obj_property name="ElementShortName">insertable</obj_property>
+      <obj_property name="ObjectShortName">insertable</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/ND_cache/updatable" type="logic">
+      <obj_property name="ElementShortName">updatable</obj_property>
+      <obj_property name="ObjectShortName">updatable</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/ND_cache/NUM_ENTRIES" type="array">
+      <obj_property name="ElementShortName">NUM_ENTRIES[31:0]</obj_property>
+      <obj_property name="ObjectShortName">NUM_ENTRIES[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/ND_cache/ENTRY_ADDR_WIDTH" type="array">
+      <obj_property name="ElementShortName">ENTRY_ADDR_WIDTH[31:0]</obj_property>
+      <obj_property name="ObjectShortName">ENTRY_ADDR_WIDTH[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/ND_cache/REACHABLE_LIMIT" type="array">
+      <obj_property name="ElementShortName">REACHABLE_LIMIT[31:0]</obj_property>
+      <obj_property name="ObjectShortName">REACHABLE_LIMIT[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/ND_cache_state" type="array">
+      <obj_property name="ElementShortName">ND_cache_state[3:0]</obj_property>
+      <obj_property name="ObjectShortName">ND_cache_state[3:0]</obj_property>
+   </wvobject>
+</wave_config>

@@ -8,9 +8,14 @@ module tb_frame_datapath
 (
     
 );
-
+    //added for ip configuration
+    reg [127:0] ip_addrs[3:0];
+    reg ip_valid[3:0];
     reg reset;
     initial begin
+        // set ip addr 0
+        ip_addrs[0] = 128'h051069feff641f8e00000000000080fe;
+        ip_valid[0] = 1;
         reset = 1;
         #6000
         reset = 0;
@@ -70,7 +75,10 @@ module tb_frame_datapath
         .m_user(out_user),
         .m_dest(out_dest),
         .m_valid(out_valid),
-        .m_ready(out_ready)
+        .m_ready(out_ready),
+
+        .ip_addr_0(ip_addrs[0]),
+        .ip_valid_0(ip_valid[0])
     );
 
     axis_receiver axis_receiver_i(
