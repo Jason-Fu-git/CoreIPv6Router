@@ -37,7 +37,13 @@ module frame_datapath
     input wire [127:0] ip_addr_2,
     input wire ip_valid_2,
     input wire [127:0] ip_addr_3,
-    input wire ip_valid_3
+    input wire ip_valid_3,
+
+    // added mac addrs
+    output wire [47:0] mac_addr_0,
+    output wire [47:0] mac_addr_1,
+    output wire [47:0] mac_addr_2,
+    output wire [47:0] mac_addr_3
 );
 
     frame_beat in8, in;
@@ -103,10 +109,10 @@ module frame_datapath
     assign ipv6_addrs[3] = ip_valid_3 ? ip_addr_3 : 128'h0;
 
     // mac addresses are set when reset and then fixed
-    assign mac_addrs[0] = 48'h541069641f8c;
-    assign mac_addrs[1] = 48'h551069641f8c;
-    assign mac_addrs[2] = 48'h561069641f8c;
-    assign mac_addrs[3] = 48'h571069641f8c;
+    assign mac_addrs[0] = mac_addr_0;
+    assign mac_addrs[1] = mac_addr_1;
+    assign mac_addrs[2] = mac_addr_2;
+    assign mac_addrs[3] = mac_addr_3;
 
     // ipv6 addresses are set by the addr_controller
 

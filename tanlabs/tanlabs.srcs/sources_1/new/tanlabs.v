@@ -62,6 +62,7 @@ module tanlabs
     // added ip addr and valid
     wire [127:0] ip_addrs[3:0];
     wire [3:0] ip_valids[3:0];
+    wire [47:0] mac_addrs[3:0];
 
     localparam DATA_WIDTH = 64;
     localparam ID_WIDTH = 3;
@@ -720,7 +721,12 @@ module tanlabs
         .ip_addr_2(ip_addrs[2]),
         .ip_valid_2(ip_valids[2]),
         .ip_addr_3(ip_addrs[3]),
-        .ip_valid_3(ip_valids[3])
+        .ip_valid_3(ip_valids[3]),
+
+        .mac_addr_0(mac_addrs[0]),
+        .mac_addr_1(mac_addrs[1]),
+        .mac_addr_2(mac_addrs[2]),
+        .mac_addr_3(mac_addrs[3])
 
         // README: You will need to add some signals for your CPU to control the datapath,
         // or access the forwarding table or the address resolution cache.
@@ -953,7 +959,10 @@ module tanlabs
         .ip_addr_1_valid(ip_valids[1]),
         .ip_addr_2_valid(ip_valids[2]),
         .ip_addr_3_valid(ip_valids[3]),
-
+        .mac_addr_0(mac_addrs[0]),
+        .mac_addr_1(mac_addrs[1]),
+        .mac_addr_2(mac_addrs[2]),
+        .mac_addr_3(mac_addrs[3]),
         .led(led)
     );
 endmodule
