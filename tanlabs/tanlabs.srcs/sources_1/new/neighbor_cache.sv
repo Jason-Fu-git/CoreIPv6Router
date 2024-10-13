@@ -203,6 +203,10 @@ module neighbor_cache #(
     if (rst_p) begin
       // reset next replace address
       next_replace_addr <= 0;
+      for (int i = 0; i < NUM_ENTRIES; i = i + 1) begin
+        neighbor_cache_entries[i].MAC_addr  <= 0;
+        neighbor_cache_entries[i].IPv6_addr <= 0;
+      end
     end else begin
       if (state == ST_SAVE) begin
         if (updatable) begin
