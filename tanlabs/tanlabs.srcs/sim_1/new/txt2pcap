@@ -17,6 +17,7 @@ import struct
 import binascii
 
 filename = '../../../tanlabs.sim/sim_1/behav/xsim/out_frames.txt'
+#filename = './frames.txt'
 if len(sys.argv) >= 2:
   filename = sys.argv[1]
 

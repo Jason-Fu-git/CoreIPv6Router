@@ -17,6 +17,10 @@ module tanlabs
     output wire uart_tx,
     input wire uart_rx,
 
+    // add buttons and switches
+    input wire [3:0] touch_btn,
+    input wire [15:0] dip_sw,
+
     // SFP:
     // +-+-+
     // |0|2|
@@ -54,6 +58,11 @@ module tanlabs
     output [7:0] ddr3_dm,
     output [0:0] ddr3_odt
 );
+
+    // added ip addr and valid
+    wire [127:0] ip_addrs[3:0];
+    wire [3:0] ip_valids[3:0];
+    wire [47:0] mac_addrs[3:0];
 
     localparam DATA_WIDTH = 64;
     localparam ID_WIDTH = 3;
@@ -702,7 +711,22 @@ module tanlabs
         .m_user(dp_tx_user),
         .m_dest(dp_tx_dest),
         .m_valid(dp_tx_valid),
-        .m_ready(1'b1)
+        .m_ready(1'b1),
+
+        // added ip addr and valid
+        .ip_addr_0(ip_addrs[0]),
+        .ip_valid_0(ip_valids[0]),
+        .ip_addr_1(ip_addrs[1]),
+        .ip_valid_1(ip_valids[1]),
+        .ip_addr_2(ip_addrs[2]),
+        .ip_valid_2(ip_valids[2]),
+        .ip_addr_3(ip_addrs[3]),
+        .ip_valid_3(ip_valids[3]),
+
+        .mac_addr_0(mac_addrs[0]),
+        .mac_addr_1(mac_addrs[1]),
+        .mac_addr_2(mac_addrs[2]),
+        .mac_addr_3(mac_addrs[3])
 
         // README: You will need to add some signals for your CPU to control the datapath,
         // or access the forwarding table or the address resolution cache.
@@ -809,7 +833,7 @@ module tanlabs
             );
         end
     endgenerate
-
+    /*
     led_delayer led_delayer_debug_i1(
         .clk(eth_clk),
         .reset(reset_eth),
@@ -819,6 +843,7 @@ module tanlabs
         .out_led(led[7:0])
     );
     assign led[15:9] = 0;
+    */
 
     // README: DRAM Controller.
     localparam DRAM_READ = 3'b001;
@@ -910,7 +935,7 @@ module tanlabs
             );
         end
     endgenerate
-    assign led[8] = init_calib_complete;
+    //assign led[8] = init_calib_complete;
 
     // README: You may use this to reset your CPU.
     wire reset_core;
@@ -921,4 +946,23 @@ module tanlabs
     );
 
     // README: Your code here.
+    address_config address_config_i(
+        .clk(eth_clk),
+        .reset(reset_eth),
+        .btn(touch_btn),
+        .dip_sw(dip_sw),
+        .ip_addr_0(ip_addrs[0]),
+        .ip_addr_1(ip_addrs[1]),
+        .ip_addr_2(ip_addrs[2]),
+        .ip_addr_3(ip_addrs[3]),
+        .ip_addr_0_valid(ip_valids[0]),
+        .ip_addr_1_valid(ip_valids[1]),
+        .ip_addr_2_valid(ip_valids[2]),
+        .ip_addr_3_valid(ip_valids[3]),
+        .mac_addr_0(mac_addrs[0]),
+        .mac_addr_1(mac_addrs[1]),
+        .mac_addr_2(mac_addrs[2]),
+        .mac_addr_3(mac_addrs[3]),
+        .led(led)
+    );
 endmodule
