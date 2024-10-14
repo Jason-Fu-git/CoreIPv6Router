@@ -6,13 +6,15 @@
  * Query MAC address from IPv6 address.
  * Input port `rea_p` should be positive.
  * Output port `r_MAC_addr` is the MAC address, if the key exists.
+ * Output port `r_port_id` is the port id, if the key exists.
  * Output port `exists` is the flag indicating whether the key exists.
  *
  * (2) Write Mode
  * Insert / update / replace {IPv6 address, MAC address} pair.
  * Input port `wea_p` should be positive.
  * Input port `IPv6_addr` is the key.
- * Input port `w_MAC_addr` is the value.
+ * Input port `w_MAC_addr` is the Mac address to save.
+ * Input port `w_port_id` is the port id to save.
  *
  * (3) Update Mode
  * Reset the reachability timer of the entry.
@@ -31,9 +33,11 @@
  *
 */
 module neighbor_cache #(
-    parameter NUM_ENTRIES = 16,
+    parameter NUM_ENTRIES      = 16,
     parameter ENTRY_ADDR_WIDTH = 4,
-    parameter REACHABLE_LIMIT = 32'hFFFFFFF0
+    parameter REACHABLE_LIMIT  = 32'hFFFFFFF0,  // approx 34s for 125MHz clock
+    // when the probe timer reaches this value, the external module should probe the IPv6 address
+    parameter PROBE_LIMIT      = 32'hDFFFFFFF   // approx 30s for 125MHz clock
 ) (
     input wire clk,
     input wire rst_p,
@@ -41,18 +45,24 @@ module neighbor_cache #(
     input  wire [127:0] IPv6_addr,   // Key : IPv6 address
     input  wire [ 47:0] w_MAC_addr,  // Value : MAC address (write)
     output reg  [ 47:0] r_MAC_addr,  // Value : MAC address (read)
+    input  wire [  1:0] w_port_id,   // Value : port id (write)
+    output reg  [  1:0] r_port_id,   // Value : port id (read)
 
     input wire uea_p,  // update enable, should be positive when notifying that the entry is reachable
     input wire wea_p,  // write enable, should be positive when writing mac address
     input wire rea_p,  // read enable, should be positive when reading
 
     output reg exists,  // FLAG : whether the key exists
-    output reg ready    // FLAG : whether the module is ready for next operation
+    output reg ready,   // FLAG : whether the module is ready for next operation
+
+    output reg should_probe,  // FLAG : whether the external module should probe the IPv6 address
+    output reg [127:0] probe_IPv6_addr  // Key : IPv6 address to probe
 );
 
   // ============================= NC entry ====================================
   typedef struct packed {
     reg valid;
+    reg [1:0] port_id;
     reg [127:0] IPv6_addr;
     reg [47:0] MAC_addr;
     reg [31:0] reachable_timer;
@@ -159,6 +169,7 @@ module neighbor_cache #(
 
     update_addr = 0;
     r_MAC_addr  = 0;
+    r_port_id   = 0;
 
     if (wea_p) begin  // write
       for (int i = 0; i < NUM_ENTRIES; i = i + 1) begin
@@ -174,6 +185,7 @@ module neighbor_cache #(
           // read MAC address
           updatable  = 1;
           r_MAC_addr = neighbor_cache_entries[i].MAC_addr;
+          r_port_id  = neighbor_cache_entries[i].port_id;
         end
       end
     end
@@ -206,20 +218,24 @@ module neighbor_cache #(
       for (int i = 0; i < NUM_ENTRIES; i = i + 1) begin
         neighbor_cache_entries[i].MAC_addr  <= 0;
         neighbor_cache_entries[i].IPv6_addr <= 0;
+        neighbor_cache_entries[i].port_id   <= 0;
       end
     end else begin
       if (state == ST_SAVE) begin
         if (updatable) begin
-          // update MAC address
+          // update MAC address and port id
           neighbor_cache_entries[update_addr].MAC_addr <= w_MAC_addr;
+          neighbor_cache_entries[update_addr].port_id  <= w_port_id;
         end else if (insertable) begin
           // insert new entry
           neighbor_cache_entries[insert_addr].IPv6_addr <= IPv6_addr;
           neighbor_cache_entries[insert_addr].MAC_addr  <= w_MAC_addr;
+          neighbor_cache_entries[insert_addr].port_id   <= w_port_id;
         end else begin
           // replace entry
           neighbor_cache_entries[next_replace_addr].IPv6_addr <= IPv6_addr;
           neighbor_cache_entries[next_replace_addr].MAC_addr <= w_MAC_addr;
+          neighbor_cache_entries[next_replace_addr].port_id <= w_port_id;
           next_replace_addr <= next_replace_addr + 1;
           if (next_replace_addr >= NUM_ENTRIES - 1) begin
             next_replace_addr <= 0;
@@ -282,6 +298,21 @@ module neighbor_cache #(
             end
           end
         end
+      end
+    end
+  end
+  // ===========================================================================
+
+
+  // ========================== probe controller  ==============================
+  always_comb begin : ProbeController
+    should_probe = 0;
+    probe_IPv6_addr = 0;
+
+    for (int i = 0; i < NUM_ENTRIES; i = i + 1) begin
+      if (neighbor_cache_entries[i].valid && neighbor_cache_entries[i].reachable_timer == PROBE_LIMIT) begin
+        should_probe = 1;
+        probe_IPv6_addr = neighbor_cache_entries[i].IPv6_addr;
       end
     end
   end
