@@ -124,6 +124,7 @@ module datapath_sm (
   logic NA_checksum_valid;
   // assign NA_checksum_valid = 1'b1;
   logic NA_checksum_ea;
+  // assign NA_checksum_ea = 1'b0;
 
   checksum_calculator checksum_calculator_i_NA (
       .clk(clk),
@@ -296,7 +297,7 @@ module datapath_sm (
         sender_MAC_addr  <= NS_packet_i.option.mac_addr;
       end else if ((state == DP_ND) && (nd_state == ND_3)) begin  // send the first pack of NA
         out.valid <= 1'b1;
-        out.meta.drop <= !(NS_valid & Address_match);  // drop if not valid or not match
+        out.meta.drop <= !(NS_valid && Address_match);  // drop if not valid or not match
         // out.meta.drop <= 1'b0; // DEBUG: send NA even if NS is not valid
       end else if ((state == DP_ND) && (nd_state == ND_last)) begin // construct & send the second pack of NA
         out.data <= {208'h0, NA_packet_i[687:448]};  // 86 - 56 = 30 bytes
@@ -335,6 +336,15 @@ module datapath_sm (
       end
     end
   end
+
+  // always_comb begin
+  //   valid_NS_received = NS_checksum_valid && Address_match;
+  //   // valid_NS_received = 0;
+  //   update_enable = 0;
+  //   write_enable = ready && valid_NS_received && (nd_state == ND_3);
+  //   // write_enable = 0;
+  //   read_enable = 0; // we don't need to read the cache now, but later
+  // end
 
   always_ff @(posedge clk) begin
     if (rst) begin
@@ -410,9 +420,9 @@ module datapath_sm (
       ND_last: begin  // construct & send the second pack of NA
         nd_next_state = (out_ready ? ND_IDLE : ND_last);
       end
-      default: begin
-        nd_next_state = ND_IDLE;
-      end
+      // default: begin
+      //   nd_next_state = ND_IDLE;
+      // end
     endcase
   end
 

@@ -96,33 +96,33 @@ module checksum_calculator (
   // Controller
   reg [2:0] stage, next_stage;
 
-  always_comb begin
-    case (stage)
-      3'd0: next_stage = 3'd1;
-      3'd1: next_stage = 3'd2;
-      3'd2: next_stage = 3'd3;
-      3'd3: next_stage = 3'd4;
-      3'd4: next_stage = 3'd5;
-      3'd5: next_stage = 3'd0;
-      default: next_stage = 3'd0;
-    endcase
-  end
+  // always_comb begin
+  //   case (stage)
+  //     3'd0: next_stage = 3'd1;
+  //     3'd1: next_stage = 3'd2;
+  //     3'd2: next_stage = 3'd3;
+  //     3'd3: next_stage = 3'd4;
+  //     3'd4: next_stage = 3'd5;
+  //     3'd5: next_stage = 3'd0;
+  //     default: next_stage = 3'd0;
+  //   endcase
+  // end
 
-  always_ff @(posedge clk) begin
-    if (rst_p) begin
-      stage <= 0;
-    end else begin
-      if (ea_p && !valid) begin
-        stage <= next_stage;
-      end else begin
-        stage <= 3'd0;
-      end
-    end
-  end
+  // always_ff @(posedge clk) begin
+  //   if (rst_p) begin
+  //     stage <= 0;
+  //   end else begin
+  //     if (ea_p && !valid) begin
+  //       stage <= next_stage;
+  //     end else begin
+  //       stage <= 3'd0;
+  //     end
+  //   end
+  // end
 
   always_ff @(posedge clk) begin : Controller
     if (rst_p) begin
-      // stage <= 0;
+      stage <= 0;
       valid <= 0;
       for (int i = 0; i < 18; i++) begin
         data_a[i] <= 0;
@@ -137,7 +137,7 @@ module checksum_calculator (
                 data_a[i] <= data[i*32+:16];
                 data_b[i] <= data[i*32+16+:16];
               end
-              // stage <= 3'd1;
+              stage <= 3'd1;
               valid <= 0;
             end
             3'd1: begin
@@ -145,7 +145,7 @@ module checksum_calculator (
                 data_a[i] <= checksum_tmp[i];
                 data_b[i] <= checksum_tmp[i+9];
               end
-              // stage <= 3'd2;
+              stage <= 3'd2;
               valid <= 0;
             end
             3'd2: begin
@@ -155,7 +155,7 @@ module checksum_calculator (
               end
               data_a[4] <= checksum_tmp[8];
               data_b[4] <= 0;
-              // stage <= 3'd3;
+              stage <= 3'd3;
               valid <= 0;
             end
             3'd3: begin
@@ -165,7 +165,7 @@ module checksum_calculator (
               end
               data_a[2] <= checksum_tmp[4];
               data_b[2] <= 0;
-              // stage <= 3'd4;
+              stage <= 3'd4;
               valid <= 0;
             end
             3'd4: begin
@@ -173,25 +173,25 @@ module checksum_calculator (
               data_b[0] <= checksum_tmp[1];
               data_a[1] <= checksum_tmp[2];
               data_b[1] <= 0;
-              // stage <= 3'd5;
+              stage <= 3'd5;
               valid <= 0;
             end
             3'd5: begin
               data_a[0] <= checksum_tmp[0];
               data_b[0] <= checksum_tmp[1];
               valid <= 1;
-              // stage <= 3'd0;
+              stage <= 3'd0;
             end
             default: begin
-              // stage <= 0;
+              stage <= 0;
               valid <= 0;
             end
           endcase
         end else begin
-          // stage <= 0;
+          stage <= 0;
         end
       end else begin
-        // stage <= 0;
+        stage <= 0;
         valid <= 0;
       end
     end
