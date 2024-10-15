@@ -55,8 +55,9 @@ module neighbor_cache #(
     output reg exists,  // FLAG : whether the key exists
     output reg ready,   // FLAG : whether the module is ready for next operation
 
-    output reg should_probe,  // FLAG : whether the external module should probe the IPv6 address
-    output reg [127:0] probe_IPv6_addr  // Key : IPv6 address to probe
+    output reg nud_probe,  // FLAG : whether the external module should probe the IPv6 address
+    output reg [127:0] probe_IPv6_addr,  // Key : IPv6 address to probe
+    output reg [1:0] probe_port_id  // Value : port id to probe
 );
 
   // ============================= NC entry ====================================
@@ -306,13 +307,15 @@ module neighbor_cache #(
 
   // ========================== probe controller  ==============================
   always_comb begin : ProbeController
-    should_probe = 0;
+    nud_probe = 0;
     probe_IPv6_addr = 0;
+    probe_port_id = 0;
 
     for (int i = 0; i < NUM_ENTRIES; i = i + 1) begin
       if (neighbor_cache_entries[i].valid && neighbor_cache_entries[i].reachable_timer == PROBE_LIMIT) begin
-        should_probe = 1;
+        nud_probe = 1;
         probe_IPv6_addr = neighbor_cache_entries[i].IPv6_addr;
+        probe_port_id = neighbor_cache_entries[i].port_id;
       end
     end
   end
