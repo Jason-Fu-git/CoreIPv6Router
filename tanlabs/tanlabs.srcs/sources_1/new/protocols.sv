@@ -24,7 +24,8 @@ module datapath_sm (
 
   typedef enum logic [3:0] {
     DP_IDLE, // IDLE is not only waiting for the first pack, but also transferring all packs if not being the first.
-    DP_ND
+    DP_ND, 
+    DP_NUD
   } dp_state_t;
 
   dp_state_t state, next_state;
@@ -226,7 +227,11 @@ module datapath_sm (
       .rea_p(read_enable),
 
       .exists(exists),
-      .ready (ready)
+      .ready (ready),
+
+      .nud_probe(nud_we),
+      .probe_IPv6_addr(nud_exp_addr),
+      .probe_port_id(nud_iface)
   );
 
   // define a new small fsm to handle the ND cache
@@ -305,6 +310,27 @@ module datapath_sm (
         out.meta.drop_next <= 1'b0;
         out.meta.dest <= in_meta_src;
         out.meta.id <= in_meta_dst;
+      end else if ((state == DP_NUD) && (nud_state == NUD_SEND_1)) begin
+        out.data <= nud_NS[447:0];
+        out.is_first <= 1'b1;
+        out.last <= 1'b0;
+        out.valid <= 1'b1;
+        out.keep <= 56'hffffffffffffff;
+        out.meta.dont_touch <= 1'b0;
+        out.meta.drop_next <= 1'b0;
+        out.meta.dest <= nud_iface;
+        out.meta.id <= nud_iface;
+      end else if ((state == DP_NUD) && (nud_state == NUD_SEND_2)) begin
+        out.data <= {208'h0, nud_NS[687:448]};
+        out.data[15:0] <= ~{nud_checksum[7:0], nud_checksum[15:8]};
+        out.is_first <= 1'b0;
+        out.last <= 1'b1;
+        out.valid <= 1'b1;
+        out.keep <= 56'h0000003fffffff;
+        out.meta.dont_touch <= 1'b0;
+        out.meta.drop_next <= 1'b0;
+        out.meta.dest <= nud_iface;
+        out.meta.id <= nud_iface;
       end else begin
         out.valid <= 1'b0;
       end
@@ -414,6 +440,92 @@ module datapath_sm (
     );
     */
 
+  logic     [127:0] nud_exp_addr; // expired address
+  logic     [127:0] nud_ipv6_addr;
+  logic     [ 47:0] nud_mac_addr;
+  logic     [  1:0] nud_iface;
+  logic             nud_we;
+  NS_packet         nud_NS;
+  logic     [ 15:0] nud_checksum;
+  logic             nud_NS_valid;
+  logic             nud_ack;
+  logic             nud_done;
+
+  assign nud_done = (nud_next_state == NUD_IDLE);
+  assign nud_ack = (nud_state == NUD_SEND_2) && out_ready;
+
+  typedef enum logic [1:0] {
+    NUD_IDLE,
+    NUD_SEND_1, // send the first pack without checksum
+    NUD_WAIT,   // wait for checksum to be ready
+    NUD_SEND_2  // send the second pack
+  } NUD_state_t;
+
+  NUD_state_t nud_state, nud_next_state;
+
+  always_ff @(posedge clk or posedge rst) begin
+    if (rst) begin
+      nud_state <= NUD_IDLE;
+    end else begin
+      nud_state <= nud_next_state;
+    end
+  end
+
+  always_comb begin
+    case (nud_state)
+      NUD_IDLE: begin
+        nud_next_state = ((state == DP_IDLE) && (next_state == DP_NUD)) ? NUD_SEND_1 : NUD_IDLE;
+      end
+      NUD_SEND_1: begin
+        nud_next_state = (out_ready) ? NUD_WAIT : NUD_SEND_1;
+      end
+      NUD_WAIT: begin
+        nud_next_state = (nud_NS_valid) ? NUD_SEND_2 : NUD_WAIT;
+      end
+      NUD_SEND_2: begin
+        nud_next_state = (out_ready) ? NUD_IDLE : NUD_SEND_2;
+      end
+      default: begin
+        nud_next_state = NUD_IDLE;
+      end
+    endcase
+  end
+
+  always_comb begin
+    case (nud_iface)
+      2'd0: begin
+        nud_mac_addr = mac_addrs[0];
+        nud_ipv6_addr = ipv6_addrs[0];
+      end
+      2'd1: begin
+        nud_mac_addr = mac_addrs[1];
+        nud_ipv6_addr = ipv6_addrs[1];
+      end
+      2'd2: begin
+        nud_mac_addr = mac_addrs[2]; 
+        nud_ipv6_addr = ipv6_addrs[2];
+      end
+      2'd3: begin
+        nud_mac_addr = mac_addrs[3];
+        nud_ipv6_addr = ipv6_addrs[3];
+      end
+    endcase
+  end
+
+  nud nud_i(
+    .clk(clk),
+    .rst(rst),
+    .we_i(nud_we),
+    .tgt_addr_i(nud_exp_addr),
+    .ip6_addr_i(nud_ipv6_addr),
+    .mac_addr_i(nud_mac_addr),
+    .iface_i(nud_iface),
+    .ack_i(nud_ack),
+    .NS_o(nud_NS),
+    .NS_valid_o(nud_NS_valid),
+    .checksum_o(nud_checksum)
+  );
+
   // prepare the first beat for other states
   always_ff @(posedge clk or posedge rst) begin
     if (rst) begin
@@ -433,15 +545,17 @@ module datapath_sm (
           next_state = DP_IDLE;
         end else begin
           if (
-                        (in.data.ip6.next_hdr == IP6_HDR_TYPE_ICMPv6)
-                        && (in.data.ip6.p[7:0] == ICMPv6_HDR_TYPE_NS)
-                        && (in.data.ip6.hop_limit == IP6_HDR_HOP_LIMIT_DEFAULT)
-                        && (in.data.ip6.p[15:8] == 0)
-                        && ({in.data.ip6.payload_len[7:0], in.data.ip6.payload_len[15:8]} >= 16'd24)
-                        && (in.data.ip6.payload_len[2:0] == 3'b000)
-                        && (in.data.ip6.src != 0)
-                    ) begin
+              (in.data.ip6.next_hdr == IP6_HDR_TYPE_ICMPv6)
+              && (in.data.ip6.p[7:0] == ICMPv6_HDR_TYPE_NS)
+              && (in.data.ip6.hop_limit == IP6_HDR_HOP_LIMIT_DEFAULT)
+              && (in.data.ip6.p[15:8] == 0)
+              && ({in.data.ip6.payload_len[7:0], in.data.ip6.payload_len[15:8]} >= 16'd24)
+              && (in.data.ip6.payload_len[2:0] == 3'b000)
+              && (in.data.ip6.src != 0)
+          ) begin
             next_state = DP_ND;
+          end else if (nud_we) begin
+            next_state = DP_NUD;
           end else begin
             next_state = DP_IDLE;
           end
@@ -449,6 +563,9 @@ module datapath_sm (
       end
       DP_ND: begin
         next_state = ((nd_state == ND_last) && (nd_next_state == ND_IDLE)) ? DP_IDLE : DP_ND;
+      end
+      DP_NUD: begin
+        next_state = (nud_done) ? DP_IDLE : DP_NUD;
       end
       default: begin
         next_state = DP_IDLE;
