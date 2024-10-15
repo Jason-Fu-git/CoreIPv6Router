@@ -1,4 +1,23 @@
 `timescale 1ns / 1ps
+
+/**
+*  @brief  BRAM IO Controller
+*  @note
+*
+*   Timing:
+*   - Both read and write costs **2 cycles**.
+*   - When read or write is completed, ack_p is set to 1 for **1 cycle**.
+*
+*   Input Specification:
+*   - Only one of rea_p and wea_p can be set to 1 at a time.
+*   - When wea_p or rea_p is set to 1, the address and data must not be changed.
+*   - The address and data are valid when ack_p is 1.
+*   - FIXME: Between two successive queries, rea_p and wea_p should be 0.
+*
+*  @author Jason Fu
+*
+*/
+
 module bram_controller #(
     parameter DATA_WIDTH = 320,
     parameter ADDR_WIDTH = 5
@@ -20,11 +39,28 @@ module bram_controller #(
 );
 
   // State Definition
-  typedef enum logic [1:0] {
+  typedef enum logic {
     ST_IDLE,
     ST_WAIT
   } state_t;
   state_t state;
+
+
+  // Trigger
+  reg prev_rea_p;
+  reg prev_wea_p;
+  reg trigger;
+  assign trigger = (rea_p && !prev_rea_p) || (wea_p && !prev_wea_p);
+  always_ff @(posedge clk) begin
+    if (rst_p) begin
+      prev_rea_p <= 1'b0;
+      prev_wea_p <= 1'b0;
+    end else begin
+      prev_rea_p <= rea_p;
+      prev_wea_p <= wea_p;
+    end
+  end
+
 
   // BRAM
   blk_mem_ftb ftb (
@@ -40,15 +76,15 @@ module bram_controller #(
   );
 
 
-  // 状态转移逻辑
-  always_ff @(posedge clk) begin : StateTransfer
+  // State Transfer
+  always_ff @(posedge clk) begin
     if (rst_p) begin
       state <= ST_IDLE;
       ack_p <= 1'b0;
     end else begin
       case (state)
         ST_IDLE: begin
-          if (cea_p) begin
+          if (trigger) begin
             state <= ST_WAIT;
           end else begin
             state <= ST_IDLE;

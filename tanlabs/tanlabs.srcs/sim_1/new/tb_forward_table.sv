@@ -23,10 +23,9 @@ module tb_forward_table;
 
   // ======= ftb ==============
   reg ea_p;
-  reg ip6_addr;
-  reg prefix_len;
+  reg [127:0] ip6_addr;
 
-  reg next_hop_addr;
+  reg [127:0] next_hop_addr;
   reg ready;
   reg exists;
   // ===========================
@@ -38,45 +37,80 @@ module tb_forward_table;
   // Initial block
   initial begin
     // Initialize Inputs
-    clk   = 0;
+    clk = 0;
     rst_p = 1;
-    wea_p = 0;
+    mem_wea_p = 0;
+    mem_rea_p = 0;
 
     bram_addr_w = 0;
     bram_data_w = 0;
 
     ea_p = 0;
     ip6_addr = 0;
-    prefix_len = 0;
 
     // Wait 100 ns for global reset to finish
     #100;
     rst_p = 0;
 
-    // Write Entries
-    #100;
-    bram_addr_r = 0;  // address
-    bram_data_r = {0, 1'b1, 8'd16, 128'h1, 128'hFF800000000000000000000000000000};  // Random data
-    wea_p = 1;
-    cea_p = 1;
+    // ================ Write Entries ================
 
+    // ==== 1 ====
     #100;
-    wea_p = 0;
-    cea_p = 0;
+    bram_addr_w = 0;
+    bram_data_w = {0, 1'b1, 8'd16, 128'h1, 128'h000000000000000000000000000080FF};
+    mem_wea_p   = 1;
 
     #100;
+    mem_wea_p = 0;
 
-    // Read test
-    for (int i = 0; i < 4; i = i + 1) begin
-      #100;
-      bram_addr = i;  // address
-      cea_p = 1;
+    // ==== 2 ====
+    #100;
+    bram_addr_w = 1;
+    bram_data_w = {0, 1'b0, 8'd32, 128'h2, 128'h000000000000000000000000CDAB80FF};
+    mem_wea_p   = 1;
 
-      #100;
-      cea_p = 0;
+    #100;
+    mem_wea_p = 0;
 
-      #100;
-    end
+    // ==== 3 ====
+    #100;
+    bram_addr_w = 2;
+    bram_data_w = {0, 1'b1, 8'd8, 128'h3, 128'h000000000000000000000000000000FF};
+    mem_wea_p   = 1;
+
+    #100;
+    mem_wea_p = 0;
+
+    // ==== 4 ====
+    // do nothing
+
+    // ================ Search Entries ================
+
+    // ==== 1 ====
+
+    // Hit entry 1
+    #100;
+    ea_p = 1;
+    ip6_addr = 128'h000000000000000000000000CDAB80FF;
+
+    #100;
+    ea_p = 0;
+
+    // Miss
+    #100;
+    ea_p = 1;
+    ip6_addr = 128'h000000000000000000000000CDAB80FE;
+
+    #100;
+    ea_p = 0;
+
+    // Hit entry 3
+    #100;
+    ea_p = 1;
+    ip6_addr = 128'h00000000000000000000000000090FF;
+
+    #100;
+    ea_p = 0;
 
     // Finish the simulation
     $finish;
@@ -90,9 +124,9 @@ module tb_forward_table;
   ) bram_test (
       .clk(clk),
       .rst_p(rst_p),
-      .rea_p(rea_p),
-      .wea_p(wea_p),
-      .ack_p(ack_p),
+      .rea_p(mem_rea_p),
+      .wea_p(mem_wea_p),
+      .ack_p(mem_ack_p),
       .bram_addr_r(bram_addr_r),
       .bram_addr_w(bram_addr_w),
       .bram_data_w(bram_data_w),
@@ -109,7 +143,6 @@ module tb_forward_table;
       .rst_p(rst_p),
       .ea_p(ea_p),
       .ip6_addr(ip6_addr),
-      .prefix_len(prefix_len),
       .next_hop_addr(next_hop_addr),
       .ready(ready),
       .exists(exists),
