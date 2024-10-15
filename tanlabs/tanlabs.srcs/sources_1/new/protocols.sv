@@ -258,7 +258,7 @@ module datapath_sm (
   always_comb begin
     case (ND_cache_state)
       SLEEP: begin
-        ND_cache_next_state = (valid_NS_received & nd_state == ND_4 ? REQUIRE_UPDATE : SLEEP);
+        ND_cache_next_state = (valid_NS_received && nd_state == ND_4 ? REQUIRE_UPDATE : SLEEP);
         // if it is going to ND_last, we need to update the cache
       end
       REQUIRE_UPDATE: begin
@@ -277,7 +277,6 @@ module datapath_sm (
 
   always_ff @(posedge clk or posedge rst) begin
     if (rst) begin
-      valid_NS_received <= 0;
       sender_IPv6_addr  <= 0;
       sender_MAC_addr   <= 0;
     end else begin
@@ -340,6 +339,7 @@ module datapath_sm (
   always_ff @(posedge clk) begin
     if (rst) begin
       // reset ND cache regs
+      valid_NS_received <= 0;
       update_enable <= 0;
       write_enable  <= 0;
       read_enable   <= 0;
@@ -449,9 +449,7 @@ module datapath_sm (
   logic     [ 15:0] nud_checksum;
   logic             nud_NS_valid;
   logic             nud_ack;
-  logic             nud_done;
 
-  assign nud_done = (nud_next_state == NUD_IDLE);
   assign nud_ack = (nud_state == NUD_SEND_2) && out_ready;
 
   typedef enum logic [1:0] {
@@ -474,7 +472,7 @@ module datapath_sm (
   always_comb begin
     case (nud_state)
       NUD_IDLE: begin
-        nud_next_state = ((state == DP_IDLE) && (next_state == DP_NUD)) ? NUD_SEND_1 : NUD_IDLE;
+        nud_next_state = ((state == DP_IDLE) && (nud_we)) ? NUD_SEND_1 : NUD_IDLE;
       end
       NUD_SEND_1: begin
         nud_next_state = (out_ready) ? NUD_WAIT : NUD_SEND_1;
@@ -565,7 +563,7 @@ module datapath_sm (
         next_state = ((nd_state == ND_last) && (nd_next_state == ND_IDLE)) ? DP_IDLE : DP_ND;
       end
       DP_NUD: begin
-        next_state = (nud_done) ? DP_IDLE : DP_NUD;
+        next_state = ((nud_state == NUD_SEND_2) && (nud_next_state == NUD_IDLE)) ? DP_IDLE : DP_NUD;
       end
       default: begin
         next_state = DP_IDLE;

@@ -91,7 +91,7 @@ module nud(
         .ip6_src(NS_o.ether.ip6.src),
         .ip6_dst(NS_o.ether.ip6.dst),
         .payload_length({16'd0, NS_o.ether.ip6.payload_len}),
-        .next_hdr(NS_o.ether.ip6.next_hdr),
+        .next_header(NS_o.ether.ip6.next_hdr),
         .current_payload({NS_o.option, NS_o.icmpv6}),
         .mask(~(256'h0)),
         .is_first(1'b1),
