@@ -21,12 +21,12 @@ Function description:
 module address_config#(
     parameter dafault_mac_addr_0 = 48'h541069641f8c,
     parameter default_ipv6_addr_0 = 128'h541069feff641f8e00000000000080fe,
-    parameter dafault_mac_addr_1 = 48'h541069641f8c,
-    parameter default_ipv6_addr_1 = 128'h541069feff641f8e00000000000080fe,
-    parameter dafault_mac_addr_2 = 48'h541069641f8c,
-    parameter default_ipv6_addr_2 = 128'h541069feff641f8e00000000000080fe,
-    parameter dafault_mac_addr_3 = 48'h541069641f8c,
-    parameter default_ipv6_addr_3 = 128'h541069feff641f8e00000000000080fe
+    parameter dafault_mac_addr_1 = 48'h551069641f8c,
+    parameter default_ipv6_addr_1 = 128'h551069feff641f8e00000000000080fe,
+    parameter dafault_mac_addr_2 = 48'h561069641f8c,
+    parameter default_ipv6_addr_2 = 128'h561069feff641f8e00000000000080fe,
+    parameter dafault_mac_addr_3 = 48'h571069641f8c,
+    parameter default_ipv6_addr_3 = 128'h571069feff641f8e00000000000080fe
 )
 (
     input wire clk,
@@ -282,6 +282,7 @@ module address_config#(
     assign mac_addr_0 = mac_addr_0_reg;
     assign mac_addr_1 = mac_addr_1_reg;
     assign mac_addr_2 = mac_addr_2_reg;
+    assign mac_addr_3 = mac_addr_3_reg;
 
     // assign led
     reg [15:0] led_reg;

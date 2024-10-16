@@ -169,7 +169,7 @@ module datapath_sm (
     NA_packet_i.ether.ip6.flow_lo = 24'b0;
     NA_packet_i.ether.ip6.flow_hi = 4'b0;
     NA_packet_i.ether.ip6.version = 4'd6;
-    case (in_meta_dst[1:0])
+    case (in_meta_src[1:0])
       2'd0: begin
         NA_packet_i.option.mac_addr = mac_addrs[0];
         NA_packet_i.ether.src = mac_addrs[0];
@@ -205,7 +205,8 @@ module datapath_sm (
   } ND_state_t;
 
   reg [127:0] sender_IPv6_addr;
-  reg [47:0] sender_MAC_addr;
+  reg [ 47:0] sender_MAC_addr;
+  reg [  1:0] sender_iface;
   reg update_enable;
   reg write_enable;
   reg read_enable;
@@ -222,6 +223,8 @@ module datapath_sm (
       .IPv6_addr (sender_IPv6_addr),
       .w_MAC_addr(sender_MAC_addr),
       .r_MAC_addr(read_MAC_addr),
+      // .w_port_id(first_beat.meta.dest[1:0]),
+      .w_port_id(sender_iface),
 
       .uea_p(update_enable),
       .wea_p(write_enable),
@@ -280,6 +283,7 @@ module datapath_sm (
     if (rst) begin
       sender_IPv6_addr  <= 0;
       sender_MAC_addr   <= 0;
+      sender_iface      <= 0;
     end else begin
       if ((state == DP_ND) && (nd_state == ND_1)) begin  // construct the first pack of NA
         out.data <= NA_packet_i[447:0];  // 56 bytes
@@ -295,6 +299,7 @@ module datapath_sm (
         // load in sender's IP and MAC
         sender_IPv6_addr <= NS_packet_i.ether.ip6.src;
         sender_MAC_addr  <= NS_packet_i.option.mac_addr;
+        sender_iface     <= in_meta_src;
       end else if ((state == DP_ND) && (nd_state == ND_3)) begin  // send the first pack of NA
         out.valid <= 1'b1;
         out.meta.drop <= !(NS_valid && Address_match);  // drop if not valid or not match
@@ -316,10 +321,11 @@ module datapath_sm (
         out.last <= 1'b0;
         out.valid <= 1'b1;
         out.keep <= 56'hffffffffffffff;
+        out.meta.drop <= 1'b0;
         out.meta.dont_touch <= 1'b0;
         out.meta.drop_next <= 1'b0;
-        out.meta.dest <= nud_iface;
-        out.meta.id <= nud_iface;
+        out.meta.dest <= nud_iface_o;
+        // out.meta.id <= in_meta_dst;
       end else if ((state == DP_NUD) && (nud_state == NUD_SEND_2)) begin
         out.data <= {208'h0, nud_NS[687:448]};
         out.data[15:0] <= ~{nud_checksum[7:0], nud_checksum[15:8]};
@@ -327,10 +333,11 @@ module datapath_sm (
         out.last <= 1'b1;
         out.valid <= 1'b1;
         out.keep <= 56'h0000003fffffff;
+        out.meta.drop <= 1'b0;
         out.meta.dont_touch <= 1'b0;
         out.meta.drop_next <= 1'b0;
-        out.meta.dest <= nud_iface;
-        out.meta.id <= nud_iface;
+        out.meta.dest <= nud_iface_o;
+        // out.meta.id <= in_meta_dst;
       end else begin
         out.valid <= 1'b0;
       end
@@ -403,7 +410,7 @@ module datapath_sm (
   always_comb begin
     case (nd_state)
       ND_IDLE: begin  // waiting for the first pack of NS
-        nd_next_state = ((next_state == DP_ND) ? ND_1 : ND_IDLE);
+        nd_next_state = (((state == DP_IDLE) && (next_state == DP_ND)) ? ND_1 : ND_IDLE);
       end
       ND_1: begin  // construct the first pack of NA
         nd_next_state = (s_ready ? ND_2 : ND_1);
@@ -459,6 +466,7 @@ module datapath_sm (
   logic     [ 15:0] nud_checksum;
   logic             nud_NS_valid;
   logic             nud_ack;
+  logic     [  1:0] nud_iface_o;
 
   assign nud_ack = (nud_state == NUD_SEND_2) && out_ready;
 
@@ -482,7 +490,7 @@ module datapath_sm (
   always_comb begin
     case (nud_state)
       NUD_IDLE: begin
-        nud_next_state = ((state == DP_IDLE) && (nud_we)) ? NUD_SEND_1 : NUD_IDLE;
+        nud_next_state = ((state == DP_IDLE) && (next_state == DP_NUD)) ? NUD_SEND_1 : NUD_IDLE;
       end
       NUD_SEND_1: begin
         nud_next_state = (out_ready) ? NUD_WAIT : NUD_SEND_1;
@@ -531,6 +539,7 @@ module datapath_sm (
     .ack_i(nud_ack),
     .NS_o(nud_NS),
     .NS_valid_o(nud_NS_valid),
+    .iface_o(nud_iface_o),
     .checksum_o(nud_checksum)
   );
 
@@ -562,7 +571,7 @@ module datapath_sm (
               && (in.data.ip6.src != 0)
           ) begin
             next_state = DP_ND;
-          end else if (nud_we) begin
+          end else if (nud_NS_valid) begin
             next_state = DP_NUD;
           end else begin
             next_state = DP_IDLE;

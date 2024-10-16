@@ -40,10 +40,10 @@ module frame_datapath
     input wire ip_valid_3,
 
     // added mac addrs
-    output wire [47:0] mac_addr_0,
-    output wire [47:0] mac_addr_1,
-    output wire [47:0] mac_addr_2,
-    output wire [47:0] mac_addr_3
+    input wire [47:0] mac_addr_0,
+    input wire [47:0] mac_addr_1,
+    input wire [47:0] mac_addr_2,
+    input wire [47:0] mac_addr_3
 );
 
     frame_beat in8, in;
