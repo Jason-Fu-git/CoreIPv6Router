@@ -120,7 +120,7 @@ module frame_datapath
 
     datapath_sm datapath_sm_i(
         .clk(eth_clk),
-        .rst(reset),
+        .rst_p(reset),
         .in(in),
         .s_ready(in.valid),
         .in_ready(in_ready),
