@@ -37,8 +37,8 @@ module neighbor_cache #(
     parameter ENTRY_ADDR_WIDTH = 4,
     parameter REACHABLE_LIMIT  = 32'hFFFFFFF0,  // approx 34s for 125MHz clock
     // when the probe timer reaches this value, the external module should probe the IPv6 address
-    // parameter PROBE_LIMIT      = 32'hDFFFFFFF   // approx 30s for 125MHz clock
-    parameter PROBE_LIMIT      = 32'h1e848      // 1ms for debug
+    parameter PROBE_LIMIT      = 32'hDFFFFFFF   // approx 30s for 125MHz clock
+    // parameter PROBE_LIMIT      = 32'h1e848      // 1ms for debug
 ) (
     input wire clk,
     input wire rst_p,
