@@ -94,7 +94,32 @@ module checksum_calculator (
   assign checksum = checksum_tmp[0][15:0];
 
   // Controller
-  reg [2:0] stage;
+  reg [2:0] stage, next_stage;
+
+  // always_comb begin
+  //   case (stage)
+  //     3'd0: next_stage = 3'd1;
+  //     3'd1: next_stage = 3'd2;
+  //     3'd2: next_stage = 3'd3;
+  //     3'd3: next_stage = 3'd4;
+  //     3'd4: next_stage = 3'd5;
+  //     3'd5: next_stage = 3'd0;
+  //     default: next_stage = 3'd0;
+  //   endcase
+  // end
+
+  // always_ff @(posedge clk) begin
+  //   if (rst_p) begin
+  //     stage <= 0;
+  //   end else begin
+  //     if (ea_p && !valid) begin
+  //       stage <= next_stage;
+  //     end else begin
+  //       stage <= 3'd0;
+  //     end
+  //   end
+  // end
+
   always_ff @(posedge clk) begin : Controller
     if (rst_p) begin
       stage <= 0;
