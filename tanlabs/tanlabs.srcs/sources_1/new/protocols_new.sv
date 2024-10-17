@@ -127,12 +127,23 @@ module datapath_sm (
   // =============================================================
 
   typedef enum logic [2:0] {
-    FW_FWT,
-    FW_NC,
-    FW_DROP,
-    FW_SEND_1,
-    FW_FW
+    FW_IDLE,
+    FW_FWT,  // Forward Table Query
+    FW_NC,  // ND cache query
+    FW_FW,  // Construct the pack to forward
+    FW_SEND_1,  // Send the first pack
+    FW_SEND_F,  // Send the following pack
+    FW_DONE
   } fw_state_t;
+  fw_state_t fw_state, fw_next_state;
+
+  always_ff @(posedge clk) begin
+    if (rst_p) begin
+      fw_state <= FW_IDLE;
+    end else begin
+      fw_state <= fw_next_state;
+    end
+  end
 
   // =============================================================
   //  ND cache state definition
@@ -141,6 +152,8 @@ module datapath_sm (
   typedef enum logic [3:0] {
     CACHE_SLEEP,
     CACHE_REQUIRE_UPDATE,
+    CACHE_READ,
+    CACHE_READ_DONE,
     CACHE_SIGNAL_SENT
   } cache_state_t;
 
@@ -166,6 +179,7 @@ module datapath_sm (
            ((state == DP_IDLE) && (next_state != DP_NUD ))
         || ((state == DP_NS  ) && (ns_state   == NS_WAIT))
         || ((state == DP_NA  ) && (na_state   == NA_WAIT))
+        || ((state == DP_FWD) && (fw_state == FW_SEND_F))
     );
 
   frame_beat       first_beat;  // The first pack, containing Ether/Ipv6 headers
@@ -412,6 +426,144 @@ module datapath_sm (
   );
 
   // =============================================================
+  //  BRAM Controller
+  // =============================================================
+
+  localparam BRAM_DATA_WIDTH = 320;
+  localparam BRAM_ADDR_WIDTH = 5;
+  reg bram_rea_p;
+  reg bram_wea_p;
+  reg bram_ack_p;
+  reg [BRAM_ADDR_WIDTH-1:0] bram_addr_r;
+  reg [BRAM_ADDR_WIDTH-1:0] bram_addr_w;
+  reg [BRAM_DATA_WIDTH-1:0] bram_data_w;
+  reg [BRAM_DATA_WIDTH-1:0] bram_data_r;
+
+  bram_controller #(
+      .DATA_WIDTH(BRAM_DATA_WIDTH),
+      .ADDR_WIDTH(BRAM_ADDR_WIDTH)
+  ) bram_controller_i (
+      .clk(clk),
+      .rst_p(rst_p),
+      .rea_p(bram_rea_p),
+      .wea_p(bram_wea_p),
+      .ack_p(bram_ack_p),
+      .bram_addr_r(bram_addr_r),
+      .bram_addr_w(bram_addr_w),
+      .bram_data_w(bram_data_w),
+      .bram_data_r(bram_data_r)
+  );
+
+  // FIXME: Static Forward Table
+  reg [2:0] fwt_counter;
+  always_ff @(posedge clk) begin
+    if (rst_p) begin
+      bram_wea_p  <= 0;
+      bram_addr_w <= 0;
+      bram_data_w <= 0;
+      fwt_counter <= 0;
+    end else begin
+      if (fwt_counter < 4) begin
+        if (bram_ack_p) begin
+          fwt_counter <= fwt_counter + 1;
+          bram_wea_p  <= 0;
+          bram_addr_w <= 0;
+          bram_data_w <= 0;
+        end else begin
+          bram_wea_p <= 1;
+          case (fwt_counter)
+            3'd0: begin
+              bram_addr_w <= 5'd0;
+              bram_data_w <= {
+                0,  // padding
+                1'b1,  // valid
+                8'd128,  // prefix length
+                128'h041069feff641f8e00000000000080fe,  // next hop
+                128'h041069feff641f8e00000000000080fe  // prefix
+              };
+            end
+            3'd1: begin
+              bram_addr_w <= 5'd1;
+              bram_data_w <= {
+                0,  // padding
+                1'b1,  // valid
+                8'd128,  // prefix length
+                128'h011069feff641f8e00000000000080fe,  // next hop
+                128'h011069feff641f8e00000000000080fe  // prefix
+              };
+            end
+            3'd2: begin
+              bram_addr_w <= 5'd2;
+              bram_data_w <= {
+                0,  // padding
+                1'b0,  // valid
+                8'd16,  // prefix length
+                128'h000000000000000000000000000080FF,  // next hop
+                128'h000000000000000000000000000080FF  // prefix
+              };
+            end
+            3'd3: begin
+              bram_addr_w <= 5'd3;
+              bram_data_w <= {
+                0,  // padding
+                1'b0,  // valid
+                8'd16,  // prefix length
+                128'h000000000000000000000000000080FF,  // next hop
+                128'h000000000000000000000000000080FF  // prefix
+              };
+            end
+            default: begin
+              bram_addr_w <= 0;
+              bram_data_w <= 0;
+            end
+          endcase
+        end
+      end
+    end
+  end
+
+
+  // =============================================================
+  //  Forward Table
+  // =============================================================
+
+  reg fwt_ea_p;
+  reg [127:0] fwt_next_hop_addr;
+  reg fwt_ack_p;
+  reg fwt_exists;
+
+  forward_table #(
+      .BASE_ADDR (2'h0),
+      .MAX_ADDR  (2'h3),
+      .DATA_WIDTH(BRAM_DATA_WIDTH),
+      .ADDR_WIDTH(BRAM_ADDR_WIDTH)
+  ) ftb_test (
+      .clk(clk),
+      .rst_p(rst_p),
+      .ea_p(fwt_ea_p),
+      .ip6_addr(first_beat.data.ip6.dst),
+      .next_hop_addr(fwt_next_hop_addr),
+      .ack_p(fwt_ack_p),
+      .exists(fwt_exists),
+      .mem_data(bram_data_r),
+      .mem_ack_p(bram_ack_p),
+      .mem_addr(bram_addr_r),
+      .mem_rea_p(bram_rea_p)
+  );
+
+  always_ff @(posedge clk) begin
+    if (rst_p) begin
+      fwt_ea_p <= 1'b0;
+    end else begin
+      if (fw_state == FW_FWT) begin
+        fwt_ea_p <= 1'b1;
+      end else begin
+        fwt_ea_p <= 1'b0;
+      end
+    end
+  end
+
+  // =============================================================
   //  ND cache signals definition
   // =============================================================
 
@@ -423,8 +575,10 @@ module datapath_sm (
   logic         cache_write_ea_p;
   logic         cache_read_ea_p;
   logic [ 47:0] cache_mac_addr_o;  // Address read from cache
+  logic [  1:0] cache_iface_o;  // Interface read from cache
   logic         cache_exists;
   logic         cache_ready;
+  logic         cache_read_ready;
 
   neighbor_cache neighbor_cache_i (
       .clk            (clk),
@@ -433,6 +587,7 @@ module datapath_sm (
       .w_MAC_addr     (neighbor_mac_addr),
       .w_port_id      (neighbor_iface),
       .r_MAC_addr     (cache_mac_addr_o),
+      .r_port_id      (cache_iface_o),
       .uea_p          (cache_update_ea_p),
       .wea_p          (cache_write_ea_p),
       .rea_p          (cache_read_ea_p),
@@ -452,6 +607,7 @@ module datapath_sm (
       cache_write_ea_p  <= 1  'b0;
       cache_read_ea_p   <= 1  'b0;
       cache_write_valid <= 1  'b0;
+      cache_read_ready  <= 1  'b0;
     end else begin
       if ((state == DP_NS) && (ns_state == NS_CHECKSUM_NS)) begin
         neighbor_ip6_addr <= ns_packet_i.ether.ip6.src;
@@ -467,6 +623,7 @@ module datapath_sm (
             cache_update_ea_p <= 1'b0;
             cache_write_ea_p  <= 1'b0;
             cache_read_ea_p   <= 1'b0;
+            cache_read_ready  <= 1'b0;
             if ((state == DP_NS) && (ns_state == NS_SEND_1)) begin
               cache_write_valid <= ns_valid;
             end else if ((state == DP_NA) && (na_state == NA_CACHE)) begin
@@ -490,10 +647,24 @@ module datapath_sm (
             cache_read_ea_p   <= 1'b0;
             cache_write_valid <= 1'b0;  // Reset for it's done
           end
+          CACHE_READ: begin
+            if ((state == DP_FWD) && (fw_state == FW_NC)) begin
+              neighbor_ip6_addr <= fwt_next_hop_addr;  // Next hop from Forward Table
+            end
+            cache_update_ea_p <= 1'b0;
+            cache_write_ea_p  <= 1'b0;
+            cache_read_ea_p   <= 1'b1;
+            cache_write_valid <= 1'b0;
+            cache_read_ready  <= 1'b0;
+          end
+          CACHE_READ_DONE: begin
+            cache_read_ready <= 1'b1;
+          end
           default: begin
             cache_update_ea_p <= 1'b0;
             cache_write_ea_p  <= 1'b0;
             cache_read_ea_p   <= 1'b0;
+            cache_read_ready  <= 1'b0;
           end
         endcase
       end
@@ -552,6 +723,72 @@ module datapath_sm (
         out.meta.dont_touch <= 1'b0;
         out.meta.drop_next  <= 1'b0;
         out.meta.dest       <= nud_iface_o;
+      end else if (state == DP_FWD) begin
+        if (fw_state == FW_NC) begin
+          if (cache_exists && cache_ready) begin
+            // Send first pack
+            out.valid                <= 1'b1;
+            // Construct IPv6 header
+            out.data.ip6.p           <= first_beat.data.ip6.p;
+            out.data.ip6.dst         <= first_beat.data.ip6.dst;
+            out.data.ip6.src         <= first_beat.data.ip6.src;
+            out.data.ip6.hop_limit   <= first_beat.data.ip6.hop_limit - 1;
+            out.data.ip6.next_hdr    <= first_beat.data.ip6.next_hdr;
+            out.data.ip6.payload_len <= first_beat.data.ip6.payload_len;
+            out.data.ip6.flow_lo     <= first_beat.data.ip6.flow_lo;
+            out.data.ip6.version     <= first_beat.data.ip6.version;
+            out.data.ip6.flow_hi     <= first_beat.data.ip6.flow_hi;
+            // Construct Ether header
+            out.data.ethertype       <= first_beat.data.ethertype;
+            out.data.dst             <= cache_mac_addr_o;
+            case (cache_iface_o)
+              2'd0: out.data.src <= mac_addrs[0];
+              2'd1: out.data.src <= mac_addrs[1];
+              2'd2: out.data.src <= mac_addrs[2];
+              2'd3: out.data.src <= mac_addrs[3];
+              default: out.data.src <= 48'h0;
+            endcase
+            // Meta data
+            out.is_first        <= first_beat.is_first;
+            out.last            <= first_beat.last;
+            out.keep            <= first_beat.keep;
+            out.meta.dest       <= cache_iface_o;
+            out.meta.dont_touch <= first_beat.meta.dont_touch;
+            out.meta.drop_next  <= first_beat.meta.drop_next;
+            out.meta.drop       <= first_beat.meta.drop;
+          end
+        end else if (fw_state == FW_FW) begin
+          if (out_ready && in.valid) begin
+            // Send the rest of the packs
+            out.valid           <= 1'b1;
+            // Inherit the data from the input
+            out.data            <= in.data;
+            // Mata data
+            out.is_first        <= in.is_first;
+            out.last            <= in.last;
+            out.keep            <= in.keep;
+            out.meta.dest       <= cache_iface_o;
+            out.meta.dont_touch <= in.meta.dont_touch;
+            out.meta.drop_next  <= in.meta.drop_next;
+            out.meta.drop       <= in.meta.drop;
+          end else if (!out_ready) begin
+            out.valid <= 1'b0;
+          end
+        end else if (fw_state == FW_SEND_1) begin
+          if (!out_ready) begin
+            out.valid <= 1'b0;
+          end
+        end else if (fw_state == FW_SEND_F) begin
+          if (!out_ready) begin
+            out.valid <= 1'b0;
+          end
+        end else if (fw_state == FW_DONE) begin
+          if (!out_ready) begin
+            out.valid <= 1'b0;
+          end
+        end else begin
+          out.valid <= 1'b0;
+        end
       end else begin
         out.valid <= 1'b0;
       end
@@ -563,18 +800,31 @@ module datapath_sm (
   // =============================================================
 
   always_comb begin
+    cache_next_state = CACHE_SLEEP;
     case (cache_state)
       CACHE_SLEEP: begin
-        cache_next_state = (cache_write_valid && (
+        if (
+          cache_write_valid && (
                        ((state == DP_NS) && (ns_state == NS_CHECKSUM_NA))
                     || ((state == DP_NA) && (na_state == NA_CACHE      ))
-                )) ? CACHE_REQUIRE_UPDATE : CACHE_SLEEP;
+                )
+        ) begin
+          cache_next_state = CACHE_REQUIRE_UPDATE;
+        end else if ((state == DP_FWD) && (fw_state == FW_NC)) begin
+          cache_next_state = CACHE_READ;
+        end
       end
       CACHE_REQUIRE_UPDATE: begin
         cache_next_state = (cache_write_ea_p) ? CACHE_SIGNAL_SENT : CACHE_REQUIRE_UPDATE;
       end
       CACHE_SIGNAL_SENT: begin
         cache_next_state = (cache_ready) ? CACHE_SLEEP : CACHE_SIGNAL_SENT;
+      end
+      CACHE_READ: begin
+        cache_next_state = CACHE_READ_DONE;
+      end
+      CACHE_READ_DONE: begin
+        cache_next_state = CACHE_SLEEP;
       end
       default: begin
         cache_next_state = CACHE_SLEEP;
@@ -664,6 +914,68 @@ module datapath_sm (
   end
 
   // =============================================================
+  //  Forward state transition
+  // =============================================================
+  always_comb begin
+    fw_next_state = FW_IDLE;
+    case (fw_state)
+      FW_IDLE: begin
+        if (state == DP_FWD) fw_next_state = FW_FWT;
+      end
+      FW_FWT: begin
+        if (fwt_ack_p) begin
+          if (fwt_exists) begin
+            fw_next_state = FW_NC;
+          end else begin
+            fw_next_state = FW_DONE;
+          end
+        end else begin
+          fw_next_state = FW_FWT;
+        end
+      end
+      FW_NC: begin
+        if (cache_read_ready) begin
+          if (cache_exists) begin
+            if (first_beat.last) begin
+              fw_next_state = FW_DONE;
+            end else begin
+              fw_next_state = FW_SEND_1;
+            end
+          end else begin
+            fw_next_state = FW_DONE;
+          end
+        end else begin
+          fw_next_state = FW_NC;
+        end
+      end
+      FW_FW: begin
+        if (out_ready && in.valid) begin
+          if (in.last) begin
+            fw_next_state = FW_DONE;
+          end else begin
+            fw_next_state = FW_SEND_F;
+          end
+        end else begin
+          fw_next_state = FW_FW;
+        end
+      end
+      FW_SEND_1: begin
+        fw_next_state = FW_FW;
+      end
+      FW_SEND_F: begin
+        fw_next_state = FW_FW;
+      end
+      FW_DONE: begin
+        if (out_ready) begin
+          fw_next_state = FW_IDLE;
+        end
+      end
+      default: fw_next_state = FW_IDLE;
+    endcase
+
+  end
+
+  // =============================================================
   //  Top level state transition
   // =============================================================
 
@@ -693,8 +1005,10 @@ module datapath_sm (
                         && (in.data.ip6.src != 0)
                     ) begin
             next_state = DP_NA;
+          end else if ((in.data.ip6.version == 6) && (in.data.ip6.hop_limit > 1)) begin
+            next_state = DP_FWD;
           end else begin
-            next_state = DP_IDLE;  // TODO: Change to DP_FWD here
+            next_state = DP_IDLE;
           end
         end
       end
@@ -707,7 +1021,9 @@ module datapath_sm (
       DP_NUD: begin
         next_state = ((nud_state_reg != NUD_IDLE) && (nud_next_state_reg == NUD_IDLE)) ? DP_IDLE : DP_NUD;
       end
-      // TODO: Implement DP_FWD here
+      DP_FWD: begin
+        next_state = ((fw_state != FW_IDLE) && (fw_next_state == FW_IDLE)) ? DP_IDLE : DP_FWD;
+      end
       default: begin
         next_state = DP_IDLE;
       end

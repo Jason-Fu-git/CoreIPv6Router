@@ -23,8 +23,8 @@
 *   - Between two successive queries, ea_p should be 0.
 *
 *   Output:
-*   - Only when ready is 1, the next_hop_addr is valid, which is in small endian.
-*   - ready will be hold until the next query.
+*   - Only when ack_p is 1, the next_hop_addr is valid, which is in small endian.
+*   - ack_p will only be 1 for one clock cycle.
 *
 *  @see bram_controller.sv, tb_forward_table.sv
 *  @author Jason Fu
@@ -43,7 +43,7 @@ module forward_table #(
     input wire [127:0] ip6_addr,
 
     output reg [127:0] next_hop_addr,
-    output reg         ready,
+    output reg         ack_p,
     output reg         exists,
 
     // external memory
@@ -120,7 +120,7 @@ module forward_table #(
       state <= ST_IDLE;
 
       next_hop_addr <= 0;
-      ready <= 0;
+      ack_p <= 0;
       exists <= 0;
 
       mem_rea_p <= 0;
@@ -134,13 +134,13 @@ module forward_table #(
     end else begin
       case (state)
         ST_IDLE: begin
+          ack_p <= 0;
           if (trigger) begin
             // Start Search
             state <= ST_READ_MEM;
 
             _mem_addr <= BASE_ADDR;
             mem_rea_p <= 1;
-            ready <= 0;
             exists <= 0;
           end else begin
             state <= ST_IDLE;
@@ -172,7 +172,7 @@ module forward_table #(
             // End of Table
             state <= ST_IDLE;
 
-            ready <= 1;
+            ack_p <= 1;
           end else begin
             // Next Entry
             state <= ST_READ_MEM;

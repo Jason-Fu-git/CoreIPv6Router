@@ -62,8 +62,8 @@ INTERFACES = [f'tanlabs-veth{i}' for i in range(4)]
 
 # frames.txt format:
 # <Ingress Interface ID> <Frame Length> <Frame Data...>
-
-fout = open('frames.txt', 'w')  # for simulation
+# FIXME: Change the input file here
+fout = open('fw_frames.txt', 'w')  # for simulation
 pout = RawPcapWriter('in_frames.pcap', DLT_EN10MB)  # for wireshark
 
 
