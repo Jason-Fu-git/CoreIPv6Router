@@ -40,10 +40,10 @@ module frame_datapath
     input wire ip_valid_3,
 
     // added mac addrs
-    output wire [47:0] mac_addr_0,
-    output wire [47:0] mac_addr_1,
-    output wire [47:0] mac_addr_2,
-    output wire [47:0] mac_addr_3
+    input wire [47:0] mac_addr_0,
+    input wire [47:0] mac_addr_1,
+    input wire [47:0] mac_addr_2,
+    input wire [47:0] mac_addr_3
 );
 
     frame_beat in8, in;
@@ -120,7 +120,7 @@ module frame_datapath
 
     datapath_sm datapath_sm_i(
         .clk(eth_clk),
-        .rst(reset),
+        .rst_p(reset),
         .in(in),
         .s_ready(in.valid),
         .in_ready(in_ready),
