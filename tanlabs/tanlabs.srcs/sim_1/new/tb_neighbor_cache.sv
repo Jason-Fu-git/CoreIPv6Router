@@ -24,8 +24,10 @@ module tb_neighbor_cache;
   reg exists;
   reg ready;
 
-  reg should_probe;
+  // NUD
+  reg nud_probe;
   reg [127:0] probe_IPv6_addr;
+  reg [1:0] probe_port_id;
 
   // Instantiate the Unit Under Test (UUT)
   neighbor_cache #(
@@ -46,8 +48,9 @@ module tb_neighbor_cache;
       .rea_p(rea_p),
       .exists(exists),
       .ready(ready),
-      .should_probe(should_probe),
-      .probe_IPv6_addr(probe_IPv6_addr)
+      .nud_probe(nud_probe),
+      .probe_IPv6_addr(probe_IPv6_addr),
+      .probe_port_id(probe_port_id)
   );
 
   // Always block

@@ -6,7 +6,7 @@ module tb_frame_datapath
     parameter ID_WIDTH = 3
 )
 (
-    
+
 );
     //added for ip configuration
     reg [127:0] ip_addrs[3:0];

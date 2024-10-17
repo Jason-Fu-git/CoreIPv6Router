@@ -38,7 +38,7 @@ module neighbor_cache #(
     parameter REACHABLE_LIMIT  = 32'hFFFFFFF0,  // approx 34s for 125MHz clock
     // when the probe timer reaches this value, the external module should probe the IPv6 address
     // parameter PROBE_LIMIT      = 32'hDFFFFFFF   // approx 30s for 125MHz clock
-    parameter PROBE_LIMIT      = 32'h1e848 // 1ms for debug
+    parameter PROBE_LIMIT      = 32'h1e848      // 1ms for debug
 ) (
     input wire clk,
     input wire rst_p,
@@ -264,27 +264,55 @@ module neighbor_cache #(
           // reset timer
           neighbor_cache_entries[i].reachable_timer <= 0;
         end else if (state == ST_SAVE) begin
-          if (updatable && i == update_addr) begin
-            // update entry
-            neighbor_cache_entries[i].valid <= 1;
-            neighbor_cache_entries[i].reachable_timer <= 0;
-          end else if (insertable && i == insert_addr) begin
-            // insert entry
-            neighbor_cache_entries[i].valid <= 1;
-            neighbor_cache_entries[i].reachable_timer <= 0;
-          end else if (!insertable && !updatable && i == next_replace_addr) begin
-            // replace entry
-            neighbor_cache_entries[i].valid <= 1;
-            neighbor_cache_entries[i].reachable_timer <= 0;
-          end else begin
-            if (neighbor_cache_entries[i].valid) begin
-              // increment timer
-              if (neighbor_cache_entries[i].reachable_timer >= REACHABLE_LIMIT) begin
-                neighbor_cache_entries[i].reachable_timer <= 0;
-                neighbor_cache_entries[i].valid <= 0;
-              end else begin
-                neighbor_cache_entries[i].reachable_timer
+          if (updatable) begin
+            if (i == update_addr) begin
+              // update entry
+              neighbor_cache_entries[i].valid <= 1;
+              neighbor_cache_entries[i].reachable_timer <= 0;
+            end else begin
+              if (neighbor_cache_entries[i].valid) begin
+                // increment timer
+                if (neighbor_cache_entries[i].reachable_timer >= REACHABLE_LIMIT) begin
+                  neighbor_cache_entries[i].reachable_timer <= 0;
+                  neighbor_cache_entries[i].valid <= 0;
+                end else begin
+                  neighbor_cache_entries[i].reachable_timer
                  <= neighbor_cache_entries[i].reachable_timer + 1;
+                end
+              end
+            end
+          end else if (insertable) begin
+            if (i == insert_addr) begin
+              // insert entry
+              neighbor_cache_entries[i].valid <= 1;
+              neighbor_cache_entries[i].reachable_timer <= 0;
+            end else begin
+              if (neighbor_cache_entries[i].valid) begin
+                // increment timer
+                if (neighbor_cache_entries[i].reachable_timer >= REACHABLE_LIMIT) begin
+                  neighbor_cache_entries[i].reachable_timer <= 0;
+                  neighbor_cache_entries[i].valid <= 0;
+                end else begin
+                  neighbor_cache_entries[i].reachable_timer
+                 <= neighbor_cache_entries[i].reachable_timer + 1;
+                end
+              end
+            end
+          end else begin
+            if ((i == next_replace_addr)) begin
+              // replace entry
+              neighbor_cache_entries[i].valid <= 1;
+              neighbor_cache_entries[i].reachable_timer <= 0;
+            end else begin
+              if (neighbor_cache_entries[i].valid) begin
+                // increment timer
+                if (neighbor_cache_entries[i].reachable_timer >= REACHABLE_LIMIT) begin
+                  neighbor_cache_entries[i].reachable_timer <= 0;
+                  neighbor_cache_entries[i].valid <= 0;
+                end else begin
+                  neighbor_cache_entries[i].reachable_timer
+                 <= neighbor_cache_entries[i].reachable_timer + 1;
+                end
               end
             end
           end
