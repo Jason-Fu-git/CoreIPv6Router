@@ -31,13 +31,17 @@ module datapath_sm (
 	} dp_state_t;
 
 	// Top level states, transition conditions at the end
-	dp_state_t state, next_state;
+	dp_state_t state, next_state, state_reg, next_state_reg;
 
 	always_ff @(posedge clk) begin
 		if (rst_p) begin
 			state <= DP_IDLE;
+			state_reg <= DP_IDLE;
+			next_state_reg <= DP_IDLE;
 		end else begin
 			state <= next_state;
+			state_reg <= state;
+			next_state_reg <= next_state;
 		end
 	end
 
@@ -54,13 +58,17 @@ module datapath_sm (
 		NS_SEND_2       // Send the second pack of NA
 	} ns_state_t;
 
-	ns_state_t ns_state, ns_next_state;
+	ns_state_t ns_state, ns_next_state, ns_state_reg, ns_next_state_reg;
 
 	always_ff @(posedge clk) begin
 		if (rst_p) begin
 			ns_state <= NS_IDLE;
+			ns_state_reg <= NS_IDLE;
+			ns_next_state_reg <= NS_IDLE;
 		end else begin
 			ns_state <= ns_next_state;
+			ns_state_reg <= ns_state;
+			ns_next_state_reg <= ns_next_state;
 		end
 	end
 	
@@ -75,13 +83,17 @@ module datapath_sm (
 		NA_CACHE     // Write ND cache
 	} na_state_t;
 
-	na_state_t na_state, na_next_state;
+	na_state_t na_state, na_next_state, na_state_reg, na_next_state_reg;
 	
 	always_ff @(posedge clk) begin
 		if (rst_p) begin
 			na_state <= NA_IDLE;
+			na_state_reg <= NA_IDLE;
+			na_next_state_reg <= NA_IDLE;
 		end else begin
 			na_state <= na_next_state;
+			na_state_reg <= na_state;
+			na_next_state_reg <= na_next_state;
 		end
 	end
 
@@ -96,13 +108,17 @@ module datapath_sm (
 		NUD_SEND_2  // Send the second pack of NS
 	} nud_state_t;
 
-	nud_state_t nud_state, nud_next_state;
+	nud_state_t nud_state, nud_next_state, nud_state_reg, nud_next_state_reg;
 
 	always_ff @(posedge clk) begin
 		if (rst_p) begin
 			nud_state <= NUD_IDLE;
+			nud_state_reg <= NUD_IDLE;
+			nud_next_state_reg <= NUD_IDLE;
 		end else begin
 			nud_state <= nud_next_state;
+			nud_state_reg <= nud_state;
+			nud_next_state_reg <= nud_next_state;
 		end
 	end
 
@@ -122,13 +138,17 @@ module datapath_sm (
 		CACHE_SIGNAL_SENT
 	} cache_state_t;
 
-	cache_state_t cache_state, cache_next_state;
+	cache_state_t cache_state, cache_next_state, cache_state_reg, cache_next_state_reg;
 
 	always_ff @(posedge clk) begin
 		if (rst_p) begin
 			cache_state <= CACHE_SLEEP;
+			cache_state_reg <= CACHE_SLEEP;
+			cache_next_state_reg <= CACHE_SLEEP;
 		end else begin
 			cache_state <= cache_next_state;
+			cache_state_reg <= cache_state;
+			cache_next_state_reg <= cache_next_state;
 		end
 	end
 
@@ -566,7 +586,8 @@ module datapath_sm (
 	always_comb begin
 		case (ns_state)
 			NS_IDLE: begin
-				ns_next_state = ((state == DP_IDLE) && (next_state == DP_NS)) ? NS_WAIT : NS_IDLE;
+				// ns_next_state = ((state == DP_IDLE) && (next_state == DP_NS)) ? NS_WAIT : NS_IDLE;
+				ns_next_state = ((state_reg == DP_IDLE) && (next_state_reg == DP_NS)) ? NS_WAIT : NS_IDLE;
 			end
 			NS_WAIT: begin
 				ns_next_state = (s_ready) ? NS_CHECKSUM_NS : NS_WAIT;
@@ -596,7 +617,8 @@ module datapath_sm (
 	always_comb begin
 		case (na_state)
 			NA_IDLE: begin
-				na_next_state = ((state == DP_IDLE) && (next_state == DP_NA)) ? NA_WAIT : NA_IDLE;
+				// na_next_state = ((state == DP_IDLE) && (next_state == DP_NA)) ? NA_WAIT : NA_IDLE;
+				na_next_state = ((state_reg == DP_IDLE) && (next_state_reg == DP_NA)) ? NA_WAIT : NA_IDLE;
 			end
 			NA_WAIT: begin
 				na_next_state = (s_ready) ? NA_CHECKSUM : NA_WAIT;
@@ -620,7 +642,8 @@ module datapath_sm (
 	always_comb begin
 		case (nud_state)
 			NUD_IDLE: begin
-				nud_next_state = ((state == DP_IDLE) && (next_state == DP_NUD)) ? NUD_SEND_1 : NUD_IDLE;
+				// nud_next_state = ((state == DP_IDLE) && (next_state == DP_NUD)) ? NUD_SEND_1 : NUD_IDLE;
+				nud_next_state = ((state_reg == DP_IDLE) && (next_state_reg == DP_NUD)) ? NUD_SEND_1 : NUD_IDLE;
 			end
 			NUD_SEND_1: begin
 				nud_next_state = (out_ready) ? NUD_WAIT : NUD_SEND_1;
@@ -673,13 +696,13 @@ module datapath_sm (
 				end
 			end
 			DP_NS: begin
-				next_state = (ns_next_state == NS_IDLE) ? DP_IDLE : DP_NS;
+				next_state = ((ns_state_reg != NS_IDLE) && (ns_next_state_reg == NS_IDLE)) ? DP_IDLE : DP_NS;
 			end
 			DP_NA: begin
-				next_state = (na_next_state == NA_IDLE) ? DP_IDLE : DP_NA;
+				next_state = ((na_state_reg != NA_IDLE) && (na_next_state_reg == NA_IDLE)) ? DP_IDLE : DP_NA;
 			end
 			DP_NUD: begin
-				next_state = (nud_next_state == NUD_IDLE) ? DP_IDLE : DP_NUD;
+				next_state = ((nud_state_reg != NUD_IDLE) && (nud_next_state_reg == NUD_IDLE)) ? DP_IDLE : DP_NUD;
 			end
 			// TODO: Implement DP_FWD here
 			default: begin
