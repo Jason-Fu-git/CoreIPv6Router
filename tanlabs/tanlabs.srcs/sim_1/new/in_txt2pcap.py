@@ -1,0 +1,41 @@
+#!/usr/bin/env python3
+
+# Requirements:
+#   sudo apt install python3-pip
+#   sudo pip3 install scapy
+# Usage:
+#   ./txt2pcap [filename]
+# or
+#   python3 txt2pcap [filename]
+
+from scapy import *
+from scapy.utils import *
+from scapy.layers.l2 import *
+from scapy.layers.inet import *
+import sys
+import struct
+import binascii
+
+filename = 'frames.txt'
+#filename = './frames.txt'
+if len(sys.argv) >= 2:
+  filename = sys.argv[1]
+
+fin = open(filename, 'r')
+pout = RawPcapWriter('in_frames.pcap', DLT_EN10MB)
+
+def write_frame(iface, data):
+  # We use VLAN ID to indicate the interface ID in pcap files.
+  pout.write(data[:12] + struct.pack('>HH', 0x8100, 1000 + iface) + data[12:])
+
+for line in fin:
+  iface, data = line.rstrip().split(' ', 1)
+  iface = int(iface)
+  length, data = data.split(' ', 1)
+  data = data.replace(' ', '')
+  data = binascii.a2b_hex(data)
+  write_frame(iface, data)
+
+fin.close()
+pout.close()
+exit(0)

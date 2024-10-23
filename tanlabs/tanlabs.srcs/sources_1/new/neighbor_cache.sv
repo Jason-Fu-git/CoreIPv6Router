@@ -153,15 +153,7 @@ module neighbor_cache #(
   // updatablitity flag
   reg updatable;
 
-  always_ff @(posedge clk) begin
-    if (rst_p || (!uea_p && !wea_p && !rea_p)) begin
-      exists <= 0;
-    end else begin
-      if (updatable) begin
-        exists <= 1;
-      end
-    end
-  end
+  assign exists = updatable;
 
 
   // =================== CAM entry query, higher address first =============

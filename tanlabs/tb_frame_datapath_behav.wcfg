@@ -12,15 +12,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="1349260fs"></ZoomStartTime>
-      <ZoomEndTime time="4151261fs"></ZoomEndTime>
-      <Cursor1Time time="1816260fs"></Cursor1Time>
+      <ZoomStartTime time="0fs"></ZoomStartTime>
+      <ZoomEndTime time="29100001fs"></ZoomEndTime>
+      <Cursor1Time time="1650000fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="263"></NameColumnWidth>
-      <ValueColumnWidth column_width="341"></ValueColumnWidth>
+      <NameColumnWidth column_width="454"></NameColumnWidth>
+      <ValueColumnWidth column_width="320"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="39" />
+   <WVObjectSize size="44" />
    <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/clk" type="logic">
       <obj_property name="ElementShortName">clk</obj_property>
       <obj_property name="ObjectShortName">clk</obj_property>
@@ -32,7 +32,6 @@
    <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/in" type="array">
       <obj_property name="ElementShortName">in</obj_property>
       <obj_property name="ObjectShortName">in</obj_property>
-      <obj_property name="isExpanded"></obj_property>
       <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/in.data" type="array">
          <obj_property name="ElementShortName">.data</obj_property>
          <obj_property name="ObjectShortName">.data</obj_property>
@@ -63,64 +62,6 @@
          <obj_property name="ObjectShortName">.meta</obj_property>
       </wvobject>
    </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/first_beat" type="array">
-      <obj_property name="ElementShortName">first_beat</obj_property>
-      <obj_property name="ObjectShortName">first_beat</obj_property>
-      <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/first_beat.data" type="array">
-         <obj_property name="ElementShortName">.data</obj_property>
-         <obj_property name="ObjectShortName">.data</obj_property>
-         <obj_property name="isExpanded"></obj_property>
-         <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/first_beat.data.ip6" type="array">
-            <obj_property name="ElementShortName">.ip6</obj_property>
-            <obj_property name="ObjectShortName">.ip6</obj_property>
-            <obj_property name="isExpanded"></obj_property>
-         </wvobject>
-         <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/first_beat.data.ethertype" type="array">
-            <obj_property name="ElementShortName">.ethertype[15:0]</obj_property>
-            <obj_property name="ObjectShortName">.ethertype[15:0]</obj_property>
-         </wvobject>
-         <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/first_beat.data.src" type="array">
-            <obj_property name="ElementShortName">.src[47:0]</obj_property>
-            <obj_property name="ObjectShortName">.src[47:0]</obj_property>
-         </wvobject>
-         <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/first_beat.data.dst" type="array">
-            <obj_property name="ElementShortName">.dst[47:0]</obj_property>
-            <obj_property name="ObjectShortName">.dst[47:0]</obj_property>
-         </wvobject>
-      </wvobject>
-      <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/first_beat.keep" type="array">
-         <obj_property name="ElementShortName">.keep[55:0]</obj_property>
-         <obj_property name="ObjectShortName">.keep[55:0]</obj_property>
-      </wvobject>
-      <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/first_beat.last" type="logic">
-         <obj_property name="ElementShortName">.last</obj_property>
-         <obj_property name="ObjectShortName">.last</obj_property>
-      </wvobject>
-      <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/first_beat.user" type="array">
-         <obj_property name="ElementShortName">.user[55:0]</obj_property>
-         <obj_property name="ObjectShortName">.user[55:0]</obj_property>
-      </wvobject>
-      <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/first_beat.valid" type="logic">
-         <obj_property name="ElementShortName">.valid</obj_property>
-         <obj_property name="ObjectShortName">.valid</obj_property>
-      </wvobject>
-      <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/first_beat.is_first" type="logic">
-         <obj_property name="ElementShortName">.is_first</obj_property>
-         <obj_property name="ObjectShortName">.is_first</obj_property>
-      </wvobject>
-      <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/first_beat.meta" type="array">
-         <obj_property name="ElementShortName">.meta</obj_property>
-         <obj_property name="ObjectShortName">.meta</obj_property>
-      </wvobject>
-   </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/out" type="array">
-      <obj_property name="ElementShortName">out</obj_property>
-      <obj_property name="ObjectShortName">out</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/neighbor_cache_i/neighbor_cache_entries" type="array">
-      <obj_property name="ElementShortName">neighbor_cache_entries[0:15]</obj_property>
-      <obj_property name="ObjectShortName">neighbor_cache_entries[0:15]</obj_property>
-   </wvobject>
    <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/s_ready" type="logic">
       <obj_property name="ElementShortName">s_ready</obj_property>
       <obj_property name="ObjectShortName">s_ready</obj_property>
@@ -133,124 +74,321 @@
       <obj_property name="ElementShortName">in_ready</obj_property>
       <obj_property name="ObjectShortName">in_ready</obj_property>
    </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/in.valid" type="logic">
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="ElementShortName">.valid</obj_property>
+      <obj_property name="ObjectShortName">.valid</obj_property>
+      <obj_property name="label">in.valid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/out.meta.drop" type="logic">
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="ElementShortName">.drop</obj_property>
+      <obj_property name="ObjectShortName">.drop</obj_property>
+      <obj_property name="label">out.drop</obj_property>
+      <obj_property name="CustomSignalColor">#FFA500</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/out.valid" type="logic">
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="ElementShortName">.valid</obj_property>
+      <obj_property name="ObjectShortName">.valid</obj_property>
+      <obj_property name="label">out.valid</obj_property>
+      <obj_property name="CustomSignalColor">#FFA500</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_first_beat_should_send" type="logic">
+      <obj_property name="ElementShortName">fw_first_beat_should_send</obj_property>
+      <obj_property name="ObjectShortName">fw_first_beat_should_send</obj_property>
+      <obj_property name="CustomSignalColor">#DCDCDC</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_should_send" type="logic">
+      <obj_property name="ElementShortName">fw_should_send</obj_property>
+      <obj_property name="ObjectShortName">fw_should_send</obj_property>
+      <obj_property name="CustomSignalColor">#DCDCDC</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/out" type="array">
+      <obj_property name="ElementShortName">out</obj_property>
+      <obj_property name="ObjectShortName">out</obj_property>
+      <obj_property name="CustomSignalColor">#A52A2A</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_out_first_beat.index" type="array">
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="ElementShortName">.index[4:0]</obj_property>
+      <obj_property name="ObjectShortName">.index[4:0]</obj_property>
+      <obj_property name="label">out_first.index[4:0]</obj_property>
+      <obj_property name="CustomSignalColor">#A52A2A</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_out_following_beat.index" type="array">
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="ElementShortName">.index[4:0]</obj_property>
+      <obj_property name="ObjectShortName">.index[4:0]</obj_property>
+      <obj_property name="label">out_follow.index[4:0]</obj_property>
+      <obj_property name="CustomSignalColor">#A52A2A</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
    <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/state" type="array">
       <obj_property name="ElementShortName">state[3:0]</obj_property>
       <obj_property name="ObjectShortName">state[3:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_state" type="array">
-      <obj_property name="ElementShortName">fw_state[2:0]</obj_property>
-      <obj_property name="ObjectShortName">fw_state[2:0]</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fwo_state" type="array">
+      <obj_property name="ElementShortName">fwo_state[2:0]</obj_property>
+      <obj_property name="ObjectShortName">fwo_state[2:0]</obj_property>
+      <obj_property name="CustomSignalColor">#D2691E</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/ftb_test/state" type="array">
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="ElementShortName">state[1:0]</obj_property>
+      <obj_property name="ObjectShortName">state[1:0]</obj_property>
+      <obj_property name="CustomSignalColor">#FF0080</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+      <obj_property name="label">fwt.state[1:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_in_first_beat" type="array">
+      <obj_property name="ElementShortName">fw_in_first_beat</obj_property>
+      <obj_property name="ObjectShortName">fw_in_first_beat</obj_property>
+      <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+      <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_in_first_beat.data" type="array">
+         <obj_property name="ElementShortName">.data</obj_property>
+         <obj_property name="ObjectShortName">.data</obj_property>
+         <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_in_first_beat.index" type="array">
+         <obj_property name="ElementShortName">.index[4:0]</obj_property>
+         <obj_property name="ObjectShortName">.index[4:0]</obj_property>
+         <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_in_first_beat.error" type="array">
+         <obj_property name="ElementShortName">.error[2:0]</obj_property>
+         <obj_property name="ObjectShortName">.error[2:0]</obj_property>
+         <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_in_first_beat.valid" type="logic">
+         <obj_property name="ElementShortName">.valid</obj_property>
+         <obj_property name="ObjectShortName">.valid</obj_property>
+         <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_in_first_beat.stop" type="logic">
+         <obj_property name="ElementShortName">.stop</obj_property>
+         <obj_property name="ObjectShortName">.stop</obj_property>
+         <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_in_first_beat.waiting" type="logic">
+         <obj_property name="ElementShortName">.waiting</obj_property>
+         <obj_property name="ObjectShortName">.waiting</obj_property>
+         <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_first_beat_in_ready" type="logic">
+      <obj_property name="ElementShortName">fw_first_beat_in_ready</obj_property>
+      <obj_property name="ObjectShortName">fw_first_beat_in_ready</obj_property>
+      <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fwt_in_beat" type="array">
+      <obj_property name="ElementShortName">fwt_in_beat</obj_property>
+      <obj_property name="ObjectShortName">fwt_in_beat</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fwt_in_ready" type="logic">
+      <obj_property name="ElementShortName">fwt_in_ready</obj_property>
+      <obj_property name="ObjectShortName">fwt_in_ready</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fwt_out_beat" type="array">
+      <obj_property name="ElementShortName">fwt_out_beat</obj_property>
+      <obj_property name="ObjectShortName">fwt_out_beat</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fwt_out_ready" type="logic">
+      <obj_property name="ElementShortName">fwt_out_ready</obj_property>
+      <obj_property name="ObjectShortName">fwt_out_ready</obj_property>
    </wvobject>
    <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/cache_state" type="array">
       <obj_property name="ElementShortName">cache_state[3:0]</obj_property>
       <obj_property name="ObjectShortName">cache_state[3:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/first_beat" type="array">
-      <obj_property name="ElementShortName">first_beat</obj_property>
-      <obj_property name="ObjectShortName">first_beat</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/nc_in_ready" type="logic">
+      <obj_property name="ElementShortName">nc_in_ready</obj_property>
+      <obj_property name="ObjectShortName">nc_in_ready</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/in_ether_hdr" type="array">
-      <obj_property name="ElementShortName">in_ether_hdr</obj_property>
-      <obj_property name="ObjectShortName">in_ether_hdr</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/nc_out_beat" type="array">
+      <obj_property name="ElementShortName">nc_out_beat</obj_property>
+      <obj_property name="ObjectShortName">nc_out_beat</obj_property>
+      <obj_property name="isExpanded"></obj_property>
    </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/in_ip6_hdr" type="array">
-      <obj_property name="ElementShortName">in_ip6_hdr</obj_property>
-      <obj_property name="ObjectShortName">in_ip6_hdr</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/nc_out_ready" type="logic">
+      <obj_property name="ElementShortName">nc_out_ready</obj_property>
+      <obj_property name="ObjectShortName">nc_out_ready</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/in_meta_src" type="array">
-      <obj_property name="ElementShortName">in_meta_src[1:0]</obj_property>
-      <obj_property name="ObjectShortName">in_meta_src[1:0]</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_out_first_beat_in_ready" type="logic">
+      <obj_property name="ElementShortName">fw_out_first_beat_in_ready</obj_property>
+      <obj_property name="ObjectShortName">fw_out_first_beat_in_ready</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/neighbor_ip6_addr" type="array">
-      <obj_property name="ElementShortName">neighbor_ip6_addr[127:0]</obj_property>
-      <obj_property name="ObjectShortName">neighbor_ip6_addr[127:0]</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_out_first_beat" type="array">
+      <obj_property name="ElementShortName">fw_out_first_beat</obj_property>
+      <obj_property name="ObjectShortName">fw_out_first_beat</obj_property>
+      <obj_property name="CustomSignalColor">#00FFFF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_out_first_beat.data" type="array">
+         <obj_property name="ElementShortName">.data</obj_property>
+         <obj_property name="ObjectShortName">.data</obj_property>
+         <obj_property name="CustomSignalColor">#00FFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_out_first_beat.index" type="array">
+         <obj_property name="ElementShortName">.index[4:0]</obj_property>
+         <obj_property name="ObjectShortName">.index[4:0]</obj_property>
+         <obj_property name="CustomSignalColor">#00FFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_out_first_beat.error" type="array">
+         <obj_property name="ElementShortName">.error[2:0]</obj_property>
+         <obj_property name="ObjectShortName">.error[2:0]</obj_property>
+         <obj_property name="CustomSignalColor">#00FFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_out_first_beat.valid" type="logic">
+         <obj_property name="ElementShortName">.valid</obj_property>
+         <obj_property name="ObjectShortName">.valid</obj_property>
+         <obj_property name="CustomSignalColor">#00FFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_out_first_beat.stop" type="logic">
+         <obj_property name="ElementShortName">.stop</obj_property>
+         <obj_property name="ObjectShortName">.stop</obj_property>
+         <obj_property name="CustomSignalColor">#00FFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_out_first_beat.waiting" type="logic">
+         <obj_property name="ElementShortName">.waiting</obj_property>
+         <obj_property name="ObjectShortName">.waiting</obj_property>
+         <obj_property name="CustomSignalColor">#00FFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
    </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/neighbor_mac_addr" type="array">
-      <obj_property name="ElementShortName">neighbor_mac_addr[47:0]</obj_property>
-      <obj_property name="ObjectShortName">neighbor_mac_addr[47:0]</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_follow_1" type="array">
+      <obj_property name="ElementShortName">fw_follow_1</obj_property>
+      <obj_property name="ObjectShortName">fw_follow_1</obj_property>
+      <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/neighbor_iface" type="array">
-      <obj_property name="ElementShortName">neighbor_iface[1:0]</obj_property>
-      <obj_property name="ObjectShortName">neighbor_iface[1:0]</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_follow_1_in_ready" type="logic">
+      <obj_property name="ElementShortName">fw_follow_1_in_ready</obj_property>
+      <obj_property name="ObjectShortName">fw_follow_1_in_ready</obj_property>
+      <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/cache_write_valid" type="logic">
-      <obj_property name="ElementShortName">cache_write_valid</obj_property>
-      <obj_property name="ObjectShortName">cache_write_valid</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_follow_2" type="array">
+      <obj_property name="ElementShortName">fw_follow_2</obj_property>
+      <obj_property name="ObjectShortName">fw_follow_2</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/cache_update_ea_p" type="logic">
-      <obj_property name="ElementShortName">cache_update_ea_p</obj_property>
-      <obj_property name="ObjectShortName">cache_update_ea_p</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_follow_2_in_ready" type="logic">
+      <obj_property name="ElementShortName">fw_follow_2_in_ready</obj_property>
+      <obj_property name="ObjectShortName">fw_follow_2_in_ready</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/cache_write_ea_p" type="logic">
-      <obj_property name="ElementShortName">cache_write_ea_p</obj_property>
-      <obj_property name="ObjectShortName">cache_write_ea_p</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_follow_3" type="array">
+      <obj_property name="ElementShortName">fw_follow_3</obj_property>
+      <obj_property name="ObjectShortName">fw_follow_3</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/cache_read_ea_p" type="logic">
-      <obj_property name="ElementShortName">cache_read_ea_p</obj_property>
-      <obj_property name="ObjectShortName">cache_read_ea_p</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_follow_3_in_ready" type="logic">
+      <obj_property name="ElementShortName">fw_follow_3_in_ready</obj_property>
+      <obj_property name="ObjectShortName">fw_follow_3_in_ready</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/cache_mac_addr_o" type="array">
-      <obj_property name="ElementShortName">cache_mac_addr_o[47:0]</obj_property>
-      <obj_property name="ObjectShortName">cache_mac_addr_o[47:0]</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_out_following_beat" type="array">
+      <obj_property name="ElementShortName">fw_out_following_beat</obj_property>
+      <obj_property name="ObjectShortName">fw_out_following_beat</obj_property>
+      <obj_property name="CustomSignalColor">#00FFFF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_out_following_beat.data" type="array">
+         <obj_property name="ElementShortName">.data</obj_property>
+         <obj_property name="ObjectShortName">.data</obj_property>
+         <obj_property name="CustomSignalColor">#00FFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_out_following_beat.index" type="array">
+         <obj_property name="ElementShortName">.index[4:0]</obj_property>
+         <obj_property name="ObjectShortName">.index[4:0]</obj_property>
+         <obj_property name="CustomSignalColor">#00FFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_out_following_beat.error" type="array">
+         <obj_property name="ElementShortName">.error[2:0]</obj_property>
+         <obj_property name="ObjectShortName">.error[2:0]</obj_property>
+         <obj_property name="CustomSignalColor">#00FFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_out_following_beat.valid" type="logic">
+         <obj_property name="ElementShortName">.valid</obj_property>
+         <obj_property name="ObjectShortName">.valid</obj_property>
+         <obj_property name="CustomSignalColor">#00FFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_out_following_beat.stop" type="logic">
+         <obj_property name="ElementShortName">.stop</obj_property>
+         <obj_property name="ObjectShortName">.stop</obj_property>
+         <obj_property name="CustomSignalColor">#00FFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_out_following_beat.waiting" type="logic">
+         <obj_property name="ElementShortName">.waiting</obj_property>
+         <obj_property name="ObjectShortName">.waiting</obj_property>
+         <obj_property name="CustomSignalColor">#00FFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
    </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/cache_exists" type="logic">
-      <obj_property name="ElementShortName">cache_exists</obj_property>
-      <obj_property name="ObjectShortName">cache_exists</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_out_following_beat_in_ready" type="logic">
+      <obj_property name="ElementShortName">fw_out_following_beat_in_ready</obj_property>
+      <obj_property name="ObjectShortName">fw_out_following_beat_in_ready</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/cache_ready" type="logic">
-      <obj_property name="ElementShortName">cache_ready</obj_property>
-      <obj_property name="ObjectShortName">cache_ready</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_in_should_stop" type="logic">
+      <obj_property name="ElementShortName">fw_in_should_stop</obj_property>
+      <obj_property name="ObjectShortName">fw_in_should_stop</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/cache_read_ready" type="logic">
-      <obj_property name="ElementShortName">cache_read_ready</obj_property>
-      <obj_property name="ObjectShortName">cache_read_ready</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_out_should_stop" type="logic">
+      <obj_property name="ElementShortName">fw_out_should_stop</obj_property>
+      <obj_property name="ObjectShortName">fw_out_should_stop</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/bram_rea_p" type="logic">
-      <obj_property name="ElementShortName">bram_rea_p</obj_property>
-      <obj_property name="ObjectShortName">bram_rea_p</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/neighbor_cache_i/IPv6_addr" type="array">
+      <obj_property name="ElementShortName">IPv6_addr[127:0]</obj_property>
+      <obj_property name="ObjectShortName">IPv6_addr[127:0]</obj_property>
+      <obj_property name="CustomSignalColor">#FAAFBE</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/bram_wea_p" type="logic">
-      <obj_property name="ElementShortName">bram_wea_p</obj_property>
-      <obj_property name="ObjectShortName">bram_wea_p</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/neighbor_cache_i/neighbor_cache_entries" type="array">
+      <obj_property name="ElementShortName">neighbor_cache_entries[0:15]</obj_property>
+      <obj_property name="ObjectShortName">neighbor_cache_entries[0:15]</obj_property>
+      <obj_property name="CustomSignalColor">#FAAFBE</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/bram_ack_p" type="logic">
-      <obj_property name="ElementShortName">bram_ack_p</obj_property>
-      <obj_property name="ObjectShortName">bram_ack_p</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/neighbor_cache_i/exists" type="logic">
+      <obj_property name="ElementShortName">exists</obj_property>
+      <obj_property name="ObjectShortName">exists</obj_property>
+      <obj_property name="CustomSignalColor">#FAAFBE</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/bram_addr_r" type="array">
-      <obj_property name="ElementShortName">bram_addr_r[4:0]</obj_property>
-      <obj_property name="ObjectShortName">bram_addr_r[4:0]</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/ftb_test/hit" type="logic">
+      <obj_property name="ElementShortName">hit</obj_property>
+      <obj_property name="ObjectShortName">hit</obj_property>
+      <obj_property name="CustomSignalColor">#FF0080</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
    </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/bram_addr_w" type="array">
-      <obj_property name="ElementShortName">bram_addr_w[4:0]</obj_property>
-      <obj_property name="ObjectShortName">bram_addr_w[4:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/bram_data_w" type="array">
-      <obj_property name="ElementShortName">bram_data_w[319:0]</obj_property>
-      <obj_property name="ObjectShortName">bram_data_w[319:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/bram_data_r" type="array">
-      <obj_property name="ElementShortName">bram_data_r[319:0]</obj_property>
-      <obj_property name="ObjectShortName">bram_data_r[319:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fwt_counter" type="array">
-      <obj_property name="ElementShortName">fwt_counter[2:0]</obj_property>
-      <obj_property name="ObjectShortName">fwt_counter[2:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fwt_ea_p" type="logic">
-      <obj_property name="ElementShortName">fwt_ea_p</obj_property>
-      <obj_property name="ObjectShortName">fwt_ea_p</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fwt_next_hop_addr" type="array">
-      <obj_property name="ElementShortName">fwt_next_hop_addr[127:0]</obj_property>
-      <obj_property name="ObjectShortName">fwt_next_hop_addr[127:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fwt_exists" type="logic">
-      <obj_property name="ElementShortName">fwt_exists</obj_property>
-      <obj_property name="ObjectShortName">fwt_exists</obj_property>
-   </wvobject>
-   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fwt_ack_p" type="logic">
-      <obj_property name="ElementShortName">fwt_ack_p</obj_property>
-      <obj_property name="ObjectShortName">fwt_ack_p</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/ftb_test/_max_prefix_len" type="array">
+      <obj_property name="ElementShortName">_max_prefix_len[7:0]</obj_property>
+      <obj_property name="ObjectShortName">_max_prefix_len[7:0]</obj_property>
+      <obj_property name="CustomSignalColor">#FF0080</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
    </wvobject>
 </wave_config>

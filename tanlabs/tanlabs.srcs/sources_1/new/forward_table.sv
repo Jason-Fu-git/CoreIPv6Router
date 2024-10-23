@@ -1,4 +1,5 @@
 `timescale 1ns / 1ps
+`include "frame_datapath.vh"
 
 /**
 *  @brief  Forward Table
@@ -19,12 +20,8 @@
 *   - The valid address range is from [BASE_ADDR, MAX_ADDR].
 *
 *   Enable Signal:
-*   - ea_p is the trigger signal for reading the table.
-*   - Between two successive queries, ea_p should be 0.
+*   - in_beat.valid is the trigger signal for reading the table.
 *
-*   Output:
-*   - Only when ack_p is 1, the next_hop_addr is valid, which is in small endian.
-*   - ack_p will only be 1 for one clock cycle.
 *
 *  @see bram_controller.sv, tb_forward_table.sv
 *  @author Jason Fu
@@ -39,12 +36,13 @@ module forward_table #(
     input wire clk,
     input wire rst_p,
 
-    input wire         ea_p,     // Only Read Mode
-    input wire [127:0] ip6_addr,
+    input wire            step,    // Only Read Mode
+    input fw_frame_beat_t in_beat,
 
-    output reg [127:0] next_hop_addr,
-    output reg         ack_p,
-    output reg         exists,
+    output fw_frame_beat_t out_beat,
+    input  reg             out_ready,  // External reg ready
+    output reg             in_ready,   // Ready for next query
+    output reg             exists,
 
     // external memory
     input  wire [DATA_WIDTH-1:0] mem_data,
@@ -53,18 +51,6 @@ module forward_table #(
     output reg                   mem_rea_p
 
 );
-  //  ================= Trigger ====================
-  reg prev_ea_p;
-  reg trigger;
-  assign trigger = ea_p && !prev_ea_p;
-  always_ff @(posedge clk) begin
-    if (rst_p) begin
-      prev_ea_p <= 0;
-    end else begin
-      prev_ea_p <= ea_p;
-    end
-  end
-  // ===============================================
 
 
   // ================== Match ======================
@@ -92,7 +78,7 @@ module forward_table #(
     next_mem_addr = _mem_addr + 1;
 
     if (_valid) begin
-      if ((ip6_addr & _prefix_mask) == (_prefix & _prefix_mask)) begin
+      if ((out_beat.data.data.ip6.dst & _prefix_mask) == (_prefix & _prefix_mask)) begin
         hit = 1;
       end else begin
         hit = 0;
@@ -119,8 +105,8 @@ module forward_table #(
     if (rst_p) begin
       state <= ST_IDLE;
 
-      next_hop_addr <= 0;
-      ack_p <= 0;
+      out_beat <= 0;
+      in_ready <= 1;
       exists <= 0;
 
       mem_rea_p <= 0;
@@ -134,26 +120,50 @@ module forward_table #(
     end else begin
       case (state)
         ST_IDLE: begin
-          ack_p <= 0;
-          if (trigger) begin
-            // Start Search
-            state <= ST_READ_MEM;
+          exists          <= 0;
+          _max_prefix_len <= 0;
+          mem_rea_p       <= 0;
 
-            _mem_addr <= BASE_ADDR;
-            mem_rea_p <= 1;
-            exists <= 0;
+          if (in_ready) begin
+            if (in_beat.valid) begin
+              // Not Ready for Next Query
+              in_ready       <= 0;
+              // Construct Output
+              out_beat.data    <= in_beat.data;
+              out_beat.index   <= in_beat.index;
+              out_beat.stop    <= in_beat.stop;
+              out_beat.waiting <= in_beat.waiting;
+              if (in_beat.error == ERR_NONE) begin
+                out_beat.error <= ERR_FWT_MISS;
+                // Not Prepared
+                out_beat.valid <= 0;
+                // Start Search
+                state          <= ST_READ_MEM;
+                // Memory Controller
+                _mem_addr      <= BASE_ADDR;
+                mem_rea_p      <= 1;
+              end else begin
+                out_beat.error <= in_beat.error;
+                // Prepared
+                out_beat.valid <= 1;
+              end
+            end else begin
+              // Invalid Input, Drop It
+              out_beat.valid <= 0;
+            end
           end else begin
-            state <= ST_IDLE;
-
-            _max_prefix_len <= 0;
-            mem_rea_p <= 0;
+            // !in_ready
+            if (out_ready) begin
+              in_ready       <= 1;
+              out_beat.valid <= 0; // This packet is expired
+            end
           end
+
         end
         ST_READ_MEM: begin
           if (mem_ack_p) begin
             // Read Memory
             state <= ST_MATCH;
-
             {_valid, _prefix_len, _next_hop_addr, _prefix} <= mem_data;
             mem_rea_p <= 0;
           end
@@ -162,9 +172,13 @@ module forward_table #(
           if (hit) begin
             // Update Max Prefix Length
             if (_prefix_len > _max_prefix_len) begin
-              _max_prefix_len <= _prefix_len;
-              next_hop_addr <= _next_hop_addr;
-              exists <= 1;
+              _max_prefix_len            <= _prefix_len;
+              out_beat.data.data.ip6.dst <= _next_hop_addr;
+              exists                     <= 1;
+              if (out_beat.error == ERR_FWT_MISS) begin
+                // Clean the error signal
+                out_beat.error <= ERR_NONE;
+              end
             end
           end
           // Check if it is the last entry
@@ -172,7 +186,11 @@ module forward_table #(
             // End of Table
             state <= ST_IDLE;
 
-            ack_p <= 1;
+            // Prepared
+            out_beat.valid <= 1;
+            if (out_ready) begin
+              in_ready <= 1;
+            end
           end else begin
             // Next Entry
             state <= ST_READ_MEM;
