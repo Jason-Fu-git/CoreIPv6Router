@@ -123,29 +123,6 @@ module datapath_sm (
   end
 
   // =============================================================
-  //  FWD state definition
-  // =============================================================
-
-  typedef enum logic [2:0] {
-    FW_IDLE,
-    FW_FWT,  // Forward Table Query
-    FW_NC,  // ND cache query
-    FW_FW,  // Construct the pack to forward
-    FW_SEND_1,  // Send the first pack
-    FW_SEND_F,  // Send the following pack
-    FW_DONE
-  } fw_state_t;
-  fw_state_t fw_state, fw_next_state;
-
-  always_ff @(posedge clk) begin
-    if (rst_p) begin
-      fw_state <= FW_IDLE;
-    end else begin
-      fw_state <= fw_next_state;
-    end
-  end
-
-  // =============================================================
   //  ND cache state definition
   // =============================================================
 
@@ -172,15 +149,24 @@ module datapath_sm (
   end
 
   // =============================================================
+  // Forward Logic Global Signals Definition
+  // =============================================================
+  logic fw_in_ready;
+  logic fw_reset;
+  logic cache_read_ready;
+  assign fw_reset = (state != DP_FWD && next_state != DP_FWD);
+
+
+  // =============================================================
   //  Top level util-signals definition
   // =============================================================
 
   assign in_ready = (
-           ((state == DP_IDLE) && (next_state != DP_NUD ))
+           ((state == DP_IDLE) && (next_state != DP_NUD ) && (next_state != DP_FWD))
         || ((state == DP_NS  ) && (ns_state   == NS_WAIT))
         || ((state == DP_NA  ) && (na_state   == NA_WAIT))
-        || ((state == DP_FWD) && (fw_state == FW_SEND_F))
-    );
+        || ((state == DP_FWD) && fw_in_ready)
+      );
 
   frame_beat       first_beat;  // The first pack, containing Ether/Ipv6 headers
   ether_hdr        in_ether_hdr;  // Ether header of the packet being handled now
@@ -196,7 +182,10 @@ module datapath_sm (
       first_beat <= 0;
     end else begin
       // When the Ether/IPv6 header indicates that we should handle the packet, store the first pack
-      if ((state == DP_IDLE) && (next_state != DP_IDLE) && (next_state != DP_NUD)) begin
+      if (
+           ((state == DP_IDLE) && (next_state != DP_IDLE) && (next_state != DP_NUD))
+           || ((state == DP_FWD) && (in.is_first))
+         ) begin
         first_beat <= in;
       end
     end
@@ -527,10 +516,12 @@ module datapath_sm (
   //  Forward Table
   // =============================================================
 
-  reg fwt_ea_p;
-  reg [127:0] fwt_next_hop_addr;
-  reg fwt_ack_p;
+  fw_frame_beat_t fwt_in_beat;
+  fw_frame_beat_t fwt_out_beat;
+  reg fwt_out_ready;
+  reg fwt_in_ready;
   reg fwt_exists;
+  reg fwt_ip6_addr;
 
   forward_table #(
       .BASE_ADDR (2'h0),
@@ -539,11 +530,11 @@ module datapath_sm (
       .ADDR_WIDTH(BRAM_ADDR_WIDTH)
   ) ftb_test (
       .clk(clk),
-      .rst_p(rst_p),
-      .ea_p(fwt_ea_p),
-      .ip6_addr(first_beat.data.ip6.dst),
-      .next_hop_addr(fwt_next_hop_addr),
-      .ack_p(fwt_ack_p),
+      .rst_p(rst_p || fw_reset),
+      .in_beat(fwt_in_beat),
+      .out_beat(fwt_out_beat),
+      .in_ready(fwt_in_ready),
+      .out_ready(fwt_out_ready),
       .exists(fwt_exists),
       .mem_data(bram_data_r),
       .mem_ack_p(bram_ack_p),
@@ -551,15 +542,415 @@ module datapath_sm (
       .mem_rea_p(bram_rea_p)
   );
 
-  always_ff @(posedge clk) begin
-    if (rst_p) begin
-      fwt_ea_p <= 1'b0;
-    end else begin
-      if (fw_state == FW_FWT) begin
-        fwt_ea_p <= 1'b1;
-      end else begin
-        fwt_ea_p <= 1'b0;
+  // =============================================================
+  //  Forward logic pipline
+  // =============================================================
+  logic fw_first_beat_in_ready;
+  logic fw_following_beat_in_ready;
+  logic fw_out_beat_in_ready;
+
+  // ================
+  // Judge input type
+  // ================
+  typedef enum logic [2:0] {
+    FW_TYPE_NS,
+    FW_TYPE_NA,
+    FW_TYPE_IPV6,
+    FW_TYPE_OTHERS
+  } fw_in_type_t;
+  fw_in_type_t fw_in_type;
+  always_comb begin : FW_InputType
+    fw_in_type = FW_TYPE_OTHERS;
+    if (`should_handle(in)) begin
+      if (in.data.ip6.version == 6) begin
+        if (
+                 (in.data.ip6.next_hdr == IP6_HDR_TYPE_ICMPv6)
+              && (in.data.ip6.p[7:0] == ICMPv6_HDR_TYPE_NS)
+              && (in.data.ip6.hop_limit == IP6_HDR_HOP_LIMIT_DEFAULT)
+              && (in.data.ip6.p[15:8] == 0)
+              && ({in.data.ip6.payload_len[7:0], in.data.ip6.payload_len[15:8]} >= 16'd24)
+              && (in.data.ip6.payload_len[10:8] == 3'b000)
+              && (in.data.ip6.src != 0)
+          ) begin
+          fw_in_type = FW_TYPE_NS;
+        end else if(
+                 (in.data.ip6.next_hdr == IP6_HDR_TYPE_ICMPv6)
+              && (in.data.ip6.p[7:0] == ICMPv6_HDR_TYPE_NA)
+              && (in.data.ip6.hop_limit == IP6_HDR_HOP_LIMIT_DEFAULT)
+              && (in.data.ip6.p[15:8] == 0)
+              && ({in.data.ip6.payload_len[7:0], in.data.ip6.payload_len[15:8]} >= 16'd24)
+              && (in.data.ip6.payload_len[10:8] == 3'b000)
+              && (in.data.ip6.src != 0)
+          ) begin
+          fw_in_type = FW_TYPE_NA;
+        end else if (in.data.ip6.hop_limit > 1) begin
+          fw_in_type = FW_TYPE_IPV6;
+        end else begin  // Invalid Hop Limit. Drop it.
+          fw_in_type = FW_TYPE_OTHERS;
+        end
       end
+    end
+  end
+
+
+  // =================
+  // Input selector
+  // =================
+  fw_frame_beat_t       fw_in_first_beat;
+  fw_frame_beat_t       fw_in_following_beat;
+  reg             [4:0] fw_in_counter;  // 0 is reserved for a bubble
+  reg                   fw_in_should_stop;
+  dp_state_t            fw_out_state;
+  assign fw_in_ready =  !fw_in_should_stop &&
+                        (
+                          (fw_first_beat_in_ready && in.is_first) ||
+                          (fw_following_beat_in_ready && !in.is_first)
+                        );
+  always_ff @(posedge clk) begin : FW_InputSelector
+    if (rst_p || fw_reset) begin
+      fw_in_first_beat     <= 0;
+      fw_in_following_beat <= 0;
+      fw_in_counter        <= 0;
+      fw_in_should_stop    <= 1;
+      fw_out_state         <= DP_IDLE;
+    end else begin
+      if (state == DP_IDLE && next_state == DP_FWD) begin
+        fw_in_should_stop <= 0;
+      end else begin
+        if (fw_first_beat_in_ready) begin
+          if (fw_in_should_stop) begin
+            fw_in_first_beat.valid   <= 1;
+            fw_in_first_beat.stop    <= 1;
+            fw_in_first_beat.waiting <= 0;
+            fw_in_first_beat.error   <= ERR_NONE;
+          end else begin
+            if (`should_handle(in)) begin
+              // Set Data
+              fw_in_first_beat.data <= in;
+              // Set Index
+              if (fw_in_counter == 5'b11111) begin
+                fw_in_counter          <= 1;
+                fw_in_first_beat.index <= 1;
+              end else begin
+                fw_in_counter          <= fw_in_counter + 1;
+                fw_in_first_beat.index <= fw_in_counter + 1;
+              end
+              // Set Valid
+              fw_in_first_beat.valid <= 1;
+              // Set Other Signals
+              case (fw_in_type)
+                FW_TYPE_IPV6: begin
+                  // Process the first beat
+                  fw_in_should_stop        <= 0;
+                  fw_in_first_beat.waiting <= 1;
+                  fw_in_first_beat.stop    <= 0;
+                  fw_in_first_beat.error   <= ERR_NONE;
+                  fw_out_state             <= DP_IDLE;
+                end
+                FW_TYPE_NS: begin
+                  // Stop Forward Logic
+                  fw_in_should_stop        <= 1;
+                  fw_in_first_beat.waiting <= 0;
+                  fw_in_first_beat.stop    <= 1;
+                  fw_in_first_beat.error   <= ERR_WRONG_TYPE;
+                  fw_out_state             <= DP_NS;
+                end
+                FW_TYPE_NA: begin
+                  // Stop Forward Logic
+                  fw_in_should_stop        <= 1;
+                  fw_in_first_beat.waiting <= 0;
+                  fw_in_first_beat.stop    <= 1;
+                  fw_in_first_beat.error   <= ERR_WRONG_TYPE;
+                  fw_out_state             <= DP_NA;
+                end
+                default: begin
+                  fw_in_first_beat.waiting <= 1;
+                  fw_in_first_beat.stop    <= 0;
+                  fw_in_first_beat.error   <= ERR_WRONG_TYPE;
+                  fw_out_state             <= DP_IDLE;
+                end
+              endcase
+            end else begin  // Should not handle
+              fw_in_first_beat.valid   <= 0;
+              fw_in_first_beat.waiting <= 0;
+              fw_in_first_beat.stop    <= 0;
+              fw_in_first_beat.error   <= ERR_NONE;
+            end
+          end
+        end
+        if (fw_following_beat_in_ready) begin
+          fw_in_following_beat.index     <= fw_in_counter;
+          if (fw_in_should_stop) begin
+            fw_in_following_beat.valid   <= 1;
+            fw_in_following_beat.waiting <= 0;
+            fw_in_following_beat.stop    <= 1;
+            fw_in_following_beat.error   <= ERR_NONE;
+          end else begin
+            if (`should_handle_following(in)) begin
+              // Pass the following beats
+              fw_in_following_beat.data    <= in;
+              fw_in_following_beat.valid   <= 1;
+              fw_in_following_beat.waiting <= 1;
+              fw_in_following_beat.stop    <= 0;
+              fw_in_following_beat.error   <= ERR_NONE;
+            end else begin
+              fw_in_following_beat.valid   <= 0;
+              fw_in_following_beat.waiting <= 0;
+              fw_in_following_beat.stop    <= 0;
+              fw_in_following_beat.error   <= ERR_NONE;
+            end
+          end
+        end
+      end
+    end
+  end
+
+  // =================
+  // Process First Beat
+  // =================
+
+  // Forward Table Input
+  assign fw_first_beat_in_ready = fwt_in_ready || !fw_in_first_beat.valid;
+  assign fwt_in_beat            = fw_in_first_beat;
+
+  // Neighbor Cache
+  logic nc_in_ready;
+  assign fwt_out_ready = nc_in_ready;
+
+  logic           nc_out_ready;
+  fw_frame_beat_t nc_out_beat;
+  assign nc_in_ready = (nc_out_ready || !nc_out_beat.valid) && cache_read_ready;
+
+
+  logic fw_out_first_beat_in_ready;
+  assign nc_out_ready = fw_out_first_beat_in_ready;
+
+  // =================
+  // Process Following Beat
+  // =================
+
+  // FIXME: Customize the delay
+  // Toy Example: 3 beats delay
+  // Beat 1 (= fw_in_following_beat)
+  fw_frame_beat_t fw_follow_1;
+  logic           fw_follow_1_in_ready;
+  assign fw_follow_1                = fw_in_following_beat;
+  assign fw_following_beat_in_ready = fw_follow_1_in_ready;
+
+  // Beat 2
+  fw_frame_beat_t fw_follow_2;
+  logic           fw_follow_2_in_ready;
+  assign fw_follow_1_in_ready = fw_follow_2_in_ready || !fw_follow_1.valid;
+  always_ff @(posedge clk) begin : FW_FollowingBeat_2
+    if (rst_p || fw_reset) begin
+      fw_follow_2 <= 0;
+    end else begin
+      if (fw_follow_2_in_ready) begin
+        fw_follow_2 <= fw_follow_1;
+      end
+    end
+  end
+
+  // Beat 3
+  fw_frame_beat_t fw_follow_3;
+  logic           fw_follow_3_in_ready;
+  assign fw_follow_2_in_ready = fw_follow_3_in_ready || !fw_follow_2.valid;
+  always_ff @(posedge clk) begin : FW_FollowingBeat_3
+    if (rst_p || fw_reset) begin
+      fw_follow_3 <= 0;
+    end else begin
+      if (fw_follow_3_in_ready) begin
+        fw_follow_3 <= fw_follow_2;
+      end
+    end
+  end
+
+  logic fw_out_following_beat_in_ready;
+  assign fw_follow_3_in_ready = fw_out_following_beat_in_ready;
+
+  // =================
+  // Output Selector
+  // =================
+  // State Machine
+  typedef enum logic [2:0] {
+    FWO_IDLE,
+    FWO_SELECT,
+    FWO_SEND_1,
+    FWO_SEND_F,
+    FWO_DONE
+  } fwo_state_t;
+  fwo_state_t fwo_state;
+
+  // Variable Rename
+  fw_frame_beat_t fw_out_first_beat;
+  fw_frame_beat_t fw_out_following_beat;
+  assign fw_out_beat_in_ready = fw_out_first_beat_in_ready || fw_out_following_beat_in_ready;
+
+  // Counter : 31 Max
+  localparam UPPER_LIMIT = 5'd25;
+  localparam LOWER_LIMIT = 5'd6;
+  logic fw_first_beat_should_send;  // Whether the first beat should be sent
+  assign fw_first_beat_should_send = (!fw_out_following_beat.valid) ||
+                                     (fw_out_following_beat.valid &&
+                                      (
+                                          (
+                                            (fw_out_first_beat.index < LOWER_LIMIT) &&
+                                            (fw_out_following_beat.index < UPPER_LIMIT) &&
+                                            (fw_out_first_beat.index < fw_out_following_beat.index)
+                                          ) ||
+                                          (
+                                            (fw_out_first_beat.index >= LOWER_LIMIT) &&
+                                            (fw_out_first_beat.index < UPPER_LIMIT) &&
+                                            (fw_out_first_beat.index < fw_out_following_beat.index)
+                                          ) ||
+                                          (
+                                            (fw_out_first_beat.index >= UPPER_LIMIT) &&
+                                            (fw_out_following_beat.index >= LOWER_LIMIT) &&
+                                            (fw_out_first_beat.index < fw_out_following_beat.index)
+                                          ) ||
+                                          (
+                                            (fw_out_first_beat.index >= UPPER_LIMIT) &&
+                                            (fw_out_following_beat.index < LOWER_LIMIT)
+                                          ) ||
+                                          (
+                                            (fw_out_first_beat.index == fw_out_following_beat.index) &&
+                                            (fw_out_first_beat.waiting)
+                                            // Not Waiting Implies the first beat has been sent
+                                          )
+                                        )
+                                     );
+
+  // Interface
+  logic [1:0] fw_out_port;
+
+  // Out Ready Signal
+  assign fw_out_first_beat_in_ready    = (fwo_state == FWO_IDLE) &&
+                                      (
+                                        (!fw_out_first_beat.valid) ||
+                                        (fw_out_first_beat.valid && !fw_out_first_beat.waiting)
+                                      );
+  assign fw_out_following_beat_in_ready = (fwo_state == FWO_IDLE) &&
+                                      (
+                                        (!fw_out_following_beat.valid) ||
+                                        (fw_out_following_beat.valid && !fw_out_following_beat.waiting)
+                                      );
+
+  // Should send signal
+  logic fw_should_send;
+  assign fw_should_send     = out_ready && (
+                                              (
+                                                   fw_out_first_beat.waiting
+                                                && fw_out_first_beat.valid
+                                                && fw_first_beat_should_send
+                                              ) ||
+                                              (
+                                                  fw_out_following_beat.waiting
+                                               && fw_out_following_beat.valid
+                                               && !fw_first_beat_should_send
+                                              )
+                                            );
+  logic fw_out_should_stop;
+  assign fw_out_should_stop = fw_out_first_beat.stop && fw_out_following_beat.stop;
+
+  // Logic
+  always_ff @(posedge clk) begin : FW_OutputSelector
+    if (rst_p || fw_reset) begin
+      // state machine
+      fwo_state             <= FWO_IDLE;
+      // Interface
+      fw_out_port           <= 0;
+      // Out beat
+      fw_out_first_beat     <= 0;
+      fw_out_following_beat <= 0;
+    end else begin
+      case (fwo_state)
+        FWO_IDLE: begin
+          // Save the first beat
+          if (fw_out_first_beat_in_ready) begin
+            // FW Signals
+            fw_out_first_beat.valid                <= nc_out_beat.valid;
+            fw_out_first_beat.stop                 <= nc_out_beat.stop;
+            fw_out_first_beat.index                <= nc_out_beat.index;
+            fw_out_first_beat.error                <= nc_out_beat.error;
+            if (fw_out_first_beat.index != nc_out_beat.index) begin
+              fw_out_first_beat.waiting            <= nc_out_beat.waiting;
+            end
+            // FW Data
+            fw_out_first_beat.data.data            <= nc_out_beat.data.data;
+            fw_out_first_beat.data.keep            <= nc_out_beat.data.keep;
+            fw_out_first_beat.data.last            <= nc_out_beat.data.last;
+            fw_out_first_beat.data.user            <= nc_out_beat.data.user;
+            fw_out_first_beat.data.valid           <= nc_out_beat.data.valid;
+            fw_out_first_beat.data.is_first        <= nc_out_beat.data.is_first;
+            // Meta
+            fw_out_first_beat.data.meta.id         <= nc_out_beat.data.meta.id;
+            fw_out_first_beat.data.meta.dest       <= nc_out_beat.data.meta.dest;
+            fw_out_first_beat.data.meta.dont_touch <= nc_out_beat.data.meta.dont_touch;
+            fw_out_first_beat.data.meta.drop_next  <= nc_out_beat.data.meta.drop_next;
+            // Check its error. And set drop signal
+            case (nc_out_beat.error)
+              ERR_NONE: begin
+                fw_out_first_beat.data.meta.drop <= 0;
+              end
+              ERR_FWT_MISS: begin
+                fw_out_first_beat.data.meta.drop <= 1;
+              end
+              ERR_NC_MISS: begin
+                fw_out_first_beat.data.meta.drop <= 1;
+              end
+              ERR_WRONG_TYPE: begin
+                fw_out_first_beat.data.meta.drop <= 1;
+              end
+              default: begin
+                fw_out_first_beat.data.meta.drop <= 1;
+              end
+            endcase
+          end
+          // Save the following beat
+          if (fw_out_following_beat_in_ready) begin
+            fw_out_following_beat <= fw_follow_3;
+          end
+          // If there is a packet to send, transfer to FWO_SELECT
+          if (fw_should_send && !fw_out_should_stop) begin
+            fwo_state <= FWO_SELECT;
+          end
+        end
+        FWO_SELECT: begin
+          if (fw_first_beat_should_send) begin
+            if (fw_out_first_beat.valid && !fw_out_first_beat.stop) begin
+              // Not an empty beat. Not a stop beat
+              fwo_state   <= FWO_SEND_1;
+              fw_out_port <= fw_out_first_beat.data.meta.dest;
+            end else begin
+              // Empty first beat or stop first beat
+              fw_out_first_beat.waiting <= 0;
+              fwo_state                 <= FWO_IDLE;
+            end
+          end else begin
+            if (fw_out_following_beat.valid && !fw_out_following_beat.stop) begin
+              fwo_state <= FWO_SEND_F;
+            end else begin
+              // Empty following beat, drop it
+              fwo_state                     <= FWO_IDLE;
+              fw_out_following_beat.waiting <= 0;
+            end
+          end
+        end
+        FWO_SEND_1: begin
+          fw_out_first_beat.waiting <= 0;
+          fwo_state                 <= FWO_DONE;
+        end
+        FWO_SEND_F: begin
+          fw_out_following_beat.waiting <= 0;
+          fwo_state                     <= FWO_DONE;
+        end
+        FWO_DONE: begin
+          fwo_state <= FWO_IDLE;
+        end
+        default: begin
+          fwo_state <= FWO_IDLE;
+        end
+      endcase
     end
   end
 
@@ -578,7 +969,6 @@ module datapath_sm (
   logic [  1:0] cache_iface_o;  // Interface read from cache
   logic         cache_exists;
   logic         cache_ready;
-  logic         cache_read_ready;
 
   neighbor_cache neighbor_cache_i (
       .clk            (clk),
@@ -601,13 +991,13 @@ module datapath_sm (
   always_ff @(posedge clk) begin
     if (rst_p) begin
       neighbor_ip6_addr <= 128'b0;
-      neighbor_mac_addr <= 48 'b0;
-      neighbor_iface    <= 2  'b0;
-      cache_update_ea_p <= 1  'b0;
-      cache_write_ea_p  <= 1  'b0;
-      cache_read_ea_p   <= 1  'b0;
-      cache_write_valid <= 1  'b0;
-      cache_read_ready  <= 1  'b0;
+      neighbor_mac_addr <= 48'b0;
+      neighbor_iface    <= 2'b0;
+      cache_update_ea_p <= 1'b0;
+      cache_write_ea_p  <= 1'b0;
+      cache_read_ea_p   <= 1'b0;
+      cache_write_valid <= 1'b0;
+      cache_read_ready  <= 1'b1;
     end else begin
       if ((state == DP_NS) && (ns_state == NS_CHECKSUM_NS)) begin
         neighbor_ip6_addr <= ns_packet_i.ether.ip6.src;
@@ -623,7 +1013,9 @@ module datapath_sm (
             cache_update_ea_p <= 1'b0;
             cache_write_ea_p  <= 1'b0;
             cache_read_ea_p   <= 1'b0;
-            cache_read_ready  <= 1'b0;
+            if (cache_next_state == CACHE_READ) begin
+              cache_read_ready <= 1'b0;
+            end
             if ((state == DP_NS) && (ns_state == NS_SEND_1)) begin
               cache_write_valid <= ns_valid;
             end else if ((state == DP_NA) && (na_state == NA_CACHE)) begin
@@ -648,14 +1040,14 @@ module datapath_sm (
             cache_write_valid <= 1'b0;  // Reset for it's done
           end
           CACHE_READ: begin
-            if ((state == DP_FWD) && (fw_state == FW_NC)) begin
-              neighbor_ip6_addr <= fwt_next_hop_addr;  // Next hop from Forward Table
+            if (state == DP_FWD) begin
+              // Next hop from Forward Table
+              neighbor_ip6_addr <= nc_out_beat.data.data.ip6.dst;
             end
             cache_update_ea_p <= 1'b0;
             cache_write_ea_p  <= 1'b0;
             cache_read_ea_p   <= 1'b1;
             cache_write_valid <= 1'b0;
-            cache_read_ready  <= 1'b0;
           end
           CACHE_READ_DONE: begin
             cache_read_ready <= 1'b1;
@@ -664,9 +1056,39 @@ module datapath_sm (
             cache_update_ea_p <= 1'b0;
             cache_write_ea_p  <= 1'b0;
             cache_read_ea_p   <= 1'b0;
-            cache_read_ready  <= 1'b0;
+            cache_read_ready  <= 1'b1;
           end
         endcase
+      end
+    end
+  end
+
+  always_ff @(posedge clk) begin : FW_NC_OUT_BEAT
+    if (rst_p || fw_reset) begin
+      nc_out_beat <= 0;
+    end else begin
+      if (cache_state == CACHE_SLEEP) begin
+        if (nc_in_ready) begin
+          nc_out_beat.data    <= fwt_out_beat.data;
+          nc_out_beat.index   <= fwt_out_beat.index;
+          nc_out_beat.valid   <= 0;
+          nc_out_beat.stop    <= fwt_out_beat.stop;
+          nc_out_beat.waiting <= fwt_out_beat.waiting;
+          nc_out_beat.error   <= fwt_out_beat.error;
+        end else if (nc_out_ready) begin
+          nc_out_beat.valid <= 0;
+        end
+      end else if (cache_state == CACHE_READ_DONE) begin
+        nc_out_beat.valid <= 1;
+        if (cache_exists) begin
+          nc_out_beat.data.data.dst  <= cache_mac_addr_o;
+          nc_out_beat.data.meta.dest <= cache_iface_o;
+        end else begin
+          if (nc_out_beat.error == ERR_NONE) begin
+            // Neighbor Cache Miss Has Lower Priority
+            nc_out_beat.error <= ERR_NC_MISS;
+          end
+        end
       end
     end
   end
@@ -724,68 +1146,53 @@ module datapath_sm (
         out.meta.drop_next  <= 1'b0;
         out.meta.dest       <= nud_iface_o;
       end else if (state == DP_FWD) begin
-        if (fw_state == FW_NC) begin
-          if (cache_exists && cache_ready) begin
-            // Send first pack
-            out.valid                <= 1'b1;
-            // Construct IPv6 header
-            out.data.ip6.p           <= first_beat.data.ip6.p;
-            out.data.ip6.dst         <= first_beat.data.ip6.dst;
-            out.data.ip6.src         <= first_beat.data.ip6.src;
-            out.data.ip6.hop_limit   <= first_beat.data.ip6.hop_limit - 1;
-            out.data.ip6.next_hdr    <= first_beat.data.ip6.next_hdr;
-            out.data.ip6.payload_len <= first_beat.data.ip6.payload_len;
-            out.data.ip6.flow_lo     <= first_beat.data.ip6.flow_lo;
-            out.data.ip6.version     <= first_beat.data.ip6.version;
-            out.data.ip6.flow_hi     <= first_beat.data.ip6.flow_hi;
-            // Construct Ether header
-            out.data.ethertype       <= first_beat.data.ethertype;
-            out.data.dst             <= cache_mac_addr_o;
-            case (cache_iface_o)
-              2'd0: out.data.src <= mac_addrs[0];
-              2'd1: out.data.src <= mac_addrs[1];
-              2'd2: out.data.src <= mac_addrs[2];
-              2'd3: out.data.src <= mac_addrs[3];
-              default: out.data.src <= 48'h0;
-            endcase
-            // Meta data
-            out.is_first        <= first_beat.is_first;
-            out.last            <= first_beat.last;
-            out.keep            <= first_beat.keep;
-            out.meta.dest       <= cache_iface_o;
-            out.meta.dont_touch <= first_beat.meta.dont_touch;
-            out.meta.drop_next  <= first_beat.meta.drop_next;
-            out.meta.drop       <= first_beat.meta.drop;
-          end
-        end else if (fw_state == FW_FW) begin
-          if (out_ready && in.valid) begin
-            // Send the rest of the packs
-            out.valid           <= 1'b1;
-            // Inherit the data from the input
-            out.data            <= in.data;
-            // Mata data
-            out.is_first        <= in.is_first;
-            out.last            <= in.last;
-            out.keep            <= in.keep;
-            out.meta.dest       <= cache_iface_o;
-            out.meta.dont_touch <= in.meta.dont_touch;
-            out.meta.drop_next  <= in.meta.drop_next;
-            out.meta.drop       <= in.meta.drop;
-          end else if (!out_ready) begin
-            out.valid <= 1'b0;
-          end
-        end else if (fw_state == FW_SEND_1) begin
-          if (!out_ready) begin
-            out.valid <= 1'b0;
-          end
-        end else if (fw_state == FW_SEND_F) begin
-          if (!out_ready) begin
-            out.valid <= 1'b0;
-          end
-        end else if (fw_state == FW_DONE) begin
-          if (!out_ready) begin
-            out.valid <= 1'b0;
-          end
+        if (fwo_state == FWO_SEND_1) begin
+          // Send first pack
+          out.valid                <= 1'b1;
+          // Construct IPv6 header
+          out.data.ip6.p           <= fw_out_first_beat.data.data.ip6.p;
+          out.data.ip6.dst         <= fw_out_first_beat.data.data.ip6.dst;
+          out.data.ip6.src         <= fw_out_first_beat.data.data.ip6.src;
+          out.data.ip6.hop_limit   <= fw_out_first_beat.data.data.ip6.hop_limit - 1;
+          out.data.ip6.next_hdr    <= fw_out_first_beat.data.data.ip6.next_hdr;
+          out.data.ip6.payload_len <= fw_out_first_beat.data.data.ip6.payload_len;
+          out.data.ip6.flow_lo     <= fw_out_first_beat.data.data.ip6.flow_lo;
+          out.data.ip6.version     <= fw_out_first_beat.data.data.ip6.version;
+          out.data.ip6.flow_hi     <= fw_out_first_beat.data.data.ip6.flow_hi;
+          // Construct Ether header
+          out.data.ethertype       <= fw_out_first_beat.data.data.ethertype;
+          out.data.dst             <= fw_out_first_beat.data.data.dst;
+          case (fw_out_port)
+            2'd0: out.data.src <= mac_addrs[0];
+            2'd1: out.data.src <= mac_addrs[1];
+            2'd2: out.data.src <= mac_addrs[2];
+            2'd3: out.data.src <= mac_addrs[3];
+            default: out.data.src <= 48'h0;
+          endcase
+          // Meta data
+          out.is_first        <= fw_out_first_beat.data.is_first;
+          out.last            <= fw_out_first_beat.data.last;
+          out.keep            <= fw_out_first_beat.data.keep;
+          out.meta.dest       <= fw_out_port;
+          out.meta.dont_touch <= fw_out_first_beat.data.meta.dont_touch;
+          out.meta.drop_next  <= fw_out_first_beat.data.meta.drop_next;
+          out.meta.drop       <= fw_out_first_beat.data.meta.drop;
+        end else if (fwo_state == FWO_SEND_F) begin
+          // Send the rest of the packs
+          out.valid           <= 1'b1;
+          // Inherit the data from the input
+          out.data            <= fw_out_following_beat.data.data;
+          // Mata data
+          out.is_first        <= fw_out_following_beat.data.is_first;
+          out.last            <= fw_out_following_beat.data.last;
+          out.keep            <= fw_out_following_beat.data.keep;
+          out.meta.dest       <= fw_out_port;
+          out.meta.dont_touch <= fw_out_following_beat.data.meta.dont_touch;
+          out.meta.drop_next  <= fw_out_following_beat.data.meta.drop_next;
+          out.meta.drop       <= fw_out_following_beat.data.meta.drop;
+        end else if (fwo_state == FWO_DONE) begin
+          // do nothing
+          out.valid <= 1'b0;
         end else begin
           out.valid <= 1'b0;
         end
@@ -810,7 +1217,12 @@ module datapath_sm (
                 )
         ) begin
           cache_next_state = CACHE_REQUIRE_UPDATE;
-        end else if ((state == DP_FWD) && (fw_state == FW_NC)) begin
+        end else if (
+                      (state == DP_FWD)    &&
+                      (fwt_out_beat.valid) &&
+                      (!fwt_out_beat.stop) &&
+                      (nc_in_ready)
+                    ) begin
           cache_next_state = CACHE_READ;
         end
       end
@@ -840,7 +1252,8 @@ module datapath_sm (
     case (ns_state)
       NS_IDLE: begin
         // ns_next_state = ((state == DP_IDLE) && (next_state == DP_NS)) ? NS_WAIT : NS_IDLE;
-        ns_next_state = ((state_reg == DP_IDLE) && (next_state_reg == DP_NS)) ? NS_WAIT : NS_IDLE;
+        ns_next_state = ((state_reg == DP_IDLE || state_reg == DP_FWD) &&
+                                             (next_state_reg == DP_NS))  ? NS_WAIT : NS_IDLE;
       end
       NS_WAIT: begin
         ns_next_state = (s_ready) ? NS_CHECKSUM_NS : NS_WAIT;
@@ -871,7 +1284,8 @@ module datapath_sm (
     case (na_state)
       NA_IDLE: begin
         // na_next_state = ((state == DP_IDLE) && (next_state == DP_NA)) ? NA_WAIT : NA_IDLE;
-        na_next_state = ((state_reg == DP_IDLE) && (next_state_reg == DP_NA)) ? NA_WAIT : NA_IDLE;
+        na_next_state = ((state_reg == DP_IDLE || state_reg == DP_FWD) &&
+                                             (next_state_reg == DP_NA)) ? NA_WAIT : NA_IDLE;
       end
       NA_WAIT: begin
         na_next_state = (s_ready) ? NA_CHECKSUM : NA_WAIT;
@@ -911,68 +1325,6 @@ module datapath_sm (
         nud_next_state = NUD_IDLE;
       end
     endcase
-  end
-
-  // =============================================================
-  //  Forward state transition
-  // =============================================================
-  always_comb begin
-    fw_next_state = FW_IDLE;
-    case (fw_state)
-      FW_IDLE: begin
-        if (state == DP_FWD) fw_next_state = FW_FWT;
-      end
-      FW_FWT: begin
-        if (fwt_ack_p) begin
-          if (fwt_exists) begin
-            fw_next_state = FW_NC;
-          end else begin
-            fw_next_state = FW_DONE;
-          end
-        end else begin
-          fw_next_state = FW_FWT;
-        end
-      end
-      FW_NC: begin
-        if (cache_read_ready) begin
-          if (cache_exists) begin
-            if (first_beat.last) begin
-              fw_next_state = FW_DONE;
-            end else begin
-              fw_next_state = FW_SEND_1;
-            end
-          end else begin
-            fw_next_state = FW_DONE;
-          end
-        end else begin
-          fw_next_state = FW_NC;
-        end
-      end
-      FW_FW: begin
-        if (out_ready && in.valid) begin
-          if (in.last) begin
-            fw_next_state = FW_DONE;
-          end else begin
-            fw_next_state = FW_SEND_F;
-          end
-        end else begin
-          fw_next_state = FW_FW;
-        end
-      end
-      FW_SEND_1: begin
-        fw_next_state = FW_FW;
-      end
-      FW_SEND_F: begin
-        fw_next_state = FW_FW;
-      end
-      FW_DONE: begin
-        if (out_ready) begin
-          fw_next_state = FW_IDLE;
-        end
-      end
-      default: fw_next_state = FW_IDLE;
-    endcase
-
   end
 
   // =============================================================
@@ -1022,7 +1374,11 @@ module datapath_sm (
         next_state = ((nud_state_reg != NUD_IDLE) && (nud_next_state_reg == NUD_IDLE)) ? DP_IDLE : DP_NUD;
       end
       DP_FWD: begin
-        next_state = ((fw_state != FW_IDLE) && (fw_next_state == FW_IDLE)) ? DP_IDLE : DP_FWD;
+        if(fw_out_should_stop) begin
+          next_state = fw_out_state;
+        end else begin
+          next_state = DP_FWD;
+        end
       end
       default: begin
         next_state = DP_IDLE;
