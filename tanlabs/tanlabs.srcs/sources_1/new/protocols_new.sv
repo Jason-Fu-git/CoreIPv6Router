@@ -18,6 +18,15 @@ module datapath_sm (
 );
 
   // =============================================================
+  // ===  NAMING ===
+  // fwi_ : Forward Logic Pipline Input Selector
+  // fwo_ : Forward Logic Pipline Output Selector
+  // fw_  : Forward Logic Pipline
+  // fwt_ : Forward Table
+  // nc_  : Neighbor Cache
+  // =============================================================
+
+  // =============================================================
   //  Top level state definition
   // =============================================================
 
@@ -545,9 +554,11 @@ module datapath_sm (
   // =============================================================
   //  Forward logic pipline
   // =============================================================
-  logic fw_first_beat_in_ready;
-  logic fw_following_beat_in_ready;
-  logic fw_out_beat_in_ready;
+
+  logic fwi_beat_1_in_ready;
+  logic fwi_beat_f_in_ready;
+  logic fwo_in_ready;
+
 
   // ================
   // Judge input type
@@ -557,10 +568,11 @@ module datapath_sm (
     FW_TYPE_NA,
     FW_TYPE_IPV6,
     FW_TYPE_OTHERS
-  } fw_in_type_t;
-  fw_in_type_t fw_in_type;
+  } fwi_type_t;
+  fwi_type_t fwi_type;
+
   always_comb begin : FW_InputType
-    fw_in_type = FW_TYPE_OTHERS;
+    fwi_type = FW_TYPE_OTHERS;
     if (`should_handle(in)) begin
       if (in.data.ip6.version == 6) begin
         if (
@@ -572,7 +584,7 @@ module datapath_sm (
               && (in.data.ip6.payload_len[10:8] == 3'b000)
               && (in.data.ip6.src != 0)
           ) begin
-          fw_in_type = FW_TYPE_NS;
+          fwi_type = FW_TYPE_NS;
         end else if(
                  (in.data.ip6.next_hdr == IP6_HDR_TYPE_ICMPv6)
               && (in.data.ip6.p[7:0] == ICMPv6_HDR_TYPE_NA)
@@ -582,11 +594,11 @@ module datapath_sm (
               && (in.data.ip6.payload_len[10:8] == 3'b000)
               && (in.data.ip6.src != 0)
           ) begin
-          fw_in_type = FW_TYPE_NA;
+          fwi_type = FW_TYPE_NA;
         end else if (in.data.ip6.hop_limit > 1) begin
-          fw_in_type = FW_TYPE_IPV6;
+          fwi_type = FW_TYPE_IPV6;
         end else begin  // Invalid Hop Limit. Drop it.
-          fw_in_type = FW_TYPE_OTHERS;
+          fwi_type = FW_TYPE_OTHERS;
         end
       end
     end
@@ -596,108 +608,111 @@ module datapath_sm (
   // =================
   // Input selector
   // =================
-  fw_frame_beat_t       fw_in_first_beat;
-  fw_frame_beat_t       fw_in_following_beat;
-  reg             [4:0] fw_in_counter;  // 0 is reserved for a bubble
-  reg                   fw_in_should_stop;
+  fw_frame_beat_t       fwi_beat_1;
+  fw_frame_beat_t       fwi_beat_f;
+  reg             [4:0] fwi_counter;  // 0 is reserved
+  reg                   fwi_should_stop;
   dp_state_t            fw_out_state;
-  assign fw_in_ready =  !fw_in_should_stop &&
+  assign fw_in_ready =  !fwi_should_stop &&
                         (
-                          (fw_first_beat_in_ready && in.is_first) ||
-                          (fw_following_beat_in_ready && !in.is_first)
+                          (fwi_beat_1_in_ready && in.is_first) ||
+                          (fwi_beat_f_in_ready && !in.is_first)
                         );
   always_ff @(posedge clk) begin : FW_InputSelector
     if (rst_p || fw_reset) begin
-      fw_in_first_beat     <= 0;
-      fw_in_following_beat <= 0;
-      fw_in_counter        <= 0;
-      fw_in_should_stop    <= 1;
-      fw_out_state         <= DP_IDLE;
+      fwi_beat_1      <= 0;
+      fwi_beat_f      <= 0;
+      fwi_counter     <= 0;
+      fwi_should_stop <= 1;
+      fw_out_state    <= DP_IDLE;
     end else begin
       if (state == DP_IDLE && next_state == DP_FWD) begin
-        fw_in_should_stop <= 0;
+        // Reset Stop Signal
+        fwi_should_stop <= 0;
       end else begin
-        if (fw_first_beat_in_ready) begin
-          if (fw_in_should_stop) begin
-            fw_in_first_beat.valid   <= 1;
-            fw_in_first_beat.stop    <= 1;
-            fw_in_first_beat.waiting <= 0;
-            fw_in_first_beat.error   <= ERR_NONE;
+        // First Beat
+        if (fwi_beat_1_in_ready) begin
+          if (fwi_should_stop) begin
+            fwi_beat_1.valid   <= 1;
+            fwi_beat_1.stop    <= 1;
+            fwi_beat_1.waiting <= 0;
+            fwi_beat_1.error   <= ERR_NONE;
           end else begin
             if (`should_handle(in)) begin
               // Set Data
-              fw_in_first_beat.data <= in;
+              fwi_beat_1.data <= in;
               // Set Index
-              if (fw_in_counter == 5'b11111) begin
-                fw_in_counter          <= 1;
-                fw_in_first_beat.index <= 1;
+              if (fwi_counter == 5'b11111) begin
+                fwi_counter      <= 1;
+                fwi_beat_1.index <= 1;
               end else begin
-                fw_in_counter          <= fw_in_counter + 1;
-                fw_in_first_beat.index <= fw_in_counter + 1;
+                fwi_counter      <= fwi_counter + 1;
+                fwi_beat_1.index <= fwi_counter + 1;
               end
               // Set Valid
-              fw_in_first_beat.valid <= 1;
+              fwi_beat_1.valid <= 1;
               // Set Other Signals
-              case (fw_in_type)
+              case (fwi_type)
                 FW_TYPE_IPV6: begin
                   // Process the first beat
-                  fw_in_should_stop        <= 0;
-                  fw_in_first_beat.waiting <= 1;
-                  fw_in_first_beat.stop    <= 0;
-                  fw_in_first_beat.error   <= ERR_NONE;
-                  fw_out_state             <= DP_IDLE;
+                  fwi_should_stop    <= 0;
+                  fwi_beat_1.waiting <= 1;
+                  fwi_beat_1.stop    <= 0;
+                  fwi_beat_1.error   <= ERR_NONE;
+                  fw_out_state       <= DP_IDLE;
                 end
                 FW_TYPE_NS: begin
                   // Stop Forward Logic
-                  fw_in_should_stop        <= 1;
-                  fw_in_first_beat.waiting <= 0;
-                  fw_in_first_beat.stop    <= 1;
-                  fw_in_first_beat.error   <= ERR_WRONG_TYPE;
-                  fw_out_state             <= DP_NS;
+                  fwi_should_stop    <= 1;
+                  fwi_beat_1.waiting <= 0;
+                  fwi_beat_1.stop    <= 1;
+                  fwi_beat_1.error   <= ERR_WRONG_TYPE;
+                  fw_out_state       <= DP_NS;
                 end
                 FW_TYPE_NA: begin
                   // Stop Forward Logic
-                  fw_in_should_stop        <= 1;
-                  fw_in_first_beat.waiting <= 0;
-                  fw_in_first_beat.stop    <= 1;
-                  fw_in_first_beat.error   <= ERR_WRONG_TYPE;
-                  fw_out_state             <= DP_NA;
+                  fwi_should_stop    <= 1;
+                  fwi_beat_1.waiting <= 0;
+                  fwi_beat_1.stop    <= 1;
+                  fwi_beat_1.error   <= ERR_WRONG_TYPE;
+                  fw_out_state       <= DP_NA;
                 end
                 default: begin
-                  fw_in_first_beat.waiting <= 1;
-                  fw_in_first_beat.stop    <= 0;
-                  fw_in_first_beat.error   <= ERR_WRONG_TYPE;
-                  fw_out_state             <= DP_IDLE;
+                  fwi_beat_1.waiting <= 1;
+                  fwi_beat_1.stop    <= 0;
+                  fwi_beat_1.error   <= ERR_WRONG_TYPE;
+                  fw_out_state       <= DP_IDLE;
                 end
               endcase
             end else begin  // Should not handle
-              fw_in_first_beat.valid   <= 0;
-              fw_in_first_beat.waiting <= 0;
-              fw_in_first_beat.stop    <= 0;
-              fw_in_first_beat.error   <= ERR_NONE;
+              fwi_beat_1.valid   <= 0;
+              fwi_beat_1.waiting <= 0;
+              fwi_beat_1.stop    <= 0;
+              fwi_beat_1.error   <= ERR_NONE;
             end
           end
         end
-        if (fw_following_beat_in_ready) begin
-          fw_in_following_beat.index     <= fw_in_counter;
-          if (fw_in_should_stop) begin
-            fw_in_following_beat.valid   <= 1;
-            fw_in_following_beat.waiting <= 0;
-            fw_in_following_beat.stop    <= 1;
-            fw_in_following_beat.error   <= ERR_NONE;
+        // Following Beat
+        if (fwi_beat_f_in_ready) begin
+          fwi_beat_f.index <= fwi_counter;
+          if (fwi_should_stop) begin
+            fwi_beat_f.valid   <= 1;
+            fwi_beat_f.waiting <= 0;
+            fwi_beat_f.stop    <= 1;
+            fwi_beat_f.error   <= ERR_NONE;
           end else begin
             if (`should_handle_following(in)) begin
               // Pass the following beats
-              fw_in_following_beat.data    <= in;
-              fw_in_following_beat.valid   <= 1;
-              fw_in_following_beat.waiting <= 1;
-              fw_in_following_beat.stop    <= 0;
-              fw_in_following_beat.error   <= ERR_NONE;
+              fwi_beat_f.data    <= in;
+              fwi_beat_f.valid   <= 1;
+              fwi_beat_f.waiting <= 1;
+              fwi_beat_f.stop    <= 0;
+              fwi_beat_f.error   <= ERR_NONE;
             end else begin
-              fw_in_following_beat.valid   <= 0;
-              fw_in_following_beat.waiting <= 0;
-              fw_in_following_beat.stop    <= 0;
-              fw_in_following_beat.error   <= ERR_NONE;
+              fwi_beat_f.valid   <= 0;
+              fwi_beat_f.waiting <= 0;
+              fwi_beat_f.stop    <= 0;
+              fwi_beat_f.error   <= ERR_NONE;
             end
           end
         end
@@ -710,8 +725,8 @@ module datapath_sm (
   // =================
 
   // Forward Table Input
-  assign fw_first_beat_in_ready = fwt_in_ready || !fw_in_first_beat.valid;
-  assign fwt_in_beat            = fw_in_first_beat;
+  assign fwi_beat_1_in_ready = fwt_in_ready || !fwi_beat_1.valid;
+  assign fwt_in_beat         = fwi_beat_1;
 
   // Neighbor Cache
   logic nc_in_ready;
@@ -722,51 +737,51 @@ module datapath_sm (
   assign nc_in_ready = (nc_out_ready || !nc_out_beat.valid) && cache_read_ready;
 
 
-  logic fw_out_first_beat_in_ready;
-  assign nc_out_ready = fw_out_first_beat_in_ready;
+  logic fwo_beat_1_in_ready;
+  assign nc_out_ready = fwo_beat_1_in_ready;
 
   // =================
   // Process Following Beat
   // =================
 
-  // FIXME: Customize the delay
+  // TODO: Customize the delay
   // Toy Example: 3 beats delay
-  // Beat 1 (= fw_in_following_beat)
-  fw_frame_beat_t fw_follow_1;
-  logic           fw_follow_1_in_ready;
-  assign fw_follow_1                = fw_in_following_beat;
-  assign fw_following_beat_in_ready = fw_follow_1_in_ready;
+  // Beat 1 (= fwi_beat_f)
+  fw_frame_beat_t fw_beat_f_1;
+  logic           fw_beat_f_1_in_ready;
+  assign fw_beat_f_1         = fwi_beat_f;
+  assign fwi_beat_f_in_ready = fw_beat_f_1_in_ready;
 
   // Beat 2
-  fw_frame_beat_t fw_follow_2;
-  logic           fw_follow_2_in_ready;
-  assign fw_follow_1_in_ready = fw_follow_2_in_ready || !fw_follow_1.valid;
+  fw_frame_beat_t fw_beat_f_2;
+  logic           fw_beat_f_2_in_ready;
+  assign fw_beat_f_1_in_ready = fw_beat_f_2_in_ready || !fw_beat_f_1.valid;
   always_ff @(posedge clk) begin : FW_FollowingBeat_2
     if (rst_p || fw_reset) begin
-      fw_follow_2 <= 0;
+      fw_beat_f_2 <= 0;
     end else begin
-      if (fw_follow_2_in_ready) begin
-        fw_follow_2 <= fw_follow_1;
+      if (fw_beat_f_2_in_ready) begin
+        fw_beat_f_2 <= fw_beat_f_1;
       end
     end
   end
 
   // Beat 3
-  fw_frame_beat_t fw_follow_3;
-  logic           fw_follow_3_in_ready;
-  assign fw_follow_2_in_ready = fw_follow_3_in_ready || !fw_follow_2.valid;
+  fw_frame_beat_t fw_beat_f_3;
+  logic           fw_beat_f_3_in_ready;
+  assign fw_beat_f_2_in_ready = fw_beat_f_3_in_ready || !fw_beat_f_2.valid;
   always_ff @(posedge clk) begin : FW_FollowingBeat_3
     if (rst_p || fw_reset) begin
-      fw_follow_3 <= 0;
+      fw_beat_f_3 <= 0;
     end else begin
-      if (fw_follow_3_in_ready) begin
-        fw_follow_3 <= fw_follow_2;
+      if (fw_beat_f_3_in_ready) begin
+        fw_beat_f_3 <= fw_beat_f_2;
       end
     end
   end
 
-  logic fw_out_following_beat_in_ready;
-  assign fw_follow_3_in_ready = fw_out_following_beat_in_ready;
+  logic fwo_beat_f_in_ready;
+  assign fw_beat_f_3_in_ready = fwo_beat_f_in_ready;
 
   // =================
   // Output Selector
@@ -782,167 +797,165 @@ module datapath_sm (
   fwo_state_t fwo_state;
 
   // Variable Rename
-  fw_frame_beat_t fw_out_first_beat;
-  fw_frame_beat_t fw_out_following_beat;
-  assign fw_out_beat_in_ready = fw_out_first_beat_in_ready || fw_out_following_beat_in_ready;
+  fw_frame_beat_t fwo_beat_1;
+  fw_frame_beat_t fwo_beat_f;
+  assign fwo_in_ready = fwo_beat_1_in_ready || fwo_beat_f_in_ready;
 
   // Counter : 31 Max
   localparam UPPER_LIMIT = 5'd25;
   localparam LOWER_LIMIT = 5'd6;
-  logic fw_first_beat_should_send;  // Whether the first beat should be sent
-  assign fw_first_beat_should_send = (!fw_out_following_beat.valid) ||
-                                     (fw_out_following_beat.valid &&
+  logic fwo_beat_1_should_send;  // Whether the first beat should be sent
+  assign fwo_beat_1_should_send = (!fwo_beat_f.valid) ||
+                                     (fwo_beat_f.valid &&
                                       (
                                           (
-                                            (fw_out_first_beat.index < LOWER_LIMIT) &&
-                                            (fw_out_following_beat.index < UPPER_LIMIT) &&
-                                            (fw_out_first_beat.index < fw_out_following_beat.index)
+                                            (fwo_beat_1.index < LOWER_LIMIT) &&
+                                            (fwo_beat_f.index < UPPER_LIMIT) &&
+                                            (fwo_beat_1.index < fwo_beat_f.index)
                                           ) ||
                                           (
-                                            (fw_out_first_beat.index >= LOWER_LIMIT) &&
-                                            (fw_out_first_beat.index < UPPER_LIMIT) &&
-                                            (fw_out_first_beat.index < fw_out_following_beat.index)
+                                            (fwo_beat_1.index >= LOWER_LIMIT) &&
+                                            (fwo_beat_1.index < UPPER_LIMIT) &&
+                                            (fwo_beat_1.index < fwo_beat_f.index)
                                           ) ||
                                           (
-                                            (fw_out_first_beat.index >= UPPER_LIMIT) &&
-                                            (fw_out_following_beat.index >= LOWER_LIMIT) &&
-                                            (fw_out_first_beat.index < fw_out_following_beat.index)
+                                            (fwo_beat_1.index >= UPPER_LIMIT) &&
+                                            (fwo_beat_f.index >= LOWER_LIMIT) &&
+                                            (fwo_beat_1.index < fwo_beat_f.index)
                                           ) ||
                                           (
-                                            (fw_out_first_beat.index >= UPPER_LIMIT) &&
-                                            (fw_out_following_beat.index < LOWER_LIMIT)
+                                            (fwo_beat_1.index >= UPPER_LIMIT) &&
+                                            (fwo_beat_f.index < LOWER_LIMIT)
                                           ) ||
                                           (
-                                            (fw_out_first_beat.index == fw_out_following_beat.index) &&
-                                            (fw_out_first_beat.waiting)
-                                            // Not Waiting Implies the first beat has been sent
-                                          )
-                                        )
-                                     );
+                                            (fwo_beat_1.index == fwo_beat_f.index) &&
+                                            (fwo_beat_1.waiting)
+      // Not Waiting Implies the first beat has been sent
+      )));
 
   // Interface
   logic [1:0] fw_out_port;
 
   // Out Ready Signal
-  assign fw_out_first_beat_in_ready    = (fwo_state == FWO_IDLE) &&
+  assign fwo_beat_1_in_ready = (fwo_state == FWO_IDLE) &&
                                       (
-                                        (!fw_out_first_beat.valid) ||
-                                        (fw_out_first_beat.valid && !fw_out_first_beat.waiting)
+                                        (!fwo_beat_1.valid) ||
+                                        (fwo_beat_1.valid && !fwo_beat_1.waiting)
                                       );
-  assign fw_out_following_beat_in_ready = (fwo_state == FWO_IDLE) &&
+  assign fwo_beat_f_in_ready = (fwo_state == FWO_IDLE) &&
                                       (
-                                        (!fw_out_following_beat.valid) ||
-                                        (fw_out_following_beat.valid && !fw_out_following_beat.waiting)
+                                        (!fwo_beat_f.valid) ||
+                                        (fwo_beat_f.valid && !fwo_beat_f.waiting)
                                       );
 
   // Should send signal
-  logic fw_should_send;
-  assign fw_should_send     = out_ready && (
+  logic fwo_should_send;
+  assign fwo_should_send     = out_ready && (
                                               (
-                                                   fw_out_first_beat.waiting
-                                                && fw_out_first_beat.valid
-                                                && fw_first_beat_should_send
+                                                fwo_beat_1.waiting &&
+                                                fwo_beat_1.valid &&
+                                                fwo_beat_1_should_send
                                               ) ||
                                               (
-                                                  fw_out_following_beat.waiting
-                                               && fw_out_following_beat.valid
-                                               && !fw_first_beat_should_send
+                                                fwo_beat_f.waiting &&
+                                                fwo_beat_f.valid &&
+                                                !fwo_beat_1_should_send
                                               )
                                             );
-  logic fw_out_should_stop;
-  assign fw_out_should_stop = fw_out_first_beat.stop && fw_out_following_beat.stop;
+  logic fwo_should_stop;
+  assign fwo_should_stop = fwo_beat_1.stop && fwo_beat_f.stop;
 
-  // Logic
+  // Output Selector
   always_ff @(posedge clk) begin : FW_OutputSelector
     if (rst_p || fw_reset) begin
       // state machine
-      fwo_state             <= FWO_IDLE;
+      fwo_state   <= FWO_IDLE;
       // Interface
-      fw_out_port           <= 0;
+      fw_out_port <= 0;
       // Out beat
-      fw_out_first_beat     <= 0;
-      fw_out_following_beat <= 0;
+      fwo_beat_1  <= 0;
+      fwo_beat_f  <= 0;
     end else begin
       case (fwo_state)
         FWO_IDLE: begin
           // Save the first beat
-          if (fw_out_first_beat_in_ready) begin
+          if (fwo_beat_1_in_ready) begin
             // FW Signals
-            fw_out_first_beat.valid                <= nc_out_beat.valid;
-            fw_out_first_beat.stop                 <= nc_out_beat.stop;
-            fw_out_first_beat.index                <= nc_out_beat.index;
-            fw_out_first_beat.error                <= nc_out_beat.error;
-            if (fw_out_first_beat.index != nc_out_beat.index) begin
-              fw_out_first_beat.waiting            <= nc_out_beat.waiting;
+            fwo_beat_1.valid <= nc_out_beat.valid;
+            fwo_beat_1.stop  <= nc_out_beat.stop;
+            fwo_beat_1.index <= nc_out_beat.index;
+            fwo_beat_1.error <= nc_out_beat.error;
+            if (fwo_beat_1.index != nc_out_beat.index) begin
+              fwo_beat_1.waiting <= nc_out_beat.waiting;
             end
             // FW Data
-            fw_out_first_beat.data.data            <= nc_out_beat.data.data;
-            fw_out_first_beat.data.keep            <= nc_out_beat.data.keep;
-            fw_out_first_beat.data.last            <= nc_out_beat.data.last;
-            fw_out_first_beat.data.user            <= nc_out_beat.data.user;
-            fw_out_first_beat.data.valid           <= nc_out_beat.data.valid;
-            fw_out_first_beat.data.is_first        <= nc_out_beat.data.is_first;
+            fwo_beat_1.data.data            <= nc_out_beat.data.data;
+            fwo_beat_1.data.keep            <= nc_out_beat.data.keep;
+            fwo_beat_1.data.last            <= nc_out_beat.data.last;
+            fwo_beat_1.data.user            <= nc_out_beat.data.user;
+            fwo_beat_1.data.valid           <= nc_out_beat.data.valid;
+            fwo_beat_1.data.is_first        <= nc_out_beat.data.is_first;
             // Meta
-            fw_out_first_beat.data.meta.id         <= nc_out_beat.data.meta.id;
-            fw_out_first_beat.data.meta.dest       <= nc_out_beat.data.meta.dest;
-            fw_out_first_beat.data.meta.dont_touch <= nc_out_beat.data.meta.dont_touch;
-            fw_out_first_beat.data.meta.drop_next  <= nc_out_beat.data.meta.drop_next;
+            fwo_beat_1.data.meta.id         <= nc_out_beat.data.meta.id;
+            fwo_beat_1.data.meta.dest       <= nc_out_beat.data.meta.dest;
+            fwo_beat_1.data.meta.dont_touch <= nc_out_beat.data.meta.dont_touch;
+            fwo_beat_1.data.meta.drop_next  <= nc_out_beat.data.meta.drop_next;
             // Check its error. And set drop signal
             case (nc_out_beat.error)
               ERR_NONE: begin
-                fw_out_first_beat.data.meta.drop <= 0;
+                fwo_beat_1.data.meta.drop <= 0;
               end
               ERR_FWT_MISS: begin
-                fw_out_first_beat.data.meta.drop <= 1;
+                fwo_beat_1.data.meta.drop <= 1;
               end
               ERR_NC_MISS: begin
-                fw_out_first_beat.data.meta.drop <= 1;
+                fwo_beat_1.data.meta.drop <= 1;
               end
               ERR_WRONG_TYPE: begin
-                fw_out_first_beat.data.meta.drop <= 1;
+                fwo_beat_1.data.meta.drop <= 1;
               end
               default: begin
-                fw_out_first_beat.data.meta.drop <= 1;
+                fwo_beat_1.data.meta.drop <= 1;
               end
             endcase
           end
           // Save the following beat
-          if (fw_out_following_beat_in_ready) begin
-            fw_out_following_beat <= fw_follow_3;
+          if (fwo_beat_f_in_ready) begin
+            fwo_beat_f <= fw_beat_f_3;
           end
           // If there is a packet to send, transfer to FWO_SELECT
-          if (fw_should_send && !fw_out_should_stop) begin
+          if (fwo_should_send && !fwo_should_stop) begin
             fwo_state <= FWO_SELECT;
           end
         end
         FWO_SELECT: begin
-          if (fw_first_beat_should_send) begin
-            if (fw_out_first_beat.valid && !fw_out_first_beat.stop) begin
+          if (fwo_beat_1_should_send) begin
+            if (fwo_beat_1.valid && !fwo_beat_1.stop) begin
               // Not an empty beat. Not a stop beat
               fwo_state   <= FWO_SEND_1;
-              fw_out_port <= fw_out_first_beat.data.meta.dest;
+              fw_out_port <= fwo_beat_1.data.meta.dest;
             end else begin
               // Empty first beat or stop first beat
-              fw_out_first_beat.waiting <= 0;
-              fwo_state                 <= FWO_IDLE;
+              fwo_beat_1.waiting <= 0;
+              fwo_state          <= FWO_IDLE;
             end
           end else begin
-            if (fw_out_following_beat.valid && !fw_out_following_beat.stop) begin
+            if (fwo_beat_f.valid && !fwo_beat_f.stop) begin
               fwo_state <= FWO_SEND_F;
             end else begin
               // Empty following beat, drop it
-              fwo_state                     <= FWO_IDLE;
-              fw_out_following_beat.waiting <= 0;
+              fwo_state          <= FWO_IDLE;
+              fwo_beat_f.waiting <= 0;
             end
           end
         end
         FWO_SEND_1: begin
-          fw_out_first_beat.waiting <= 0;
-          fwo_state                 <= FWO_DONE;
+          fwo_beat_1.waiting <= 0;
+          fwo_state          <= FWO_DONE;
         end
         FWO_SEND_F: begin
-          fw_out_following_beat.waiting <= 0;
-          fwo_state                     <= FWO_DONE;
+          fwo_beat_f.waiting <= 0;
+          fwo_state          <= FWO_DONE;
         end
         FWO_DONE: begin
           fwo_state <= FWO_IDLE;
@@ -1150,18 +1163,18 @@ module datapath_sm (
           // Send first pack
           out.valid                <= 1'b1;
           // Construct IPv6 header
-          out.data.ip6.p           <= fw_out_first_beat.data.data.ip6.p;
-          out.data.ip6.dst         <= fw_out_first_beat.data.data.ip6.dst;
-          out.data.ip6.src         <= fw_out_first_beat.data.data.ip6.src;
-          out.data.ip6.hop_limit   <= fw_out_first_beat.data.data.ip6.hop_limit - 1;
-          out.data.ip6.next_hdr    <= fw_out_first_beat.data.data.ip6.next_hdr;
-          out.data.ip6.payload_len <= fw_out_first_beat.data.data.ip6.payload_len;
-          out.data.ip6.flow_lo     <= fw_out_first_beat.data.data.ip6.flow_lo;
-          out.data.ip6.version     <= fw_out_first_beat.data.data.ip6.version;
-          out.data.ip6.flow_hi     <= fw_out_first_beat.data.data.ip6.flow_hi;
+          out.data.ip6.p           <= fwo_beat_1.data.data.ip6.p;
+          out.data.ip6.dst         <= fwo_beat_1.data.data.ip6.dst;
+          out.data.ip6.src         <= fwo_beat_1.data.data.ip6.src;
+          out.data.ip6.hop_limit   <= fwo_beat_1.data.data.ip6.hop_limit - 1;
+          out.data.ip6.next_hdr    <= fwo_beat_1.data.data.ip6.next_hdr;
+          out.data.ip6.payload_len <= fwo_beat_1.data.data.ip6.payload_len;
+          out.data.ip6.flow_lo     <= fwo_beat_1.data.data.ip6.flow_lo;
+          out.data.ip6.version     <= fwo_beat_1.data.data.ip6.version;
+          out.data.ip6.flow_hi     <= fwo_beat_1.data.data.ip6.flow_hi;
           // Construct Ether header
-          out.data.ethertype       <= fw_out_first_beat.data.data.ethertype;
-          out.data.dst             <= fw_out_first_beat.data.data.dst;
+          out.data.ethertype       <= fwo_beat_1.data.data.ethertype;
+          out.data.dst             <= fwo_beat_1.data.data.dst;
           case (fw_out_port)
             2'd0: out.data.src <= mac_addrs[0];
             2'd1: out.data.src <= mac_addrs[1];
@@ -1170,26 +1183,26 @@ module datapath_sm (
             default: out.data.src <= 48'h0;
           endcase
           // Meta data
-          out.is_first        <= fw_out_first_beat.data.is_first;
-          out.last            <= fw_out_first_beat.data.last;
-          out.keep            <= fw_out_first_beat.data.keep;
+          out.is_first        <= fwo_beat_1.data.is_first;
+          out.last            <= fwo_beat_1.data.last;
+          out.keep            <= fwo_beat_1.data.keep;
           out.meta.dest       <= fw_out_port;
-          out.meta.dont_touch <= fw_out_first_beat.data.meta.dont_touch;
-          out.meta.drop_next  <= fw_out_first_beat.data.meta.drop_next;
-          out.meta.drop       <= fw_out_first_beat.data.meta.drop;
+          out.meta.dont_touch <= fwo_beat_1.data.meta.dont_touch;
+          out.meta.drop_next  <= fwo_beat_1.data.meta.drop_next;
+          out.meta.drop       <= fwo_beat_1.data.meta.drop;
         end else if (fwo_state == FWO_SEND_F) begin
           // Send the rest of the packs
           out.valid           <= 1'b1;
           // Inherit the data from the input
-          out.data            <= fw_out_following_beat.data.data;
+          out.data            <= fwo_beat_f.data.data;
           // Mata data
-          out.is_first        <= fw_out_following_beat.data.is_first;
-          out.last            <= fw_out_following_beat.data.last;
-          out.keep            <= fw_out_following_beat.data.keep;
+          out.is_first        <= fwo_beat_f.data.is_first;
+          out.last            <= fwo_beat_f.data.last;
+          out.keep            <= fwo_beat_f.data.keep;
           out.meta.dest       <= fw_out_port;
-          out.meta.dont_touch <= fw_out_following_beat.data.meta.dont_touch;
-          out.meta.drop_next  <= fw_out_following_beat.data.meta.drop_next;
-          out.meta.drop       <= fw_out_following_beat.data.meta.drop;
+          out.meta.dont_touch <= fwo_beat_f.data.meta.dont_touch;
+          out.meta.drop_next  <= fwo_beat_f.data.meta.drop_next;
+          out.meta.drop       <= fwo_beat_f.data.meta.drop;
         end else if (fwo_state == FWO_DONE) begin
           // do nothing
           out.valid <= 1'b0;
@@ -1374,7 +1387,7 @@ module datapath_sm (
         next_state = ((nud_state_reg != NUD_IDLE) && (nud_next_state_reg == NUD_IDLE)) ? DP_IDLE : DP_NUD;
       end
       DP_FWD: begin
-        if(fw_out_should_stop) begin
+        if (fwo_should_stop) begin
           next_state = fw_out_state;
         end else begin
           next_state = DP_FWD;
