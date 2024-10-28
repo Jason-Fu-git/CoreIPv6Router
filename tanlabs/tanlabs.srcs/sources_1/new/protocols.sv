@@ -211,7 +211,7 @@ module datapath_sm (
   reg write_enable;
   reg read_enable;
 
-  wire [47:0] read_MAC_addr;
+  wire [ 47:0] read_MAC_addr;
 
   wire exists;
   wire ready;

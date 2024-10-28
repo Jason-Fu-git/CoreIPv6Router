@@ -66,7 +66,7 @@ module neighbor_cache #(
     reg valid;
     reg [1:0] port_id;
     reg [127:0] IPv6_addr;
-    reg [47:0] MAC_addr;
+    reg [ 47:0] MAC_addr;
     reg [31:0] reachable_timer;
   } neighbor_cache_entry_t;
 

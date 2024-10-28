@@ -12,14 +12,14 @@ module tb_neighbor_cache;
   reg clk;
   reg rst_p;
   reg [127:0] IPv6_addr;
-  reg [47:0] w_MAC_addr;
+  reg [ 47:0] w_MAC_addr;
   reg [1:0] w_port_id;
   reg rea_p;
   reg wea_p;
   reg uea_p;
 
   // Outputs
-  wire [47:0] r_MAC_addr;
+  wire [ 47:0] r_MAC_addr;
   wire [1:0] r_port_id;
   reg exists;
   reg ready;

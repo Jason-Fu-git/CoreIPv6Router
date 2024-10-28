@@ -35,21 +35,8 @@ module address_config#(
     input wire [3:0] btn,
     input wire [15:0] dip_sw,
 
-    output wire [127:0] ip_addr_0,
-    output wire [127:0] ip_addr_1,
-    output wire [127:0] ip_addr_2,
-    output wire [127:0] ip_addr_3,
-
-    output wire [47:0] mac_addr_0,
-    output wire [47:0] mac_addr_1,
-    output wire [47:0] mac_addr_2,
-    output wire [47:0] mac_addr_3,
-
-    // validation signals
-    output wire ip_addr_0_valid,
-    output wire ip_addr_1_valid,
-    output wire ip_addr_2_valid,
-    output wire ip_addr_3_valid,
+    output wire [3:0][127:0] ip_addr,
+    output wire [3:0][ 47:0] mac_addr,
 
     // led signals
     output wire [15:0] led
@@ -57,21 +44,9 @@ module address_config#(
 
     // internal signals
     // ip address register
-    reg [127:0] ip_addr_reg_0; 
-    reg [127:0] ip_addr_reg_1;
-    reg [127:0] ip_addr_reg_2;
-    reg [127:0] ip_addr_reg_3;
+    reg [3:0][127:0] ip_addr_reg;
 
-    reg [47:0] mac_addr_0_reg;
-    reg [47:0] mac_addr_1_reg;
-    reg [47:0] mac_addr_2_reg;
-    reg [47:0] mac_addr_3_reg;
-
-    // validation register
-    reg ip_addr_0_valid_reg;
-    reg ip_addr_1_valid_reg;
-    reg ip_addr_2_valid_reg;
-    reg ip_addr_3_valid_reg;
+    reg [3:0][ 47:0] mac_addr_reg;
     
     reg [1:0] reading_interface; // current interface being read
     reg [2:0] reading_bit; // current bit being read
@@ -95,23 +70,18 @@ module address_config#(
     always @(posedge clk)begin
         if(reset)begin
             // reset all ip addresses
-            ip_addr_reg_0 <= default_ipv6_addr_0;
-            ip_addr_reg_1 <= default_ipv6_addr_1;
-            ip_addr_reg_2 <= default_ipv6_addr_2;
-            ip_addr_reg_3 <= default_ipv6_addr_3;
+            ip_addr_reg[0] <= default_ipv6_addr_0;
+            ip_addr_reg[1] <= default_ipv6_addr_1;
+            ip_addr_reg[2] <= default_ipv6_addr_2;
+            ip_addr_reg[3] <= default_ipv6_addr_3;
             // reset all mac addresses
-            mac_addr_0_reg <= dafault_mac_addr_0;
-            mac_addr_1_reg <= dafault_mac_addr_1;
-            mac_addr_2_reg <= dafault_mac_addr_2;
-            mac_addr_3_reg <= dafault_mac_addr_3;
+            mac_addr_reg[0] <= dafault_mac_addr_0;
+            mac_addr_reg[1] <= dafault_mac_addr_1;
+            mac_addr_reg[2] <= dafault_mac_addr_2;
+            mac_addr_reg[3] <= dafault_mac_addr_3;
             // reset reading interface and bit
             reading_interface <= 2'b0;
             reading_bit <= 3'b0;
-            // reset valid
-            ip_addr_0_valid_reg <= 1;
-            ip_addr_1_valid_reg <= 1;
-            ip_addr_2_valid_reg <= 1;
-            ip_addr_3_valid_reg <= 1;
             // reset state
             state <= 1'b0;
         end
@@ -131,135 +101,31 @@ module address_config#(
                 // accept current 16-bit on dip switches and continue to next 16-bit
                 case (state)
                     0: begin
-                        case (reading_interface)
-                            2'b00: begin
-                                case(reading_bit)
-                                    3'b000: ip_addr_reg_0[127:112] <= dip_sw;
-                                    3'b001: ip_addr_reg_0[111:96] <= dip_sw;
-                                    3'b010: ip_addr_reg_0[95:80] <= dip_sw;
-                                    3'b011: ip_addr_reg_0[79:64] <= dip_sw;
-                                    3'b100: ip_addr_reg_0[63:48] <= dip_sw;
-                                    3'b101: ip_addr_reg_0[47:32] <= dip_sw;
-                                    3'b110: ip_addr_reg_0[31:16] <= dip_sw;
-                                    3'b111: ip_addr_reg_0[15:0] <= dip_sw;
-                                endcase
-                            end
-                            2'b01: begin
-                                case(reading_bit)
-                                    3'b000: ip_addr_reg_1[127:112] <= dip_sw;
-                                    3'b001: ip_addr_reg_1[111:96] <= dip_sw;
-                                    3'b010: ip_addr_reg_1[95:80] <= dip_sw;
-                                    3'b011: ip_addr_reg_1[79:64] <= dip_sw;
-                                    3'b100: ip_addr_reg_1[63:48] <= dip_sw;
-                                    3'b101: ip_addr_reg_1[47:32] <= dip_sw;
-                                    3'b110: ip_addr_reg_1[31:16] <= dip_sw;
-                                    3'b111: ip_addr_reg_1[15:0] <= dip_sw;
-                                endcase
-                            end
-                            2'b10: begin
-                                case(reading_bit)
-                                    3'b000: ip_addr_reg_2[127:112] <= dip_sw;
-                                    3'b001: ip_addr_reg_2[111:96] <= dip_sw;
-                                    3'b010: ip_addr_reg_2[95:80] <= dip_sw;
-                                    3'b011: ip_addr_reg_2[79:64] <= dip_sw;
-                                    3'b100: ip_addr_reg_2[63:48] <= dip_sw;
-                                    3'b101: ip_addr_reg_2[47:32] <= dip_sw;
-                                    3'b110: ip_addr_reg_2[31:16] <= dip_sw;
-                                    3'b111: ip_addr_reg_2[15:0] <= dip_sw;
-                                endcase
-                            end
-                            2'b11: begin
-                                case(reading_bit)
-                                    3'b000: ip_addr_reg_3[127:112] <= dip_sw;
-                                    3'b001: ip_addr_reg_3[111:96] <= dip_sw;
-                                    3'b010: ip_addr_reg_3[95:80] <= dip_sw;
-                                    3'b011: ip_addr_reg_3[79:64] <= dip_sw;
-                                    3'b100: ip_addr_reg_3[63:48] <= dip_sw;
-                                    3'b101: ip_addr_reg_3[47:32] <= dip_sw;
-                                    3'b110: ip_addr_reg_3[31:16] <= dip_sw;
-                                    3'b111: ip_addr_reg_3[15:0] <= dip_sw;
-                                endcase
-                            end
+                        case(reading_bit)
+                            3'b000: ip_addr_reg[reading_interface][127:112] <= dip_sw;
+                            3'b001: ip_addr_reg[reading_interface][111:96] <= dip_sw;
+                            3'b010: ip_addr_reg[reading_interface][95:80] <= dip_sw;
+                            3'b011: ip_addr_reg[reading_interface][79:64] <= dip_sw;
+                            3'b100: ip_addr_reg[reading_interface][63:48] <= dip_sw;
+                            3'b101: ip_addr_reg[reading_interface][47:32] <= dip_sw;
+                            3'b110: ip_addr_reg[reading_interface][31:16] <= dip_sw;
+                            3'b111: ip_addr_reg[reading_interface][15:0] <= dip_sw;
                         endcase
+                         
                         // next 16 bits
                         reading_bit <= reading_bit + 1;
-                        // set valid
-                        if(reading_bit == 3'b000)begin
-                            // set ip address valid when all 16 bits are set
-                            case(reading_interface)
-                                2'b00: ip_addr_0_valid_reg <= 1;
-                                2'b01: ip_addr_1_valid_reg <= 1;
-                                2'b10: ip_addr_2_valid_reg <= 1;
-                                2'b11: ip_addr_3_valid_reg <= 1;
-                            endcase
-                        end else if (reading_bit == 3'b001)begin
-                            // reset valid when not all 16 bits are set
-                            case(reading_interface)
-                                2'b00: ip_addr_0_valid_reg <= 0;
-                                2'b01: ip_addr_1_valid_reg <= 0;
-                                2'b10: ip_addr_2_valid_reg <= 0;
-                                2'b11: ip_addr_3_valid_reg <= 0;
-                            endcase
-                        end
                     end
                     1: begin
-                        case (reading_interface)
-                            2'b00: begin
-                                case(reading_bit)
-                                    3'b000: mac_addr_0_reg[47:32] <= dip_sw;
-                                    3'b001: mac_addr_0_reg[31:16] <= dip_sw;
-                                    3'b010: mac_addr_0_reg[15:0] <= dip_sw;
-                                    default: mac_addr_0_reg[47:0] <= dafault_mac_addr_0;
-                                endcase 
-                            end
-                            2'b01: begin
-                                case(reading_bit)
-                                    3'b000: mac_addr_1_reg[47:32] <= dip_sw;
-                                    3'b001: mac_addr_1_reg[31:16] <= dip_sw;
-                                    3'b010: mac_addr_1_reg[15:0] <= dip_sw;
-                                    default: mac_addr_1_reg[47:0] <= dafault_mac_addr_1;
-                                endcase 
-                            end
-                            2'b10: begin
-                                case(reading_bit)
-                                    3'b000: mac_addr_2_reg[47:32] <= dip_sw;
-                                    3'b001: mac_addr_2_reg[31:16] <= dip_sw;
-                                    3'b010: mac_addr_2_reg[15:0] <= dip_sw;
-                                    default: mac_addr_2_reg[47:0] <= dafault_mac_addr_2;
-                                endcase 
-                            end
-                            2'b11: begin
-                                case(reading_bit)
-                                    3'b000: mac_addr_3_reg[47:32] <= dip_sw;
-                                    3'b001: mac_addr_3_reg[31:16] <= dip_sw;
-                                    3'b010: mac_addr_3_reg[15:0] <= dip_sw;
-                                    default: mac_addr_3_reg[47:0] <= dafault_mac_addr_3;
-                                endcase 
-                            end
-                        endcase
-
+                        case(reading_bit)
+                            3'b000: mac_addr_reg[reading_interface][47:32] <= dip_sw;
+                            3'b001: mac_addr_reg[reading_interface][31:16] <= dip_sw;
+                            3'b010: mac_addr_reg[reading_interface][15:0] <= dip_sw;
+                            default: mac_addr_reg[reading_interface][ 47:0] <= dafault_mac_addr_0;
+                        endcase 
+        
                         // next 16 bits
-                        if (reading_bit != 3'b010)begin reading_bit <= reading_bit + 1; end
+                        if (reading_bit != 3'b010) begin reading_bit <= reading_bit + 1; end
                         else begin reading_bit <= 3'b000; end
-
-                        // set valid
-                        if(reading_bit == 3'b000)begin
-                            // set ip address valid when all 16 bits are set
-                            case(reading_interface)
-                                2'b00: ip_addr_0_valid_reg <= 1;
-                                2'b01: ip_addr_1_valid_reg <= 1;
-                                2'b10: ip_addr_2_valid_reg <= 1;
-                                2'b11: ip_addr_3_valid_reg <= 1;
-                            endcase
-                        end else if (reading_bit == 3'b001)begin
-                            // reset valid when not all 16 bits are set
-                            case(reading_interface)
-                                2'b00: ip_addr_0_valid_reg <= 0;
-                                2'b01: ip_addr_1_valid_reg <= 0;
-                                2'b10: ip_addr_2_valid_reg <= 0;
-                                2'b11: ip_addr_3_valid_reg <= 0;
-                            endcase
-                        end
                     end
                 endcase
             end
@@ -267,22 +133,10 @@ module address_config#(
     end
 
     // assign ip address
-    assign ip_addr_0 = ip_addr_reg_0;
-    assign ip_addr_1 = ip_addr_reg_1;
-    assign ip_addr_2 = ip_addr_reg_2;
-    assign ip_addr_3 = ip_addr_reg_3;
-
-    // assign ip address valid
-    assign ip_addr_0_valid = ip_addr_0_valid_reg;
-    assign ip_addr_1_valid = ip_addr_1_valid_reg;
-    assign ip_addr_2_valid = ip_addr_2_valid_reg;
-    assign ip_addr_3_valid = ip_addr_3_valid_reg;
+    assign ip_addr = ip_addr_reg;
 
     // assign mac address
-    assign mac_addr_0 = mac_addr_0_reg;
-    assign mac_addr_1 = mac_addr_1_reg;
-    assign mac_addr_2 = mac_addr_2_reg;
-    assign mac_addr_3 = mac_addr_3_reg;
+    assign mac_addr = mac_addr_reg;
 
     // assign led
     reg [15:0] led_reg;
