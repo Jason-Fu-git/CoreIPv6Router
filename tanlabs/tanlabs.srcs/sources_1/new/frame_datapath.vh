@@ -124,11 +124,8 @@ typedef enum logic[2:0] {
 
 typedef struct packed {
   frame_beat data;
-  reg [4:0] index;
   fw_error_t error;
-  reg valid;
-  reg stop;
-  reg waiting;
+  logic      valid;
 } fw_frame_beat_t;
 
 `define should_handle(b) \
