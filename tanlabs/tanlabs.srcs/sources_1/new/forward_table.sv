@@ -126,7 +126,7 @@ module forward_table #(
 
           if (in_ready) begin
             if (in_beat.valid) begin
-              // Not Ready for Next Query
+              // Not ready for next query
               in_ready       <= 0;
               // Construct Output
               out_beat.data    <= in_beat.data;
@@ -135,27 +135,27 @@ module forward_table #(
               out_beat.waiting <= in_beat.waiting;
               if (in_beat.error == ERR_NONE) begin
                 out_beat.error <= ERR_FWT_MISS;
-                // Not Prepared
+                // Insert a bubble
                 out_beat.valid <= 0;
-                // Start Search
+                // Start search
                 state          <= ST_READ_MEM;
-                // Memory Controller
+                // Memory controller
                 _mem_addr      <= BASE_ADDR;
                 mem_rea_p      <= 1;
               end else begin
                 out_beat.error <= in_beat.error;
-                // Prepared
+                // Valid input but has errors. Directly pass it.
                 out_beat.valid <= 1;
               end
             end else begin
-              // Invalid Input, Drop It
+              // Received a bubble, pass it.
               out_beat.valid <= 0;
             end
           end else begin
             // !in_ready
             if (out_ready) begin
               in_ready       <= 1;
-              out_beat.valid <= 0; // This packet is expired
+              out_beat.valid <= 0; // This packet is expired. Insert a bubble.
             end
           end
 
@@ -186,7 +186,7 @@ module forward_table #(
             // End of Table
             state <= ST_IDLE;
 
-            // Prepared
+            // Query done, send the result
             out_beat.valid <= 1;
             if (out_ready) begin
               in_ready <= 1;

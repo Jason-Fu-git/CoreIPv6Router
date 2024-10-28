@@ -618,6 +618,8 @@ module datapath_sm (
                           (fwi_beat_1_in_ready && in.is_first) ||
                           (fwi_beat_f_in_ready && !in.is_first)
                         );
+
+  // valid = 0 means bubble. Its index should be the previous valid beat's index.
   always_ff @(posedge clk) begin : FW_InputSelector
     if (rst_p || fw_reset) begin
       fwi_beat_1      <= 0;
@@ -633,7 +635,8 @@ module datapath_sm (
         // First Beat
         if (fwi_beat_1_in_ready) begin
           if (fwi_should_stop) begin
-            fwi_beat_1.valid   <= 1;
+            // Insert stop signal.
+            fwi_beat_1.valid   <= 1; // Not a bubble.
             fwi_beat_1.stop    <= 1;
             fwi_beat_1.waiting <= 0;
             fwi_beat_1.error   <= ERR_NONE;
@@ -685,7 +688,7 @@ module datapath_sm (
                 end
               endcase
             end else begin  // Should not handle
-              fwi_beat_1.valid   <= 0;
+              fwi_beat_1.valid   <= 0; // insert a bubble
               fwi_beat_1.waiting <= 0;
               fwi_beat_1.stop    <= 0;
               fwi_beat_1.error   <= ERR_NONE;
@@ -696,7 +699,8 @@ module datapath_sm (
         if (fwi_beat_f_in_ready) begin
           fwi_beat_f.index <= fwi_counter;
           if (fwi_should_stop) begin
-            fwi_beat_f.valid   <= 1;
+            // Insert a stop signal. Note : It's not a bubble!
+            fwi_beat_f.valid   <= 1; // Not a bubble.
             fwi_beat_f.waiting <= 0;
             fwi_beat_f.stop    <= 1;
             fwi_beat_f.error   <= ERR_NONE;
@@ -709,7 +713,8 @@ module datapath_sm (
               fwi_beat_f.stop    <= 0;
               fwi_beat_f.error   <= ERR_NONE;
             end else begin
-              fwi_beat_f.valid   <= 0;
+              // Invalid input
+              fwi_beat_f.valid   <= 0; // Insert a bubble.
               fwi_beat_f.waiting <= 0;
               fwi_beat_f.stop    <= 0;
               fwi_beat_f.error   <= ERR_NONE;
@@ -1084,15 +1089,15 @@ module datapath_sm (
         if (nc_in_ready) begin
           nc_out_beat.data    <= fwt_out_beat.data;
           nc_out_beat.index   <= fwt_out_beat.index;
-          nc_out_beat.valid   <= 0;
+          nc_out_beat.valid   <= 0; // Insert a bubble
           nc_out_beat.stop    <= fwt_out_beat.stop;
           nc_out_beat.waiting <= fwt_out_beat.waiting;
           nc_out_beat.error   <= fwt_out_beat.error;
         end else if (nc_out_ready) begin
-          nc_out_beat.valid <= 0;
+          nc_out_beat.valid <= 0; // Insert a bubble
         end
       end else if (cache_state == CACHE_READ_DONE) begin
-        nc_out_beat.valid <= 1;
+        nc_out_beat.valid <= 1; // Cache Read Done. Send it.
         if (cache_exists) begin
           nc_out_beat.data.data.dst  <= cache_mac_addr_o;
           nc_out_beat.data.meta.dest <= cache_iface_o;
@@ -1232,9 +1237,9 @@ module datapath_sm (
           cache_next_state = CACHE_REQUIRE_UPDATE;
         end else if (
                       (state == DP_FWD)    &&
-                      (fwt_out_beat.valid) &&
-                      (!fwt_out_beat.stop) &&
-                      (nc_in_ready)
+                      (fwt_out_beat.valid) && // Bubble should not be processed
+                      (!fwt_out_beat.stop) && // Stop signal should not be processed
+                      (nc_in_ready) // New signal arrived
                     ) begin
           cache_next_state = CACHE_READ;
         end
