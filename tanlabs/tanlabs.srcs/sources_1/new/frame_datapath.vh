@@ -53,7 +53,7 @@ typedef struct packed {
 } icmpv6_hdr;  // now without options
 
 typedef struct packed {
-  logic [47:0] mac_addr;
+  logic [ 47:0] mac_addr;
   logic [7:0]  len;
   logic [7:0]  option_type;
 } icmpv6_option;
@@ -61,15 +61,15 @@ typedef struct packed {
 typedef struct packed {
   ip6_hdr ip6;
   logic [15:0] ethertype;
-  logic [47:0] src;
-  logic [47:0] dst;
+  logic [ 47:0] src;
+  logic [ 47:0] dst;
 } ether_hdr;
 
 typedef struct packed {
   ip6_hdr_clean ip6;
   logic [15:0]  ethertype;
-  logic [47:0]  src;
-  logic [47:0]  dst;
+  logic [ 47:0]  src;
+  logic [ 47:0]  dst;
 } ether_hdr_clean;
 
 typedef struct packed {
