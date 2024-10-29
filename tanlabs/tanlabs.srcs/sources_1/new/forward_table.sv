@@ -115,7 +115,7 @@ module forward_table #(
           if (out_ready) begin
             if (in.data.is_first && in.valid && (in.error == ERR_NONE)) begin
               // Start search
-              fwt_state     <= ST_READ_MEM;
+              fwt_state <= ST_READ_MEM;
               // Memory controller
               mem_addr  <= BASE_ADDR;
               mem_rea_p <= 1;
@@ -148,17 +148,17 @@ module forward_table #(
           // Check if it is the last entry
           if (mem_addr == MAX_ADDR) begin
             // End of Table
-            fwt_state     <= ST_IDLE;
+            fwt_state <= ST_IDLE;
           end else begin
             // Next Entry
-            fwt_state     <= ST_READ_MEM;
+            fwt_state <= ST_READ_MEM;
 
-            mem_addr      <= next_mem_addr;
-            mem_rea_p     <= 1;
+            mem_addr  <= next_mem_addr;
+            mem_rea_p <= 1;
           end
         end
         default: begin
-          fwt_state       <= ST_IDLE;
+          fwt_state <= ST_IDLE;
         end
       endcase
     end
@@ -188,17 +188,19 @@ module forward_table #(
           if (hit) begin
             // Update Max Prefix Length
             if (prefix_len > max_prefix_len) begin
-              out.data.data.ip6.dst <= next_hop_addr;
+              // No need to alter ip6.dst (see doc)
+              // out.data.data.ip6.dst <= next_hop_addr;
               if (out.error == ERR_FWT_MISS) begin
                 // Clean the error signal
                 out.error <= ERR_NONE;
               end
             end
-            // Check if it is the last entry
-            if (mem_addr == MAX_ADDR) begin
-              // Query done, send the result
-              out.valid <= 1;
-            end
+          end
+
+          // Check if it is the last entry
+          if (mem_addr == MAX_ADDR) begin
+            // Query done, send the result
+            out.valid <= 1;
           end
         end
       end

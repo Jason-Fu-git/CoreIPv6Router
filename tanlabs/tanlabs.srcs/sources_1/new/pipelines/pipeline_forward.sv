@@ -1,4 +1,7 @@
+`timescale 1ns / 1ps
 `include "frame_datapath.vh"
+
+
 module pipeline_forward (
     input wire clk,
     input wire rst_p,
@@ -45,20 +48,37 @@ module pipeline_forward (
   end
 
   // =======================
+  // Input Buffer
+  // =======================
+  fw_frame_beat_t in_buffer;
+  logic buffer_ready;
+  assign in_ready = buffer_ready;
+
+  always_ff @(posedge clk) begin : FW_IN_REG
+    if (rst_p) begin
+      in_buffer <= 0;
+    end else begin
+      if (buffer_ready) begin
+        in_buffer.valid <= in_valid;
+        in_buffer.error <= in_error_next;
+        if (in_valid) begin
+          in_buffer.data <= in;
+        end
+      end
+    end
+  end
+
+  // =======================
   // Forwarding table
   // =======================
-  assign in_ready = fwt_in_ready;
+  assign buffer_ready = fwt_in_ready || (!in_buffer.valid);
 
   always_ff @(posedge clk) begin : FW_FWT_IN_REG
     if (rst_p) begin
       fwt_in <= 0;
     end else begin
       if (fwt_in_ready) begin
-        fwt_in.valid <= in_valid;
-        fwt_in.error <= in_error_next;
-        if (in_valid) begin
-          fwt_in.data <= in;
-        end
+        fwt_in <= in_buffer;
       end
     end
   end
@@ -184,7 +204,7 @@ module pipeline_forward (
         if (cache_beat.valid) begin
           if (cache_beat.data.is_first) begin
             // frame_beat properties
-            out.keep      <= cache_beat.data.valid;
+            out.keep      <= cache_beat.data.keep;
             out.last      <= cache_beat.data.last;
             out.user      <= cache_beat.data.user;
             out.valid     <= cache_beat.data.valid;
@@ -231,5 +251,7 @@ module pipeline_forward (
   assign out_valid = out.valid;
 
 endmodule
+
+
 
 

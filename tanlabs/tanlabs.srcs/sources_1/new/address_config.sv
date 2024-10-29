@@ -57,7 +57,7 @@ module address_config#(
 
     // internal signals
     // ip address register
-    reg [127:0] ip_addr_reg_0; 
+    reg [127:0] ip_addr_reg_0;
     reg [127:0] ip_addr_reg_1;
     reg [127:0] ip_addr_reg_2;
     reg [127:0] ip_addr_reg_3;
@@ -72,7 +72,7 @@ module address_config#(
     reg ip_addr_1_valid_reg;
     reg ip_addr_2_valid_reg;
     reg ip_addr_3_valid_reg;
-    
+
     reg [1:0] reading_interface; // current interface being read
     reg [2:0] reading_bit; // current bit being read
     reg state; // 0 -> ipv6, 1 -> mac
