@@ -131,6 +131,12 @@ typedef struct packed {
   reg waiting;
 } fw_frame_beat_t;
 
+typedef struct packed {
+  logic [127:0] ip6_addr;
+  logic [ 47:0] mac_addr;
+  logic [  1:0] iface;
+} cache_entry;
+
 `define should_handle(b) \
 (b.valid && b.is_first && !b.meta.drop && !b.meta.dont_touch)
 
@@ -141,5 +147,10 @@ typedef struct packed {
 localparam ID_CPU = 3'd4;  // The interface ID of CPU is 4.
 
 localparam ETHERTYPE_IP6 = 16'hdd86;
+
+`define ntohs(x) ({x[7:0], x[15:8]})
+`define ntohl(x) ({x[7:0], x[15:7], x[23:15], x[31:23]})
+`define htons(x) ({x[7:0], x[15:8]})
+`define htonl(x) ({x[7:0], x[15:7], x[23:15], x[31:23]})
 
 `endif
