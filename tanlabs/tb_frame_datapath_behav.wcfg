@@ -4,9 +4,12 @@
    </wave_state>
    <db_ref_list>
       <db_ref path="tb_frame_datapath_behav.wdb" id="1">
+      <db_ref path="tb_frame_datapath_behav.wdb" id="1">
          <top_modules>
             <top_module name="\$unit_bram_controller_sv " />
+            <top_module name="\$unit_checksum_calculator_sv " />
             <top_module name="glbl" />
+            <top_module name="tb_frame_datapath" />
             <top_module name="tb_frame_datapath" />
          </top_modules>
       </db_ref>
@@ -15,13 +18,304 @@
       <ZoomStartTime time="0fs"></ZoomStartTime>
       <ZoomEndTime time="10160001fs"></ZoomEndTime>
       <Cursor1Time time="90067070fs"></Cursor1Time>
+      <ZoomStartTime time="216420fs"></ZoomStartTime>
+      <ZoomEndTime time="468221fs"></ZoomEndTime>
+      <Cursor1Time time="1000000fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="454"></NameColumnWidth>
       <ValueColumnWidth column_width="312"></ValueColumnWidth>
+      <NameColumnWidth column_width="194"></NameColumnWidth>
+      <ValueColumnWidth column_width="218"></ValueColumnWidth>
    </column_width_setting>
    <WVObjectSize size="42" />
    <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/clk" type="logic">
+   <WVObjectSize size="72" />
+   <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/clk" type="logic">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/rst_p" type="logic">
+      <obj_property name="ElementShortName">rst_p</obj_property>
+      <obj_property name="ObjectShortName">rst_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/in" type="array">
+      <obj_property name="ElementShortName">in</obj_property>
+      <obj_property name="ObjectShortName">in</obj_property>
+      <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/in.data" type="array">
+         <obj_property name="ElementShortName">.data</obj_property>
+         <obj_property name="ObjectShortName">.data</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+         <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/in.data.ip6" type="array">
+            <obj_property name="ElementShortName">.ip6</obj_property>
+            <obj_property name="ObjectShortName">.ip6</obj_property>
+            <obj_property name="isExpanded"></obj_property>
+         </wvobject>
+         <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/in.data.ethertype" type="array">
+            <obj_property name="ElementShortName">.ethertype[15:0]</obj_property>
+            <obj_property name="ObjectShortName">.ethertype[15:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/in.data.src" type="array">
+            <obj_property name="ElementShortName">.src[47:0]</obj_property>
+            <obj_property name="ObjectShortName">.src[47:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/in.data.dst" type="array">
+            <obj_property name="ElementShortName">.dst[47:0]</obj_property>
+            <obj_property name="ObjectShortName">.dst[47:0]</obj_property>
+         </wvobject>
+      </wvobject>
+      <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/in.keep" type="array">
+         <obj_property name="ElementShortName">.keep[55:0]</obj_property>
+         <obj_property name="ObjectShortName">.keep[55:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/in.last" type="logic">
+         <obj_property name="ElementShortName">.last</obj_property>
+         <obj_property name="ObjectShortName">.last</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/in.user" type="array">
+         <obj_property name="ElementShortName">.user[55:0]</obj_property>
+         <obj_property name="ObjectShortName">.user[55:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/in.valid" type="logic">
+         <obj_property name="ElementShortName">.valid</obj_property>
+         <obj_property name="ObjectShortName">.valid</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/in.is_first" type="logic">
+         <obj_property name="ElementShortName">.is_first</obj_property>
+         <obj_property name="ObjectShortName">.is_first</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/in.meta" type="array">
+         <obj_property name="ElementShortName">.meta</obj_property>
+         <obj_property name="ObjectShortName">.meta</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/in_valid" type="logic">
+      <obj_property name="ElementShortName">in_valid</obj_property>
+      <obj_property name="ObjectShortName">in_valid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/ns_ready" type="logic">
+      <obj_property name="ElementShortName">ns_ready</obj_property>
+      <obj_property name="ObjectShortName">ns_ready</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/na_ready" type="logic">
+      <obj_property name="ElementShortName">na_ready</obj_property>
+      <obj_property name="ObjectShortName">na_ready</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/fw_ready" type="logic">
+      <obj_property name="ElementShortName">fw_ready</obj_property>
+      <obj_property name="ObjectShortName">fw_ready</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/out_ns" type="array">
+      <obj_property name="ElementShortName">out_ns</obj_property>
+      <obj_property name="ObjectShortName">out_ns</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/out_na" type="array">
+      <obj_property name="ElementShortName">out_na</obj_property>
+      <obj_property name="ObjectShortName">out_na</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/out_fw" type="array">
+      <obj_property name="ElementShortName">out_fw</obj_property>
+      <obj_property name="ObjectShortName">out_fw</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/ns_valid" type="logic">
+      <obj_property name="ElementShortName">ns_valid</obj_property>
+      <obj_property name="ObjectShortName">ns_valid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/na_valid" type="logic">
+      <obj_property name="ElementShortName">na_valid</obj_property>
+      <obj_property name="ObjectShortName">na_valid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/fw_valid" type="logic">
+      <obj_property name="ElementShortName">fw_valid</obj_property>
+      <obj_property name="ObjectShortName">fw_valid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/in_ready" type="logic">
+      <obj_property name="ElementShortName">in_ready</obj_property>
+      <obj_property name="ObjectShortName">in_ready</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/in_reg" type="array">
+      <obj_property name="ElementShortName">in_reg</obj_property>
+      <obj_property name="ObjectShortName">in_reg</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/handling_ns" type="logic">
+      <obj_property name="ElementShortName">handling_ns</obj_property>
+      <obj_property name="ObjectShortName">handling_ns</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/handling_na" type="logic">
+      <obj_property name="ElementShortName">handling_na</obj_property>
+      <obj_property name="ObjectShortName">handling_na</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/handling_fw" type="logic">
+      <obj_property name="ElementShortName">handling_fw</obj_property>
+      <obj_property name="ObjectShortName">handling_fw</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/first_ns" type="logic">
+      <obj_property name="ElementShortName">first_ns</obj_property>
+      <obj_property name="ObjectShortName">first_ns</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/first_na" type="logic">
+      <obj_property name="ElementShortName">first_na</obj_property>
+      <obj_property name="ObjectShortName">first_na</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/in_encoder_i/first_fw" type="logic">
+      <obj_property name="ElementShortName">first_fw</obj_property>
+      <obj_property name="ObjectShortName">first_fw</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/clk" type="logic">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/rst_p" type="logic">
+      <obj_property name="ElementShortName">rst_p</obj_property>
+      <obj_property name="ObjectShortName">rst_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/valid_i" type="logic">
+      <obj_property name="ElementShortName">valid_i</obj_property>
+      <obj_property name="ObjectShortName">valid_i</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/ready_i" type="logic">
+      <obj_property name="ElementShortName">ready_i</obj_property>
+      <obj_property name="ObjectShortName">ready_i</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/valid_o" type="logic">
+      <obj_property name="ElementShortName">valid_o</obj_property>
+      <obj_property name="ObjectShortName">valid_o</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/ready_o" type="logic">
+      <obj_property name="ElementShortName">ready_o</obj_property>
+      <obj_property name="ObjectShortName">ready_o</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/in" type="array">
+      <obj_property name="ElementShortName">in</obj_property>
+      <obj_property name="ObjectShortName">in</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/out" type="array">
+      <obj_property name="ElementShortName">out</obj_property>
+      <obj_property name="ObjectShortName">out</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/out.data" type="array">
+         <obj_property name="ElementShortName">.data</obj_property>
+         <obj_property name="ObjectShortName">.data</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/out.keep" type="array">
+         <obj_property name="ElementShortName">.keep[55:0]</obj_property>
+         <obj_property name="ObjectShortName">.keep[55:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/out.last" type="logic">
+         <obj_property name="ElementShortName">.last</obj_property>
+         <obj_property name="ObjectShortName">.last</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/out.user" type="array">
+         <obj_property name="ElementShortName">.user[55:0]</obj_property>
+         <obj_property name="ObjectShortName">.user[55:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/out.valid" type="logic">
+         <obj_property name="ElementShortName">.valid</obj_property>
+         <obj_property name="ObjectShortName">.valid</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/out.is_first" type="logic">
+         <obj_property name="ElementShortName">.is_first</obj_property>
+         <obj_property name="ObjectShortName">.is_first</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/out.meta" type="array">
+         <obj_property name="ElementShortName">.meta</obj_property>
+         <obj_property name="ObjectShortName">.meta</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/cache_ready" type="logic">
+      <obj_property name="ElementShortName">cache_ready</obj_property>
+      <obj_property name="ObjectShortName">cache_ready</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/cache_wea_p" type="logic">
+      <obj_property name="ElementShortName">cache_wea_p</obj_property>
+      <obj_property name="ObjectShortName">cache_wea_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/cache_out" type="array">
+      <obj_property name="ElementShortName">cache_out</obj_property>
+      <obj_property name="ObjectShortName">cache_out</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/mac_addrs" type="array">
+      <obj_property name="ElementShortName">mac_addrs[3:0][47:0]</obj_property>
+      <obj_property name="ObjectShortName">mac_addrs[3:0][47:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/ipv6_addrs" type="array">
+      <obj_property name="ElementShortName">ipv6_addrs[3:0][127:0]</obj_property>
+      <obj_property name="ObjectShortName">ipv6_addrs[3:0][127:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/first_beat" type="array">
+      <obj_property name="ElementShortName">first_beat</obj_property>
+      <obj_property name="ObjectShortName">first_beat</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/in_ether_hdr" type="array">
+      <obj_property name="ElementShortName">in_ether_hdr</obj_property>
+      <obj_property name="ObjectShortName">in_ether_hdr</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/in_ip6_hdr" type="array">
+      <obj_property name="ElementShortName">in_ip6_hdr</obj_property>
+      <obj_property name="ObjectShortName">in_ip6_hdr</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/in_meta_src" type="array">
+      <obj_property name="ElementShortName">in_meta_src[1:0]</obj_property>
+      <obj_property name="ObjectShortName">in_meta_src[1:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/ns_state" type="array">
+      <obj_property name="ElementShortName">ns_state[3:0]</obj_property>
+      <obj_property name="ObjectShortName">ns_state[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/ns_next_state" type="array">
+      <obj_property name="ElementShortName">ns_next_state[3:0]</obj_property>
+      <obj_property name="ObjectShortName">ns_next_state[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/ns_packet" type="array">
+      <obj_property name="ElementShortName">ns_packet</obj_property>
+      <obj_property name="ObjectShortName">ns_packet</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/na_packet" type="array">
+      <obj_property name="ElementShortName">na_packet</obj_property>
+      <obj_property name="ObjectShortName">na_packet</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/cache_writing" type="logic">
+      <obj_property name="ElementShortName">cache_writing</obj_property>
+      <obj_property name="ObjectShortName">cache_writing</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/ns_checksum" type="array">
+      <obj_property name="ElementShortName">ns_checksum[15:0]</obj_property>
+      <obj_property name="ObjectShortName">ns_checksum[15:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/na_checksum" type="array">
+      <obj_property name="ElementShortName">na_checksum[15:0]</obj_property>
+      <obj_property name="ObjectShortName">na_checksum[15:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/na_checksum_reg" type="array">
+      <obj_property name="ElementShortName">na_checksum_reg[15:0]</obj_property>
+      <obj_property name="ObjectShortName">na_checksum_reg[15:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/ns_checksum_valid" type="logic">
+      <obj_property name="ElementShortName">ns_checksum_valid</obj_property>
+      <obj_property name="ObjectShortName">ns_checksum_valid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/na_checksum_valid" type="logic">
+      <obj_property name="ElementShortName">na_checksum_valid</obj_property>
+      <obj_property name="ObjectShortName">na_checksum_valid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/ns_checksum_ea" type="logic">
+      <obj_property name="ElementShortName">ns_checksum_ea</obj_property>
+      <obj_property name="ObjectShortName">ns_checksum_ea</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/na_checksum_ea" type="logic">
+      <obj_property name="ElementShortName">na_checksum_ea</obj_property>
+      <obj_property name="ObjectShortName">na_checksum_ea</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/ns_checksum_ok" type="logic">
+      <obj_property name="ElementShortName">ns_checksum_ok</obj_property>
+      <obj_property name="ObjectShortName">ns_checksum_ok</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/pipeline_ns_i/ns_legal" type="logic">
+      <obj_property name="ElementShortName">ns_legal</obj_property>
+      <obj_property name="ObjectShortName">ns_legal</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/out_encoder_i/clk" type="logic">
       <obj_property name="ElementShortName">clk</obj_property>
       <obj_property name="ObjectShortName">clk</obj_property>
    </wvobject>
@@ -194,65 +488,130 @@
       <obj_property name="ObjectShortName">fw_beat_f_3</obj_property>
       <obj_property name="CustomSignalColor">#008080</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/out_encoder_i/rst_p" type="logic">
+      <obj_property name="ElementShortName">rst_p</obj_property>
+      <obj_property name="ObjectShortName">rst_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/out_encoder_i/in_ns" type="array">
+      <obj_property name="ElementShortName">in_ns</obj_property>
+      <obj_property name="ObjectShortName">in_ns</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/out_encoder_i/in_fw" type="array">
+      <obj_property name="ElementShortName">in_fw</obj_property>
+      <obj_property name="ObjectShortName">in_fw</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/out_encoder_i/in_nud" type="array">
+      <obj_property name="ElementShortName">in_nud</obj_property>
+      <obj_property name="ObjectShortName">in_nud</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/out_encoder_i/ns_valid" type="logic">
+      <obj_property name="ElementShortName">ns_valid</obj_property>
+      <obj_property name="ObjectShortName">ns_valid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/out_encoder_i/fw_valid" type="logic">
+      <obj_property name="ElementShortName">fw_valid</obj_property>
+      <obj_property name="ObjectShortName">fw_valid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/out_encoder_i/nud_valid" type="logic">
+      <obj_property name="ElementShortName">nud_valid</obj_property>
+      <obj_property name="ObjectShortName">nud_valid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/out_encoder_i/out_ready" type="logic">
+      <obj_property name="ElementShortName">out_ready</obj_property>
+      <obj_property name="ObjectShortName">out_ready</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_frame_datapath/dut/out_encoder_i/out" type="array">
+      <obj_property name="ElementShortName">out</obj_property>
+      <obj_property name="ObjectShortName">out</obj_property>
    </wvobject>
    <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fw_beat_f_3_in_ready" type="logic">
       <obj_property name="ElementShortName">fw_beat_f_3_in_ready</obj_property>
       <obj_property name="ObjectShortName">fw_beat_f_3_in_ready</obj_property>
       <obj_property name="CustomSignalColor">#008080</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/out_encoder_i/out_valid" type="logic">
+      <obj_property name="ElementShortName">out_valid</obj_property>
+      <obj_property name="ObjectShortName">out_valid</obj_property>
    </wvobject>
    <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fwo_beat_1" type="array">
       <obj_property name="ElementShortName">fwo_beat_1</obj_property>
       <obj_property name="ObjectShortName">fwo_beat_1</obj_property>
       <obj_property name="CustomSignalColor">#FFFF00</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/out_encoder_i/ns_ready" type="logic">
+      <obj_property name="ElementShortName">ns_ready</obj_property>
+      <obj_property name="ObjectShortName">ns_ready</obj_property>
    </wvobject>
    <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fwo_beat_1_in_ready" type="logic">
       <obj_property name="ElementShortName">fwo_beat_1_in_ready</obj_property>
       <obj_property name="ObjectShortName">fwo_beat_1_in_ready</obj_property>
       <obj_property name="CustomSignalColor">#FFFF00</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/out_encoder_i/fw_ready" type="logic">
+      <obj_property name="ElementShortName">fw_ready</obj_property>
+      <obj_property name="ObjectShortName">fw_ready</obj_property>
    </wvobject>
    <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fwo_beat_f" type="array">
       <obj_property name="ElementShortName">fwo_beat_f</obj_property>
       <obj_property name="ObjectShortName">fwo_beat_f</obj_property>
       <obj_property name="CustomSignalColor">#FFFF00</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/out_encoder_i/nud_ready" type="logic">
+      <obj_property name="ElementShortName">nud_ready</obj_property>
+      <obj_property name="ObjectShortName">nud_ready</obj_property>
    </wvobject>
    <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/fwo_beat_f_in_ready" type="logic">
       <obj_property name="ElementShortName">fwo_beat_f_in_ready</obj_property>
       <obj_property name="ObjectShortName">fwo_beat_f_in_ready</obj_property>
       <obj_property name="CustomSignalColor">#FFFF00</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/out_encoder_i/handling_ns" type="logic">
+      <obj_property name="ElementShortName">handling_ns</obj_property>
+      <obj_property name="ObjectShortName">handling_ns</obj_property>
    </wvobject>
    <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/neighbor_cache_i/IPv6_addr" type="array">
       <obj_property name="ElementShortName">IPv6_addr[127:0]</obj_property>
       <obj_property name="ObjectShortName">IPv6_addr[127:0]</obj_property>
       <obj_property name="CustomSignalColor">#FAAFBE</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/out_encoder_i/handling_fw" type="logic">
+      <obj_property name="ElementShortName">handling_fw</obj_property>
+      <obj_property name="ObjectShortName">handling_fw</obj_property>
    </wvobject>
    <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/neighbor_cache_i/neighbor_cache_entries" type="array">
       <obj_property name="ElementShortName">neighbor_cache_entries[0:15]</obj_property>
       <obj_property name="ObjectShortName">neighbor_cache_entries[0:15]</obj_property>
       <obj_property name="CustomSignalColor">#FAAFBE</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/out_encoder_i/handling_nud" type="logic">
+      <obj_property name="ElementShortName">handling_nud</obj_property>
+      <obj_property name="ObjectShortName">handling_nud</obj_property>
    </wvobject>
    <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/neighbor_cache_i/exists" type="logic">
       <obj_property name="ElementShortName">exists</obj_property>
       <obj_property name="ObjectShortName">exists</obj_property>
       <obj_property name="CustomSignalColor">#FAAFBE</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/out_encoder_i/idle" type="logic">
+      <obj_property name="ElementShortName">idle</obj_property>
+      <obj_property name="ObjectShortName">idle</obj_property>
    </wvobject>
    <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/ftb_test/hit" type="logic">
       <obj_property name="ElementShortName">hit</obj_property>
       <obj_property name="ObjectShortName">hit</obj_property>
       <obj_property name="CustomSignalColor">#FF0080</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/out_ready" type="logic">
+      <obj_property name="ElementShortName">out_ready</obj_property>
+      <obj_property name="ObjectShortName">out_ready</obj_property>
    </wvobject>
    <wvobject fp_name="/tb_frame_datapath/dut/datapath_sm_i/ftb_test/_max_prefix_len" type="array">
       <obj_property name="ElementShortName">_max_prefix_len[7:0]</obj_property>
       <obj_property name="ObjectShortName">_max_prefix_len[7:0]</obj_property>
       <obj_property name="CustomSignalColor">#FF0080</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
+   <wvobject fp_name="/tb_frame_datapath/dut/out_ready" type="logic">
+      <obj_property name="ElementShortName">out_ready</obj_property>
+      <obj_property name="ObjectShortName">out_ready</obj_property>
    </wvobject>
 </wave_config>
