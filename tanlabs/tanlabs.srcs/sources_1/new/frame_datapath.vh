@@ -119,6 +119,7 @@ typedef enum logic[2:0] {
   ERR_NONE,
   ERR_FWT_MISS,
   ERR_NC_MISS,
+  ERR_HOP_LIMIT,
   ERR_WRONG_TYPE
 } fw_error_t;
 

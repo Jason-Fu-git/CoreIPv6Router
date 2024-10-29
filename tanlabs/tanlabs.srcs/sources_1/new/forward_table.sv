@@ -20,7 +20,7 @@
 *   - The valid address range is from [BASE_ADDR, MAX_ADDR].
 *
 *   Enable Signal:
-*   - in_beat.valid is the trigger signal for reading the table.
+*   - in.valid is the trigger signal for reading the table.
 *
 *
 *  @see bram_controller.sv, tb_forward_table.sv
@@ -36,8 +36,8 @@ module forward_table #(
     input wire clk,
     input wire rst_p,
 
-    input  fw_frame_beat_t in_beat,
-    output fw_frame_beat_t out_beat,
+    input  fw_frame_beat_t in,
+    output fw_frame_beat_t out,
 
     input  wire out_ready,  // External reg ready
     output reg  in_ready,   // Ready for next query
@@ -72,7 +72,7 @@ module forward_table #(
   always_comb begin : Match
     next_mem_addr = mem_addr + 1;
     if (mem_valid) begin
-      if ((out_beat.data.data.ip6.dst & prefix_mask) == (prefix & prefix_mask)) begin
+      if ((out.data.data.ip6.dst & prefix_mask) == (prefix & prefix_mask)) begin
         hit = 1;
       end else begin
         hit = 0;
@@ -85,6 +85,7 @@ module forward_table #(
 
 
   // ===================== Controller ==============
+
   // State Machine
   typedef enum logic [1:0] {
     ST_IDLE,
@@ -111,8 +112,8 @@ module forward_table #(
       case (fwt_state)
         ST_IDLE: begin
           max_prefix_len <= 0;
-          if (in_ready) begin
-            if (in_beat.data.is_first && in_beat.valid && (in_beat.error == ERR_NONE)) begin
+          if (out_ready) begin
+            if (in.data.is_first && in.valid && (in.error == ERR_NONE)) begin
               // Start search
               fwt_state     <= ST_READ_MEM;
               // Memory controller
@@ -164,48 +165,39 @@ module forward_table #(
   end
   // ======================================================
 
-  assign in_ready = (fwt_state == ST_IDLE) && (out_ready || (!out_beat.valid));
+  assign in_ready = (fwt_state == ST_IDLE) && (out_ready || (!in.valid));
 
 
   // ======= Out beat construction ===========================
   always_ff @(posedge clk) begin : OutBeat
     if (rst_p) begin
-      out_beat <= 0;
+      out <= 0;
     end else begin
-      if (in_ready) begin
-        if (!in_beat.data.is_first) begin
-          out_beat <= in_beat;
-        end else if (in_beat.valid) begin
-          out_beat.data <= in_beat.data;
-          if (in_beat.error == ERR_NONE) begin
-            out_beat.error <= ERR_FWT_MISS;
-            // Insert a bubble
-            out_beat.valid <= 0;
-          end else begin
-            // Valid input but has errors. Directly pass it.
-            out_beat.error <= in_beat.error;
-            out_beat.valid <= 1;
-          end
-        end
-      end else begin
+      if (out_ready) begin
         if (fwt_state == ST_IDLE) begin
-          out_beat.valid <= 0;
+          if (in.data.is_first && in.valid && (in.error == ERR_NONE)) begin
+            out.data  <= in.data;
+            out.error <= ERR_FWT_MISS;
+            out.valid <= 0;
+          end else begin
+            out <= in;
+          end
         end else if (fwt_state == ST_READ_MEM) begin
-          out_beat.valid <= 0;
+          out.valid <= 0;
         end else if (fwt_state == ST_MATCH) begin
           if (hit) begin
             // Update Max Prefix Length
             if (prefix_len > max_prefix_len) begin
-              out_beat.data.data.ip6.dst <= next_hop_addr;
-              if (out_beat.error == ERR_FWT_MISS) begin
+              out.data.data.ip6.dst <= next_hop_addr;
+              if (out.error == ERR_FWT_MISS) begin
                 // Clean the error signal
-                out_beat.error <= ERR_NONE;
+                out.error <= ERR_NONE;
               end
             end
             // Check if it is the last entry
             if (mem_addr == MAX_ADDR) begin
               // Query done, send the result
-              out_beat.valid <= 1;
+              out.valid <= 1;
             end
           end
         end
