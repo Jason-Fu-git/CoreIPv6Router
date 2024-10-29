@@ -13,8 +13,8 @@ module datapath_sm (
     output reg        in_ready,  // ready to receive the next pack
     output frame_beat out,       // output pack, `out.valid` indicates validity
 
-    input wire [ 47:0] mac_addrs [0:3],  // router MAC address
-    input wire [127:0] ipv6_addrs[0:3]   // router IPv6 address
+    input wire [3:0][ 47:0] mac_addrs,  // router MAC address
+    input wire [3:0][127:0] ipv6_addrs   // router IPv6 address
 );
 
   // =============================================================
@@ -245,28 +245,10 @@ module datapath_sm (
     ns_na_packet_i.ether.ip6.flow_lo = 24'b0;
     ns_na_packet_i.ether.ip6.flow_hi = 4'b0;
     ns_na_packet_i.ether.ip6.version = 4'd6;
-    case (in_meta_src)
-      2'd0: begin
-        ns_na_packet_i.option.mac_addr = mac_addrs[0];
-        ns_na_packet_i.ether.src       = mac_addrs[0];
-        ns_na_packet_i.ether.ip6.src   = ipv6_addrs[0];
-      end
-      2'd1: begin
-        ns_na_packet_i.option.mac_addr = mac_addrs[1];
-        ns_na_packet_i.ether.src       = mac_addrs[1];
-        ns_na_packet_i.ether.ip6.src   = ipv6_addrs[1];
-      end
-      2'd2: begin
-        ns_na_packet_i.option.mac_addr = mac_addrs[2];
-        ns_na_packet_i.ether.src       = mac_addrs[2];
-        ns_na_packet_i.ether.ip6.src   = ipv6_addrs[2];
-      end
-      2'd3: begin
-        ns_na_packet_i.option.mac_addr = mac_addrs[3];
-        ns_na_packet_i.ether.src       = mac_addrs[3];
-        ns_na_packet_i.ether.ip6.src   = ipv6_addrs[3];
-      end
-    endcase
+
+    ns_na_packet_i.option.mac_addr = mac_addrs[in_meta_src];
+    ns_na_packet_i.ether.src       = mac_addrs[in_meta_src];
+    ns_na_packet_i.ether.ip6.src   = ipv6_addrs[in_meta_src];
   end
 
   always_ff @(posedge clk) begin
@@ -388,24 +370,8 @@ module datapath_sm (
   assign nud_ack = ((nud_state == NUD_SEND_2) && out_ready);
 
   always_comb begin
-    case (nud_iface)
-      2'd0: begin
-        nud_mac_addr  = mac_addrs[0];
-        nud_ipv6_addr = ipv6_addrs[0];
-      end
-      2'd1: begin
-        nud_mac_addr  = mac_addrs[1];
-        nud_ipv6_addr = ipv6_addrs[1];
-      end
-      2'd2: begin
-        nud_mac_addr  = mac_addrs[2];
-        nud_ipv6_addr = ipv6_addrs[2];
-      end
-      2'd3: begin
-        nud_mac_addr  = mac_addrs[3];
-        nud_ipv6_addr = ipv6_addrs[3];
-      end
-    endcase
+      nud_mac_addr  = mac_addrs[nud_iface];
+      nud_ipv6_addr = ipv6_addrs[nud_iface];
   end
 
   nud nud_i (
@@ -1175,13 +1141,9 @@ module datapath_sm (
           // Construct Ether header
           out.data.ethertype       <= fwo_beat_1.data.data.ethertype;
           out.data.dst             <= fwo_beat_1.data.data.dst;
-          case (fw_out_port)
-            2'd0: out.data.src <= mac_addrs[0];
-            2'd1: out.data.src <= mac_addrs[1];
-            2'd2: out.data.src <= mac_addrs[2];
-            2'd3: out.data.src <= mac_addrs[3];
-            default: out.data.src <= 48'h0;
-          endcase
+
+          out.data.src <= mac_addrs[fw_out_port];
+
           // Meta data
           out.is_first        <= fwo_beat_1.data.is_first;
           out.last            <= fwo_beat_1.data.last;
