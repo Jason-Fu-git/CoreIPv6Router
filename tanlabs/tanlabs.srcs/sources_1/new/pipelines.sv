@@ -19,15 +19,22 @@ module pipeline_ns (
 	input  frame_beat   in,
 	output frame_beat   out,
 
+	input  wire         cache_ready,
+	output reg          cache_wea_p,
+	output cache_entry  cache_out,
+
 	input  wire [3:0] [ 47:0] mac_addrs,   // router MAC address
     input  wire [3:0] [127:0] ipv6_addrs   // router IPv6 address
 );
 
-	frame_beat first_beat;
+	frame_beat       first_beat;  // The first pack, containing Ether/Ipv6 headers
+	ether_hdr        in_ether_hdr;  // Ether header of the packet being handled now
+	ip6_hdr          in_ip6_hdr;  // IPv6 header of the packet being handled now
+	logic      [1:0] in_meta_src;  // Interface
 
-	logic [1:0] in_meta_src;
-
-	assign in_meta_src = first_beat.meta.id;
+	assign in_ether_hdr = first_beat.data;
+	assign in_ip6_hdr   = first_beat.data.ip6;
+	assign in_meta_src  = first_beat.meta.id;
 
 	typedef enum logic [3:0] {
 		NS_IDLE,
@@ -42,6 +49,14 @@ module pipeline_ns (
 
 	NS_packet ns_packet;  // NS packet stored from input
 	NA_packet na_packet;  // Here checksum is set to 0; do not send this directly
+
+	always_comb begin
+		cache_out.ip6_addr = ns_packet.ether.ip6.src;
+		cache_out.mac_addr = ns_packet.option.mac_addr;
+		cache_out.iface    = in_meta_src;
+	end
+
+	reg cache_writing;
 
 	logic [15:0] ns_checksum;
 	logic [15:0] na_checksum;
@@ -90,6 +105,8 @@ module pipeline_ns (
 			ns_checksum_ok <= 0;
 			na_checksum_reg <= 0;
 			na_checksum_ea <= 0;
+			cache_wea_p <= 0;
+			cache_writing <= 0;
 		end else begin
 			if (ns_checksum_valid) begin
 				ns_checksum_ok <= (ns_checksum == 16'hffff);
@@ -101,8 +118,9 @@ module pipeline_ns (
 				ns_checksum_ea <= 1'b1;
 				na_checksum_ea <= 1'b1;
 			end else if ((ns_state == NS_SEND_1) && (ready_i)) begin
-				ns_checksum <= 0;
+				ns_checksum_ea <= 0;
 				ns_checksum_ok <= 0;
+				cache_writing <= 0;
 			end else if ((ns_state == NS_SEND_2) && (ready_i)) begin
 				na_checksum_ea <= 0;
 			end
@@ -118,6 +136,12 @@ module pipeline_ns (
 			end else if (ns_state == NS_SEND_1) begin
 				out.valid <= 1;
 				out.meta.drop <= !ns_legal;
+				if (ns_legal && !cache_writing) begin
+					cache_wea_p <= 1'b1;
+					cache_writing <= 1'b1;
+				end else if (ns_legal && cache_writing) begin
+					cache_wea_p <= 1'b0;
+				end
 			end else if (ns_state == NS_SEND_2) begin
 				out.data <= {208'h0, na_packet[687:448]};  // 86 - 56 = 30 bytes
 				out.data[15:0] <= ~{na_checksum[7:0], na_checksum[15:8]};
@@ -163,7 +187,8 @@ module pipeline_ns (
 		na_packet.ether.ip6.src         = ipv6_addrs[in_meta_src];
 	end
 
-	assign valid_o        = ((ns_state == NS_SEND_1) || (ns_state == NS_SEND_2));
+	// assign valid_o        = ((ns_state == NS_SEND_1) || (ns_state == NS_SEND_2));
+	assign valid_o = out.valid;
 	assign ready_o        = ((ns_state == NS_IDLE  ) || (ns_state == NS_WAIT  ));
 
 	checksum_calculator checksum_calculator_ns (
@@ -208,17 +233,17 @@ module pipeline_na (
 	output reg          valid_o,  // Write cache valid
 
 	input  frame_beat   in,
-	output cache_entry  out,
-
-	input  wire [3:0] [ 47:0] mac_addrs,   // router MAC address
-    input  wire [3:0] [127:0] ipv6_addrs   // router IPv6 address
+	output cache_entry  out
 );
 
-	frame_beat first_beat;
+	frame_beat       first_beat;  // The first pack, containing Ether/Ipv6 headers
+	ether_hdr        in_ether_hdr;  // Ether header of the packet being handled now
+	ip6_hdr          in_ip6_hdr;  // IPv6 header of the packet being handled now
+	logic      [1:0] in_meta_src;  // Interface
 
-	logic [1:0] in_meta_src;
-
-	assign in_meta_src = first_beat.meta.id;
+	assign in_ether_hdr = first_beat.data;
+	assign in_ip6_hdr   = first_beat.data.ip6;
+	assign in_meta_src  = first_beat.meta.id;
 
 	NA_packet na_packet;
 	logic [15:0] na_checksum;
@@ -293,7 +318,7 @@ module pipeline_na (
 	end
 
 	assign valid_o = (na_state == NA_CACHE);
-	assign ready_o = ((na_state == NA_IDLE) || (ns_state == NA_WAIT));
+	assign ready_o = ((na_state == NA_IDLE) || (na_state == NA_WAIT));
 
 
 	checksum_calculator checksum_calculator_na (
@@ -381,7 +406,7 @@ module pipeline_nud(
 			if (nud_state == NUD_SEND_1) begin
 				out.data <= NS_o[447:0];
 				out.is_first <= 1'b1;
-				out.is_last <= 1'b0;
+				out.last <= 1'b0;
 				out.valid <= 1'b1;
 				out.keep <= 56'hffffffffffffff;
 				out.meta.drop <= 1'b0;

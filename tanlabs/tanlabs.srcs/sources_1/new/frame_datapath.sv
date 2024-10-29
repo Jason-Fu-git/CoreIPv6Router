@@ -101,16 +101,134 @@ module frame_datapath
 
     frame_beat out;
 
-    datapath_sm datapath_sm_i(
+    // datapath_sm datapath_sm_i(
+    //     .clk(eth_clk),
+    //     .rst_p(reset),
+    //     .in(in),
+    //     .s_ready(in.valid),
+    //     .in_ready(in_ready),
+    //     .out(out),
+    //     .out_ready(out_ready),
+    //     .mac_addrs(mac_addrs),
+    //     .ipv6_addrs(ipv6_addrs)
+    // );
+
+    frame_beat ns_in, na_in, fw_in;
+    frame_beat ns_out, fw_out, nud_out;
+    logic ns_in_valid, na_in_valid, fw_in_valid;
+    logic ns_in_ready, na_in_ready, fw_in_ready;
+    logic ns_out_valid, fw_out_valid, nud_out_valid;
+    logic ns_out_ready, fw_out_ready, nud_out_ready;
+    logic ns_cache_valid, na_cache_valid;
+    logic ns_cache_ready, na_cache_ready;
+    cache_entry ns_cache_entry, na_cache_entry, cache_w;
+    logic cache_wea_p, cache_uea_p, cache_rea_p, cache_exists, cache_ready;
+    logic nud_we_p;
+    logic [127:0] nud_exp_addr;
+    logic [1:0] nud_iface;
+    logic [47:0] cache_mac_addr_o;
+    logic [1:0] cache_iface_o;
+    
+    assign fw_out_valid = 1'b0;
+    assign fw_out = 0;
+    assign fw_in_ready = 1'b1;
+
+    neighbor_cache neighbor_cache_i (
+        .clk            (eth_clk),
+        .rst_p          (reset),
+        .IPv6_addr      (cache_w.ip6_addr),
+        .w_MAC_addr     (cache_w.mac_addr),
+        .w_port_id      (cache_w.iface),
+        .r_MAC_addr     (cache_mac_addr_o),
+        .r_port_id      (cache_iface_o),
+        .uea_p          (cache_uea_p),
+        .wea_p          (cache_wea_p),
+        .rea_p          (cache_rea_p),
+        .exists         (cache_exists),
+        .ready          (cache_ready),
+        .nud_probe      (nud_we_p),
+        .probe_IPv6_addr(nud_exp_addr),
+        .probe_port_id  (nud_iface)
+    );
+    pipeline_ns pipeline_ns_i(
+        .clk(eth_clk),
+        .rst_p(reset),
+        .valid_i(ns_in_valid),
+        .ready_i(ns_out_ready),
+        .valid_o(ns_out_valid),
+        .ready_o(ns_in_ready),
+        .in(ns_in),
+        .out(ns_out),
+        .cache_ready(ns_cache_ready),
+        .cache_wea_p(ns_cache_valid),
+        .cache_out(ns_cache_entry),
+        .mac_addrs(mac_addrs),
+        .ipv6_addrs(ipv6_addrs)
+    );
+    pipeline_na pipeline_na_i(
+        .clk(eth_clk),
+        .rst_p(reset),
+        .valid_i(na_in_valid),
+        .ready_i(na_cache_ready),
+        .valid_o(na_cache_valid),
+        .ready_o(na_in_ready),
+        .in(na_in),
+        .out(na_cache_entry)
+    );
+    pipeline_nud pipeline_nud_i(
+        .clk(eth_clk),
+        .rst_p(reset),
+        .we_i(nud_we_p),
+        .tgt_addr_i(nud_exp_addr),
+        .ip6_addr_i(ipv6_addrs[nud_iface]),
+        .mac_addr_i(mac_addrs[nud_iface]),
+        .iface_i(nud_iface),
+        .ready_i(nud_out_ready),
+        .out(nud_out),
+        .valid_o(nud_out_valid)
+    );
+    in_encoder in_encoder_i(
         .clk(eth_clk),
         .rst_p(reset),
         .in(in),
-        .s_ready(in.valid),
-        .in_ready(in_ready),
-        .out(out),
+        .in_valid(in.valid),
+        .ns_ready(ns_in_ready),
+        .na_ready(na_in_ready),
+        .fw_ready(fw_in_ready),
+        .out_ns(ns_in),
+        .out_na(na_in),
+        .out_fw(fw_in),
+        .ns_valid(ns_in_valid),
+        .na_valid(na_in_valid),
+        .fw_valid(fw_in_valid),
+        .in_ready(in_ready)
+    );
+    out_encoder out_encoder_i(
+        .clk(eth_clk),
+        .rst_p(reset),
+        .in_ns(ns_out),
+        .in_fw(fw_out),
+        .in_nud(nud_out),
+        .ns_valid(ns_out_valid),
+        .fw_valid(fw_out_valid),
+        .nud_valid(nud_out_valid),
         .out_ready(out_ready),
-        .mac_addrs(mac_addrs),
-        .ipv6_addrs(ipv6_addrs)
+        .out(out),
+        .ns_ready(ns_out_ready),
+        .fw_ready(fw_out_ready),
+        .nud_ready(nud_out_ready)
+    );
+    cache_encoder cache_encoder_i(
+        .clk(eth_clk),
+        .rst_p(reset),
+        .ns_valid(ns_cache_valid),
+        .na_valid(na_cache_valid),
+        .ns_in(ns_cache_entry),
+        .na_in(na_cache_entry),
+        .ns_ready(ns_cache_ready),
+        .na_ready(na_cache_ready),
+        .out(cache_w),
+        .wea_p(cache_wea_p)
     );
 
     always @ (*)
