@@ -39,9 +39,9 @@ module pipeline_ns (
   typedef enum logic [3:0] {
     NS_IDLE,
     NS_WAIT,
-    NS_CHECK_NS,
+    NS_CHECK,
     NS_SEND_1,
-    NS_CHECK_NA,
+    NS_CACHE,
     NS_SEND_2
   } ns_state_t;
 
@@ -79,10 +79,10 @@ module pipeline_ns (
   always_comb begin
     case (ns_state)
       NS_IDLE     : ns_next_state = ((valid_i          ) ? NS_WAIT     : NS_IDLE    );
-      NS_WAIT     : ns_next_state = ((valid_i          ) ? NS_CHECK_NS : NS_WAIT    );
-      NS_CHECK_NS : ns_next_state = ((ns_checksum_valid) ? NS_SEND_1   : NS_CHECK_NS);
-      NS_SEND_1   : ns_next_state = ((ready_i          ) ? NS_CHECK_NA : NS_SEND_1  );
-      NS_CHECK_NA : ns_next_state = ((na_checksum_valid) ? NS_SEND_2   : NS_CHECK_NA);
+      NS_WAIT     : ns_next_state = ((valid_i          ) ? NS_CHECK    : NS_WAIT    );
+      NS_CHECK    : ns_next_state = ((ns_checksum_valid) ? NS_SEND_1   : NS_CHECK   );
+      NS_SEND_1   : ns_next_state = ((ready_i          ) ? NS_CACHE    : NS_SEND_1  );
+      NS_CACHE    : ns_next_state = ((cache_ready      ) ? NS_SEND_2   : NS_CACHE   );
       NS_SEND_2   : ns_next_state = ((ready_i          ) ? NS_IDLE     : NS_SEND_2  );
       default     : ns_next_state = NS_IDLE;
     endcase
@@ -119,10 +119,9 @@ module pipeline_ns (
         na_checksum_ea <= 1'b1;
       end else if ((ns_state == NS_SEND_1) && (ready_i)) begin
         ns_checksum_ea <= 0;
-        ns_checksum_ok <= 0;
-        cache_writing <= 0;
       end else if ((ns_state == NS_SEND_2) && (ready_i)) begin
         na_checksum_ea <= 0;
+        ns_checksum_ok <= 0;
       end
       if (ns_state == NS_WAIT) begin
         out.data            <= na_packet[447:0];  // 56 bytes
@@ -133,15 +132,14 @@ module pipeline_ns (
         out.meta.dont_touch <= 1'b0;
         out.meta.drop_next  <= 1'b0;
         out.meta.dest       <= in_meta_src;
+      end else if (ns_state == NS_CACHE) begin
+        if (ns_legal) begin
+          cache_wea_p   <= 1'b1;
+          cache_writing <= 1'b1;
+        end
       end else if (ns_state == NS_SEND_1) begin
         out.valid <= 1;
         out.meta.drop <= !ns_legal;
-        if (ns_legal && !cache_writing) begin
-          cache_wea_p <= 1'b1;
-          cache_writing <= 1'b1;
-        end else if (ns_legal && cache_writing) begin
-          cache_wea_p <= 1'b0;
-        end
       end else if (ns_state == NS_SEND_2) begin
         out.data <= {208'h0, na_packet[687:448]};  // 86 - 56 = 30 bytes
         out.data[15:0] <= ~{na_checksum[7:0], na_checksum[15:8]};
@@ -153,6 +151,10 @@ module pipeline_ns (
         out.meta.dont_touch <= 1'b0;
         out.meta.drop_next <= 1'b0;
         out.meta.dest <= in_meta_src;
+        if (cache_writing) begin
+          cache_writing <= 1'b0;
+          cache_wea_p   <= 1'b0;
+        end
       end else begin
         out.valid <= 0;
       end

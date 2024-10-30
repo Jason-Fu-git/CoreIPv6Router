@@ -111,9 +111,13 @@ module in_arbiter (
           end
         end
       end else begin
-        ns_valid <= 0;
-        na_valid <= 0;
-        fw_valid <= 0;
+        if (handling_ns && ns_ready) begin
+          ns_valid <= 0;
+        end else if (handling_na && na_ready) begin
+          na_valid <= 0;
+        end else if (handling_fw && fw_ready) begin
+          fw_valid <= 0;
+        end
       end
     end
   end

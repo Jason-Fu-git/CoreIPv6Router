@@ -73,10 +73,11 @@ module pipeline_na (
         na_checksum_ea <= 1'b1;
       end else if ((na_state == NA_CHECK) && na_checksum_valid) begin
         na_checksum_ea <= 1'b0;
-        na_checksum_ok <= 1'b0;
         out.ip6_addr <= na_packet.ether.ip6.src;
         out.mac_addr <= na_packet.option.mac_addr;
         out.iface    <= in_meta_src;
+      end else if (na_next_state == NA_IDLE) begin
+        na_checksum_ok <= 1'b0;
       end
     end
   end
