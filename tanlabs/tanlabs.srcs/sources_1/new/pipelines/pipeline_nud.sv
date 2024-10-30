@@ -29,6 +29,7 @@ module pipeline_nud (
     NUD_IDLE,
     NUD_CHECK,
     NUD_SEND_1,
+    NUD_WAIT,
     NUD_SEND_2
   } nud_state_t;
 
@@ -55,6 +56,7 @@ module pipeline_nud (
   always_ff @(posedge clk) begin
     if (rst_p) begin
       out <= 0;
+      valid_o <= 0;
       sn_addr[127:104] <= 24'b0;
       tgt_addr <= 128'b0;
       ip6_addr <= 128'b0;
@@ -82,6 +84,7 @@ module pipeline_nud (
         out.meta.dont_touch <= 1'b0;
         out.meta.drop_next <= 1'b0;
         out.meta.dest <= iface;
+        valid_o <= 1;
       end else if (nud_state == NUD_SEND_2) begin
         out.data            <= {208'h0, NS_o[687:448]};
         out.data[15:0]      <= ~{checksum_o[7:0], checksum_o[15:8]};
@@ -93,14 +96,16 @@ module pipeline_nud (
         out.meta.dont_touch <= 1'b0;
         out.meta.drop_next  <= 1'b0;
         out.meta.dest       <= iface;
+        valid_o <= 1;
       end else begin
         out.valid <= 1'b0;
+        valid_o <= 0;
       end
     end
   end
 
   always_comb begin
-    NS_o.ether.ip6.dst = sn_addr;
+    NS_o.ether.ip6.dst = tgt_addr;
     NS_o.ether.ip6.src = ip6_addr;
     NS_o.ether.ip6.hop_limit = 255;
     NS_o.ether.ip6.next_hdr = IP6_HDR_TYPE_ICMPv6;
@@ -129,7 +134,8 @@ module pipeline_nud (
     case (nud_state)
       NUD_IDLE: nud_next_state = we_i ? NUD_CHECK : NUD_IDLE;
       NUD_CHECK: nud_next_state = checksum_valid ? NUD_SEND_1 : NUD_CHECK;
-      NUD_SEND_1: nud_next_state = ready_i ? NUD_SEND_2 : NUD_SEND_1;
+      NUD_SEND_1: nud_next_state = ready_i ? NUD_WAIT : NUD_SEND_1;
+      NUD_WAIT: nud_next_state = NUD_SEND_2;
       NUD_SEND_2: nud_next_state = ready_i ? NUD_IDLE : NUD_SEND_2;
       default: nud_next_state = NUD_IDLE;
     endcase
@@ -150,7 +156,7 @@ module pipeline_nud (
       .valid(checksum_valid)
   );
 
-  assign valid_o = (nud_state == NUD_SEND_1) || (nud_state == NUD_SEND_2);
+  // assign valid_o = (nud_state == NUD_SEND_1) || (nud_state == NUD_SEND_2);
 
 endmodule
 

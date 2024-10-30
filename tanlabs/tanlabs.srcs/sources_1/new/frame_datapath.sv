@@ -195,20 +195,20 @@ module frame_datapath #(
               bram_addr_w <= 5'd2;
               bram_data_w <= {
                 0,  // padding
-                1'b0,  // valid
-                8'd16,  // prefix length
-                128'h000000000000000000000000000080FF,  // next hop
-                128'h000000000000000000000000000080FF  // prefix
+                1'b1,  // valid
+                8'd128,  // prefix length
+                128'h01000000000000000000000000000420,  // next hop
+                128'h01000000000000000000000000000420  // prefix
               };
             end
             3'd3: begin
               bram_addr_w <= 5'd3;
               bram_data_w <= {
                 0,  // padding
-                1'b0,  // valid
-                8'd16,  // prefix length
-                128'h000000000000000000000000000080FF,  // next hop
-                128'h000000000000000000000000000080FF  // prefix
+                1'b1,  // valid
+                8'd128,  // prefix length
+                128'h02000000000000000000000000000420,  // next hop
+                128'h02000000000000000000000000000420  // prefix
               };
             end
             default: begin

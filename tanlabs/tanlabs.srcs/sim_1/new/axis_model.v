@@ -51,8 +51,9 @@ module axis_model
             ST_READ:
                 if ($feof(fd))
                 begin
-                    $rewind(fd);
-                    state <= ST_READ;
+                    // $rewind(fd);
+                    // state <= ST_READ;
+                    state <= ST_HALT;
                 end
                 else
                 begin

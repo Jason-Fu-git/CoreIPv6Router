@@ -167,10 +167,10 @@ module pipeline_ns (
     na_packet.icmpv6.checksum       = 16'd0;
     na_packet.icmpv6.R              = 1'b1;  // sent from router
     na_packet.icmpv6.S              = 1'b1;  // TODO: set the flag, now is default: sent as response to NS
-    na_packet.icmpv6.O              = 1'b0;  // TODO: set the flag
+    na_packet.icmpv6.O              = 1'b1;  // TODO: set the flag
     na_packet.icmpv6.reserved_lo    = 24'h0;
     na_packet.icmpv6.reserved_hi    = 5'h0;
-    na_packet.icmpv6.target_addr    = in_ip6_hdr.src;
+    na_packet.icmpv6.target_addr    = ns_packet.icmpv6.target_addr;
     na_packet.ether.dst             = in_ether_hdr.src;
     na_packet.ether.ethertype       = 16'hdd86;  // IPv6
     na_packet.ether.ip6.dst         = in_ip6_hdr.src;
