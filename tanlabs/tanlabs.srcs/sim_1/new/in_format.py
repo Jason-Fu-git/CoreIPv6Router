@@ -1,4 +1,4 @@
-in_frames = "fw_frames.txt"
+in_frames = "frames.txt"
 tmp = []
 
 with open(in_frames, "r") as f:

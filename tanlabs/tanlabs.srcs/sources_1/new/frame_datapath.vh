@@ -1,5 +1,5 @@
 `ifndef _FRAME_DATAPATH_VH_
-`define _FRAME_DATAPATH_VH_ 
+`define _FRAME_DATAPATH_VH_
 
 // 'w' means wide.
 localparam DATAW_WIDTH = 8 * 56;
@@ -53,7 +53,7 @@ typedef struct packed {
 } icmpv6_hdr;  // now without options
 
 typedef struct packed {
-  logic [ 47:0] mac_addr;
+  logic [47:0] mac_addr;
   logic [7:0]  len;
   logic [7:0]  option_type;
 } icmpv6_option;
@@ -61,15 +61,15 @@ typedef struct packed {
 typedef struct packed {
   ip6_hdr ip6;
   logic [15:0] ethertype;
-  logic [ 47:0] src;
-  logic [ 47:0] dst;
+  logic [47:0] src;
+  logic [47:0] dst;
 } ether_hdr;
 
 typedef struct packed {
   ip6_hdr_clean ip6;
   logic [15:0]  ethertype;
-  logic [ 47:0]  src;
-  logic [ 47:0]  dst;
+  logic [47:0]  src;
+  logic [47:0]  dst;
 } ether_hdr_clean;
 
 typedef struct packed {
@@ -115,21 +115,26 @@ typedef struct packed {
   frame_meta meta;
 } frame_beat;
 
-typedef enum logic[2:0] {
+typedef enum logic [2:0] {
   ERR_NONE,
   ERR_FWT_MISS,
   ERR_NC_MISS,
+  ERR_HOP_LIMIT,
   ERR_WRONG_TYPE
 } fw_error_t;
 
 typedef struct packed {
   frame_beat data;
-  reg [4:0] index;
   fw_error_t error;
-  reg valid;
-  reg stop;
-  reg waiting;
+  logic      valid;
 } fw_frame_beat_t;
+
+typedef struct packed {
+  logic [127:0] ip6_addr;
+  logic [47:0]  mac_addr;
+  logic [1:0]   iface;
+} cache_entry;
+
 
 `define should_handle(b) \
 (b.valid && b.is_first && !b.meta.drop && !b.meta.dont_touch)
@@ -141,5 +146,11 @@ typedef struct packed {
 localparam ID_CPU = 3'd4;  // The interface ID of CPU is 4.
 
 localparam ETHERTYPE_IP6 = 16'hdd86;
+
+`define ntohs(x) ({x[7:0], x[15:8]})
+`define ntohl(x) ({x[7:0], x[15:7], x[23:15], x[31:23]})
+`define htons(x) ({x[7:0], x[15:8]})
+`define htonl(x) ({x[7:0], x[15:7], x[23:15], x[31:23]})
+
 
 `endif

@@ -712,9 +712,8 @@ module tanlabs
         .m_valid(dp_tx_valid),
         .m_ready(1'b1),
 
-        // added ip addr and valid
+        // added ip addr and mac addresses
         .ip_addr(ip_addrs),
-
         .mac_addr(mac_addrs)
 
         // README: You will need to add some signals for your CPU to control the datapath,
