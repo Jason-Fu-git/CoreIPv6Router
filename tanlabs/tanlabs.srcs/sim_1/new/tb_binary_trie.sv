@@ -8,6 +8,7 @@ module tb_binary_trie;
   logic rst_p;
 
   logic [127:0] pipeline_prefix;  // TODO: pipeline_prefix is file input
+  logic error;
 
   // ===========================
   // Binary Trie
@@ -83,6 +84,8 @@ module tb_binary_trie;
     end
   endgenerate
 
+  assign ready_i[15] = 1;
+
   // Instantiate the Unit Under Test (UUT)
   generate
     for (i = 0; i < 16; i = i + 1) begin : g_uuts
@@ -133,6 +136,21 @@ module tb_binary_trie;
     end
   endgenerate
 
+
+  //============================
+  // Match
+  //============================
+  always @(posedge clk) begin
+    if (rst_p) begin
+      error <= 0;
+    end else begin
+      if (valid_o[15]) begin
+        // TODO: Match the answer
+      end
+    end
+  end
+
+
   // ===========================
   // Testbench Logic
   // ===========================
@@ -142,7 +160,24 @@ module tb_binary_trie;
 
   // Initial block
   initial begin
+    // TODO: Reset the signals
+    rst_p = 1;
+    #1000;
+    rst_p = 0;
 
+    // TODO: Load the binary trie from a file into brams
+
+    // TODO: Test the binary trie
+    for (int i = 0; i < 16; i++) begin
+      // TODO: Input
+      #100
+      // prefix example:
+      // for ip6 address fe80::1
+      // prefix should be 1000 .... 0000 0001 0111 1111
+      frame_beat_i[0] = {
+        0, 5'd31, 128'h017f
+      };
+    end
 
     #10000;
     $finish;
