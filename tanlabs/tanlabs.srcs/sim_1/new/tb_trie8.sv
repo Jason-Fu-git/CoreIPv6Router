@@ -208,6 +208,10 @@ module tb_trie8;
   string line;
   int index = 0;
   logic [31:0] input_hex;
+  logic [15:0] ipv6_16bit = 0;
+  logic [3:0] char_hex = 0;
+  int hex_count = 0;
+  int ipv6_16bit_count = 0;
   // Initial block
   initial begin
     // TODO: Reset the signals
@@ -238,7 +242,8 @@ module tb_trie8;
     end
     $fclose(file);
     // TODO: Test the binary trie
-    for (int i = 0; i < 100; i++) begin
+    file = $fopen("D:/web-2024/joint-lab-g5/firmware/trie/fib_shuffled_0", "r");
+    for (int i = 0; i < 255; i++) begin
         // TODO: Input
         #200
         tb_frame_beat.keep = ~0;
@@ -251,8 +256,28 @@ module tb_trie8;
         // prefix example:
         // for ip6 address fe80::1
         // prefix should be 1000 .... 0000 0001 0111 1111
-        // pipeline_prefix = {64'h0, {$random} % 56'hffff_ffff_ffff_ff, 8'h02};
-        pipeline_prefix = {80'h0, 48'h015b_ef64_4504};
+        pipeline_prefix = 0;
+        hex_count = 0;
+        ipv6_16bit_count = 0;
+        $fgets(line, file);
+        $sscanf(line, "%s", line);
+        for (int j = 0; j < line.len(); j++) begin
+            if (line[j] != ":") begin
+                $sscanf(line[j], "%h", char_hex);
+                char_hex[3:0] = {char_hex[0], char_hex[1], char_hex[2], char_hex[3]};
+                ipv6_16bit += {12'd0, char_hex[3:0]} << (hex_count*4);
+                hex_count += 1;
+            end else begin
+                for (int t = hex_count; t < 4; t++) begin
+                    ipv6_16bit = ipv6_16bit << 4;
+                end
+                pipeline_prefix += {112'b0, ipv6_16bit} << (ipv6_16bit_count * 16);
+                ipv6_16bit_count += 1;
+                ipv6_16bit = 0;
+                hex_count = 0;
+            end
+        end
+        // pipeline_prefix = {80'h0, 48'h015b_ef64_4054};
         #200
         in_valid[0] = 0;
     end
@@ -261,3 +286,73 @@ module tb_trie8;
     $finish;
   end
 endmodule
+// int main()
+// {
+//     init_bram();
+//     FILE *file = fopen("fib_shuffled_0", "r");
+//     char trash[50];
+//     char ipv6_addr[50];
+//     for(int i=0;i<255;i++){
+//         struct RouteTableEntry entry;
+//         entry.prefix[0] = 0x00000000;
+//         entry.prefix[1] = 0x00000000;
+//         entry.prefix[2] = 0x00000000;
+//         entry.prefix[3] = 0x00000000;
+//         fscanf_s(file, "%s %u %s %u\n", &ipv6_addr, sizeof(ipv6_addr),
+//                         &(entry.prefix_length),
+//                         &trash, sizeof(trash),
+//                         &(entry.port));
+//         char ch = '0';
+//         int j = 0;
+//         int pref = 0;
+//         unsigned int a_1bit = 0;
+//         unsigned int a_4bit = 0;
+//         int high_4bit = 0;
+//         unsigned int bitnum = 0;
+//         while(1 == 1){
+//             ch = ipv6_addr[j];
+//             j++;
+//             if(ch==':'){
+//                 while(bitnum<4){
+//                     a_4bit = a_4bit<<4;
+//                     bitnum++;
+//                 }
+//                 bitnum=0;
+//                 if(high_4bit==1){
+//                     entry.prefix[pref] += a_4bit<<16;
+//                     high_4bit=0;
+//                     pref++;
+//                 }
+//                 else{
+//                     entry.prefix[pref] += a_4bit;
+//                     high_4bit=1;
+//                 }
+//                 a_4bit=0;
+//                 if(ipv6_addr[j]==':') break;
+//                 else continue;
+//             }
+//             else{
+//                 if(ch<='9'){
+//                     a_1bit = ch - '0';
+//                 }
+//                 else{
+//                     a_1bit = ch - 'a' + 10;
+//                 }
+//                 unsigned int a_rev=0x0000;
+//                 int ib=4;
+//                 while(ib--){
+//                     a_rev=a_rev+((a_1bit&0x0001)<<ib);
+//                     a_1bit=a_1bit>>1;
+//                 }
+//                 a_4bit += a_rev<<bitnum*4;
+//                 bitnum++;
+//             }
+//         }
+//         // entry.prefix_length = 4;
+//         entry.next_hop = 31;
+//         int code = insert(entry.prefix, entry.prefix_length, entry.next_hop);
+//         if (code != 0){
+//             printf("Error on inserting route %d\n", i);
+//             break;
+//         }
+//     }
