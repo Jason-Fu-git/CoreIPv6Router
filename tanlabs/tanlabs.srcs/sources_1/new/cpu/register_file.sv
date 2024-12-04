@@ -1,5 +1,4 @@
 // @author: Jason Fu
-`default_nettype none
 module register_file (
     input wire clk,  // 时钟
     input wire rst,  // 同步复位

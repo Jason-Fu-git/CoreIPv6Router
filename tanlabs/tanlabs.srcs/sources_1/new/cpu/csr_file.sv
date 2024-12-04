@@ -1,5 +1,4 @@
 // @author: Jason Fu
-`default_nettype none
 `include "csrs.vh"
 
 // 1. 读CSR寄存器要以组合逻辑实现

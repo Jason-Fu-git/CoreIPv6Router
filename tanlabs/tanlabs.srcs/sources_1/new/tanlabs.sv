@@ -1,5 +1,4 @@
 `timescale 1ns / 1ps
-`default_nettype none
 
 /* Tsinghua Advanced Networking Labs */
 
@@ -915,11 +914,13 @@ module tanlabs #(
   ) cache_IF (
       .clk(core_clk),
       .rst_p(reset_core),
+
       .adr_ctl_i(im_adr),
       .stb_ctl_i(im_fence || im_stb),
       .sel_ctl_i(4'b1111),
       .we_p_ctl_i(1'b0),
       .ack_ctl_o(im_ack),
+      .dat_ctl_i(0),
       .dat_ctl_o(im_dat_r),
 
       .ack_sram_i (icache_sram_ack),
@@ -943,6 +944,7 @@ module tanlabs #(
   ) cache_MEM (
       .clk(core_clk),
       .rst_p(reset_core),
+
       .adr_ctl_i(dm_adr),
       .stb_ctl_i(dm_fence || dm_stb),
       .sel_ctl_i(dm_sel),

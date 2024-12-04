@@ -5,6 +5,7 @@
  * @author Jason Fu
  *
  */
+
 #define _BINARY_TRIE_C_
 // ! Should not surpass 1024 !
 #define N 256

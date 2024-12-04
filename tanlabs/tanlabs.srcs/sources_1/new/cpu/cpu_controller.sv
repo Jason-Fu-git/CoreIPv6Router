@@ -1,6 +1,5 @@
 // CPU Controller Implemented with 5-stage Pipeline
 // @author : Jason Fu
-`default_nettype none
 `include "ops.vh"
 `include "exceptions.vh"
 `include "csrs.vh"

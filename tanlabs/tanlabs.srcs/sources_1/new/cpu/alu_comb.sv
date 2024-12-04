@@ -1,4 +1,3 @@
-`default_nettype none
 `include "ops.vh"
 
 // 简单的ALU实现
