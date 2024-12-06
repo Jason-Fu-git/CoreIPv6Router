@@ -10,15 +10,15 @@
 //   logic [ 3:0] p;      // 4
 //   logic        valid;  // 1 whether the next_hop_addr is valid
 //   logic [ 4:0] next_hop_addr; //5
-//   logic [12:0] lc; // 13
 //   logic [12:0] rc; // 13
+//   logic [12:0] lc; // 13
 // } binary_trie_node_t; // 12'd0 is considered the null node
 
-#define CONSTRUCT_BRAM_ENTRY(valid, next_hop_addr, lc, rc) ((valid << 31) | (next_hop_addr << 26) | (lc << 13) | rc)
+#define CONSTRUCT_BRAM_ENTRY(valid, next_hop_addr, rc, lc) ((valid << 31) | (next_hop_addr << 26) | (rc << 13) | lc)
 #define VALID(entry) ((entry >> 31) & 0x1)
 #define NEXT_HOP_ADDR(entry) ((entry >> 26) & 0x1F)
-#define LC(entry) ((entry >> 13) & 0x1FFF)
-#define RC(entry) (entry & 0x1FFF)
+#define RC(entry) ((entry >> 13) & 0x1FFF)
+#define LC(entry) (entry & 0x1FFF)
 
 // For C code
 // typedef struct packed {

@@ -40,8 +40,8 @@ typedef struct packed {
   logic [ 3:0] p;      // 4
   logic        valid;  // 1 Note : 12'd0.valid should be 0
   logic [ 4:0] next_hop_addr; //5
-  logic [12:0] lc; // 13
   logic [12:0] rc; // 13
+  logic [12:0] lc; // 13
 } binary_trie_node_t; // 12'd0 is considered the null node
 
 typedef Node1        NL0;

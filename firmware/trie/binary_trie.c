@@ -14,15 +14,15 @@
 //   logic [ 3:0] p;      // 4
 //   logic        valid;  // 1 whether the next_hop_addr is valid
 //   logic [ 4:0] next_hop_addr; //5
-//   logic [12:0] lc; // 13
 //   logic [12:0] rc; // 13
+//   logic [12:0] lc; // 13
 // } binary_trie_node_t; // 12'd0 is considered the null node
 
-#define CONSTRUCT_BRAM_ENTRY(valid, next_hop_addr, lc, rc) ((valid << 31) | (next_hop_addr << 26) | (lc << 13) | rc)
+#define CONSTRUCT_BRAM_ENTRY(valid, next_hop_addr, rc, lc) ((valid << 31) | (next_hop_addr << 26) | (rc << 13) | lc)
 #define VALID(entry) ((entry >> 31) & 0x1)
 #define NEXT_HOP_ADDR(entry) ((entry >> 26) & 0x1F)
-#define LC(entry) ((entry >> 13) & 0x1FFF)
-#define RC(entry) (entry & 0x1FFF)
+#define LC(entry) (entry & 0x1FFF)
+#define RC(entry) ((entry >> 13) & 0x1FFF)
 
 // For C code
 // typedef struct packed {
@@ -207,12 +207,12 @@ int insert(unsigned int prefix[4], int prefix_length, unsigned int next_hop_addr
             if (lsb == 0)
             {
                 // turn left
-                bram_entires[entry_level][entry_index] = CONSTRUCT_BRAM_ENTRY(valid, entry_next_hop_addr, new_index, rc);
+                bram_entires[entry_level][entry_index] = CONSTRUCT_BRAM_ENTRY(valid, entry_next_hop_addr, rc, new_index);
             }
             else
             {
                 // turn right
-                bram_entires[entry_level][entry_index] = CONSTRUCT_BRAM_ENTRY(valid, entry_next_hop_addr, lc, new_index);
+                bram_entires[entry_level][entry_index] = CONSTRUCT_BRAM_ENTRY(valid, entry_next_hop_addr, new_index, lc);
             }
         }
     }
@@ -229,7 +229,7 @@ int insert(unsigned int prefix[4], int prefix_length, unsigned int next_hop_addr
         unsigned int rc = RC(entry);
 
         // update the entry
-        bram_entires[entry_level][entry_index] = CONSTRUCT_BRAM_ENTRY(1, next_hop_addr, lc, rc);
+        bram_entires[entry_level][entry_index] = CONSTRUCT_BRAM_ENTRY(1, next_hop_addr, rc, lc);
     }
 
     return 0;
@@ -268,7 +268,7 @@ int delete(unsigned int prefix[4], int prefix_length)
     }
 
     // update the entry
-    bram_entires[entry_level][entry_index] = CONSTRUCT_BRAM_ENTRY(0, 0, lc, rc);
+    bram_entires[entry_level][entry_index] = CONSTRUCT_BRAM_ENTRY(0, 0, rc, lc);
 
     // leaf node
     if (lc == 0 && rc == 0)
@@ -320,7 +320,7 @@ int delete(unsigned int prefix[4], int prefix_length)
                 // lc
                 if (parent_lc == prev_index)
                 {
-                    bram_entires[parent_level][parent_index] = CONSTRUCT_BRAM_ENTRY(parent_valid, parent_next_hop_addr, 0, parent_rc);
+                    bram_entires[parent_level][parent_index] = CONSTRUCT_BRAM_ENTRY(parent_valid, parent_next_hop_addr, parent_rc, 0);
                 }
                 else
                 {
@@ -332,7 +332,7 @@ int delete(unsigned int prefix[4], int prefix_length)
                 // rc
                 if (parent_rc == prev_index)
                 {
-                    bram_entires[parent_level][parent_index] = CONSTRUCT_BRAM_ENTRY(parent_valid, parent_next_hop_addr, parent_lc, 0);
+                    bram_entires[parent_level][parent_index] = CONSTRUCT_BRAM_ENTRY(parent_valid, parent_next_hop_addr, 0, parent_lc);
                 }
                 else
                 {
