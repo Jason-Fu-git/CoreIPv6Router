@@ -3,7 +3,7 @@
 <!--                                                         -->
 <!-- Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.   -->
 
-<Project Version="7" Minor="44" Path="D:/Libraries/Academic/Vivado/joint-lab-g5/tanlabs/tanlabs.xpr">
+<Project Version="7" Minor="44" Path="D:/Programming/VivadoProjects/joint-lab-g5/tanlabs/tanlabs.xpr">
   <DefaultLaunch Dir="$PRUNDIR"/>
   <Configuration>
     <Option Name="Id" Val="cb3d598700cb4d6d9e3d57604fd0b1f3"/>
@@ -60,24 +60,19 @@
     <FileSet Name="sources_1" Type="DesignSrcs" RelSrcDir="$PSRCDIR/sources_1">
       <Filter Type="Srcs"/>
       <File Path="$PSRCDIR/sources_1/ip/clk_wiz_1/clk_wiz_1.xci">
-      <File Path="$PSRCDIR/sources_1/ip/clk_wiz_1/clk_wiz_1.xci">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
       <File Path="$PSRCDIR/sim_1/new/axis_model.v">
-      <File Path="$PSRCDIR/sim_1/new/axis_model.v">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PSRCDIR/sim_1/new/axis_receiver.v">
       <File Path="$PSRCDIR/sim_1/new/axis_receiver.v">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -86,14 +81,12 @@
         </FileInfo>
       </File>
       <File Path="$PSRCDIR/sources_1/new/egress_wrapper.v">
-      <File Path="$PSRCDIR/sources_1/new/egress_wrapper.v">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PSRCDIR/sources_1/new/frame_datapath_fifo.v">
       <File Path="$PSRCDIR/sources_1/new/frame_datapath_fifo.v">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -102,7 +95,6 @@
         </FileInfo>
       </File>
       <File Path="$PSRCDIR/sources_1/new/frame_filter.v">
-      <File Path="$PSRCDIR/sources_1/new/frame_filter.v">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
@@ -110,7 +102,26 @@
         </FileInfo>
       </File>
       <File Path="$PSRCDIR/sources_1/new/utils/address_config.sv">
-      <File Path="$PSRCDIR/sources_1/new/utils/address_config.sv">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PSRCDIR/sources_1/new/cpu/ops.vh">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PSRCDIR/sources_1/new/cpu/alu_comb.sv">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PSRCDIR/sources_1/new/wb/arbiter.sv">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
@@ -120,6 +131,21 @@
       <File Path="$PSRCDIR/sources_1/new/utils/bram_controller.sv">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PSRCDIR/sources_1/new/cpu/btb.sv">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PSRCDIR/sources_1/new/cpu/cache.sv">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
@@ -137,6 +163,32 @@
         </FileInfo>
       </File>
       <File Path="$PSRCDIR/sources_1/new/utils/checksum_calculator.sv">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PSRCDIR/sources_1/new/cpu/exceptions.vh">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PSRCDIR/sources_1/new/cpu/csrs.vh">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PSRCDIR/sources_1/new/cpu/cpu_controller.sv">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PSRCDIR/sources_1/new/cpu/csr_file.sv">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
@@ -220,7 +272,35 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PSRCDIR/sources_1/new/tanlabs.v">
+      <File Path="$PSRCDIR/sources_1/new/wb/priority_encoder.sv">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PSRCDIR/sources_1/new/cpu/register_file.sv">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PSRCDIR/sources_1/new/sram/sram_controller.sv">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PSRCDIR/sources_1/new/wb/wb_arbiter_2.sv">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PSRCDIR/sources_1/new/tanlabs.sv">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
@@ -229,6 +309,7 @@
       </File>
       <File Path="$PSRCDIR/sources_1/new/dataStructures/trie.vh">
         <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
@@ -242,7 +323,6 @@
         </FileInfo>
       </File>
       <File Path="$PSRCDIR/sources_1/new/utils/led_delayer.v">
-      <File Path="$PSRCDIR/sources_1/new/utils/led_delayer.v">
         <FileInfo>
           <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -251,7 +331,6 @@
         </FileInfo>
       </File>
       <File Path="$PSRCDIR/sources_1/new/utils/reset_sync.v">
-      <File Path="$PSRCDIR/sources_1/new/utils/reset_sync.v">
         <FileInfo>
           <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -259,7 +338,6 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PSRCDIR/sources_1/new/dataStructures/nexthop_table.sv">
       <File Path="$PSRCDIR/sources_1/new/dataStructures/nexthop_table.sv">
         <FileInfo>
           <Attr Name="AutoDisabled" Val="1"/>
@@ -274,7 +352,15 @@
           <Attr Name="ScopedToCell" Val="mig_7series_0"/>
         </FileInfo>
       </File>
-      <File Path="$PSRCDIR/sources_1/new/trie128.sv">
+      <File Path="$PSRCDIR/sources_1/new/wb/wb_mux_3.v">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PSRCDIR/sources_1/new/wb/uart_controller.sv">
         <FileInfo>
           <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -284,7 +370,6 @@
       </File>
       <Config>
         <Option Name="DesignMode" Val="RTL"/>
-        <Option Name="TopModule" Val="tanlabs"/>
         <Option Name="TopModule" Val="tanlabs"/>
       </Config>
     </FileSet>
@@ -479,14 +564,14 @@
           <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
+        <CompFileExtendedInfo CompFileName="axi_ethernet_0.xci" FileRelPathName="ip/ip_0/bd_5d9f_mac_0.xci">
+          <Proxy FileSetName="bd_5d9f_mac_0"/>
+        </CompFileExtendedInfo>
         <CompFileExtendedInfo CompFileName="axi_ethernet_0.xci" FileRelPathName="ip/ip_6/bd_5d9f_c_counter_binary_0_0.xci">
           <Proxy FileSetName="bd_5d9f_c_counter_binary_0_0"/>
         </CompFileExtendedInfo>
         <CompFileExtendedInfo CompFileName="axi_ethernet_0.xci" FileRelPathName="ip/ip_5/bd_5d9f_c_shift_ram_0_0.xci">
           <Proxy FileSetName="bd_5d9f_c_shift_ram_0_0"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="axi_ethernet_0.xci" FileRelPathName="ip/ip_0/bd_5d9f_mac_0.xci">
-          <Proxy FileSetName="bd_5d9f_mac_0"/>
         </CompFileExtendedInfo>
         <CompFileExtendedInfo CompFileName="axi_ethernet_0.xci" FileRelPathName="ip/ip_1/bd_5d9f_pcs_pma_0.xci">
           <Proxy FileSetName="bd_5d9f_pcs_pma_0"/>
@@ -556,6 +641,9 @@
           <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
+        <CompFileExtendedInfo CompFileName="axi_ethernet_noshared.xci" FileRelPathName="ip/ip_1/bd_6486_pcs_pma_0.xci">
+          <Proxy FileSetName="bd_6486_pcs_pma_0"/>
+        </CompFileExtendedInfo>
         <CompFileExtendedInfo CompFileName="axi_ethernet_noshared.xci" FileRelPathName="ip/ip_5/bd_6486_c_shift_ram_0_0.xci">
           <Proxy FileSetName="bd_6486_c_shift_ram_0_0"/>
         </CompFileExtendedInfo>
@@ -564,9 +652,6 @@
         </CompFileExtendedInfo>
         <CompFileExtendedInfo CompFileName="axi_ethernet_noshared.xci" FileRelPathName="ip/ip_8/bd_6486_util_vector_logic_0_0.xci">
           <Proxy FileSetName="bd_6486_util_vector_logic_0_0"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="axi_ethernet_noshared.xci" FileRelPathName="ip/ip_1/bd_6486_pcs_pma_0.xci">
-          <Proxy FileSetName="bd_6486_pcs_pma_0"/>
         </CompFileExtendedInfo>
       </File>
       <Config>
@@ -918,11 +1003,12 @@
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
       <RQSFiles/>
     </Run>
-    <Run Id="blk_mem_bt_synth_1" Type="Ft3:Synth" SrcSet="blk_mem_bt" Part="xc7k325tffg900-2" ConstrsSet="blk_mem_bt" Description="Vivado Synthesis Defaults" AutoIncrementalCheckpoint="false" WriteIncrSynthDcp="false" IncludeInArchive="true">
+    <Run Id="blk_mem_bt_synth_1" Type="Ft3:Synth" SrcSet="blk_mem_bt" Part="xc7k325tffg900-2" ConstrsSet="blk_mem_bt" Description="Vivado Synthesis Defaults" AutoIncrementalCheckpoint="false" WriteIncrSynthDcp="false" Dir="$PRUNDIR/blk_mem_bt_synth_1" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
         <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2019"/>
         <Step Id="synth_design"/>
       </Strategy>
+      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2019"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
       <RQSFiles/>
