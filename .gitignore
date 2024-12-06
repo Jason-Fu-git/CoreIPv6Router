@@ -5,6 +5,7 @@
 *.asm
 *.coe
 *.prm
+*.exe
 *.cache/
 *.hw/
 *.sim/
