@@ -6,7 +6,7 @@
 localparam VC_ENTRY_SIZE   = 38;
 localparam VC_LEN_WIDTH    = 5;
 
-localparam BT_ADDR_WIDTH   = 10;
+localparam BT_ADDR_WIDTH   = 11;
 localparam BT_NODE_WIDTH   = 36;
 
 localparam OFFSET_WIDTH    = 5;
