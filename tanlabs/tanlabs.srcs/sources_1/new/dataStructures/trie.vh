@@ -61,4 +61,3 @@ typedef Node5        NL13;
 typedef Node5        NL14;
 typedef Node5        NL15;
 
-parameter BT_ADDR_WIDTH = 11;

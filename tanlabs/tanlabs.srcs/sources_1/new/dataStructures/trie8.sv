@@ -6,7 +6,7 @@
 localparam VC_ENTRY_SIZE = 38;
 localparam VC_LEN_WIDTH = 5;
 
-localparam BT_ADDR_WIDTH   = 11;
+localparam BT_ADDR_WIDTH   = 13;
 localparam BT_NODE_WIDTH   = 36;
 
 localparam OFFSET_WIDTH = 5;
@@ -237,7 +237,10 @@ module trie8 #(
           bt_remaining_prefix_o <= bt_remaining_prefix_i;
           bt_next_hop_offset_o  <= bt_next_hop_offset_i;
         end
-      end else if ((state >= L1) && (state <= DONE)) begin
+      end else if (state == L0) begin
+        vc_remaining_prefix_o <= {1'b0, vc_remaining_prefix_o[127:1]};
+        bt_remaining_prefix_o <= {1'b0, bt_remaining_prefix_o[127:1]};
+      end else if ((state >= L1) && (state <= L7)) begin
         vc_remaining_prefix_o <= {1'b0, vc_remaining_prefix_o[127:1]};
         bt_remaining_prefix_o <= {1'b0, bt_remaining_prefix_o[127:1]};
         if (vc_now_max_match > vc_max_match_o) begin
@@ -249,8 +252,17 @@ module trie8 #(
           bt_next_hop_offset_o <= bt_now_next_hop_offset;
         end
       end else if (state == DONE) begin
+        if (vc_now_max_match > vc_max_match_o) begin
+          vc_max_match_o       <= vc_now_max_match;
+          vc_next_hop_offset_o <= vc_now_next_hop_offset;
+        end
+        if (bt_now_max_match > bt_max_match_o) begin
+          bt_max_match_o       <= bt_now_max_match;
+          bt_next_hop_offset_o <= bt_now_next_hop_offset;
+        end
         vc_init_addr_o <= vc_remaining_prefix_o[0] ? vc_node_i[2*VC_ADDR_WIDTH-1:VC_ADDR_WIDTH] : vc_node_i[VC_ADDR_WIDTH-1:0];
         bt_init_addr_o <= bt_remaining_prefix_o[0] ? bt_node_i[2*BT_ADDR_WIDTH-1:BT_ADDR_WIDTH] : bt_node_i[BT_ADDR_WIDTH-1:0];
+        out_valid <= 1;
       end
     end
   end

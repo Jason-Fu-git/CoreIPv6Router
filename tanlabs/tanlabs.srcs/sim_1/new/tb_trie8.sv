@@ -14,7 +14,7 @@ module tb_trie8;
     // fixed params
     parameter tb_VC_ENTRY_SIZE   = 38;
     parameter tb_VC_LEN_WIDTH    = 5;
-    parameter tb_BT_ADDR_WIDTH   = 10;
+    parameter tb_BT_ADDR_WIDTH   = 13;
     parameter tb_BT_NODE_WIDTH   = 36;
     parameter tb_OFFSET_WIDTH    = 5;
     parameter tb_IP6_WIDTH       = 128;
@@ -72,10 +72,11 @@ module tb_trie8;
   logic [12:0] addrb[16];
   logic [35:0] dinb[16];
   logic [35:0] doutb[16];
-
+  frame_beat tb_frame_beat;
   // input
   always_ff @(posedge clk) begin : PinelineInput
     if (rst_p) begin
+      frame_beat_i[0] <= 0;
       vc_max_match_i[0] <= 0;
       vc_next_hop_offset_i[0] <= 0;
       bt_max_match_i[0] <= 0;
@@ -86,12 +87,11 @@ module tb_trie8;
       bt_remaining_prefix_i[0] <= 0;
     end else begin
       if (in_ready[0]) begin
+        frame_beat_i[0] <= tb_frame_beat;
         vc_max_match_i[0] <= 0;
-        vc_next_hop_offset_i[0] <= 0;
         bt_max_match_i[0] <= 0;
-        bt_next_hop_offset_i[0] <= 0;
         vc_init_addr_i[0] <= 0;
-        bt_init_addr_i[0] <= 0;
+        bt_init_addr_i[0] <= pipeline_prefix[0] ? 2 : 1;
         vc_remaining_prefix_i[0] <= 0;
         bt_remaining_prefix_i[0] <= pipeline_prefix;
       end
@@ -181,7 +181,7 @@ module tb_trie8;
     end
   endgenerate
 
-  frame_beat tb_frame_beat;
+  logic [4:0] tb_next_hop;
   // ===========================
   // Match
   // ===========================
@@ -191,7 +191,7 @@ module tb_trie8;
     end else begin
       if (out_valid[15]) begin
         // TODO: Match the answer
-        error <= (frame_beat_o[15] != tb_frame_beat) ? 1 : 0;
+        if (frame_beat_o[15].data.ethertype[4:0] != bt_next_hop_offset_o[15]) error <= 1;
       end
     end
   end
@@ -206,6 +206,9 @@ module tb_trie8;
 
   integer file;
   string line;
+  string prefix_line;
+  string next_hop_i;
+  string trash;
   int index = 0;
   logic [31:0] input_hex;
   logic [15:0] ipv6_16bit = 0;
@@ -223,15 +226,16 @@ module tb_trie8;
     rst_p = 0;
     // TODO: Load the binary trie from a file into brams
     for (int bram_num = 0; bram_num < 16; bram_num++) begin
+        index = 0;
         file = $fopen($sformatf("D:/web-2024/joint-lab-g5/firmware/trie/bram_%02d.txt", bram_num), "r");
         if (file == 0) begin
             $display($sformatf("Failed to open file %02d", bram_num));
             $finish;
         end
         while (!$feof(file) && index < 8192) begin
-        $fgets(line, file);
+            $fgets(line, file);
             $sscanf(line, "%h", input_hex);
-            dinb[bram_num][31:0] = input_hex;
+            dinb[bram_num] = {4'b0, input_hex};
             addrb[bram_num] = index;
             #10;
             web[bram_num] = 1;
@@ -241,17 +245,19 @@ module tb_trie8;
         end
     end
     $fclose(file);
+    
+    // TODO: You may need a root for init address.
+    
     // TODO: Test the binary trie
     file = $fopen("D:/web-2024/joint-lab-g5/firmware/trie/fib_shuffled_0", "r");
     for (int i = 0; i < 255; i++) begin
         // TODO: Input
         #200
+        bt_next_hop_offset_i[0] = 0;
         tb_frame_beat.keep = ~0;
         tb_frame_beat.is_first = 1;
         tb_frame_beat.last = 1;
         tb_frame_beat.valid = 1;
-        frame_beat_i[0] = tb_frame_beat;
-        in_valid[0] = 1;
 
         // prefix example:
         // for ip6 address fe80::1
@@ -260,10 +266,10 @@ module tb_trie8;
         hex_count = 0;
         ipv6_16bit_count = 0;
         $fgets(line, file);
-        $sscanf(line, "%s", line);
-        for (int j = 0; j < line.len(); j++) begin
-            if (line[j] != ":") begin
-                $sscanf(line[j], "%h", char_hex);
+        $sscanf(line, "%s %s %s", prefix_line, trash, next_hop_i);
+        for (int j = 0; j < prefix_line.len(); j++) begin
+            if (prefix_line[j] != ":") begin
+                $sscanf(prefix_line[j], "%h", char_hex);
                 char_hex[3:0] = {char_hex[0], char_hex[1], char_hex[2], char_hex[3]};
                 ipv6_16bit += {12'd0, char_hex[3:0]} << (hex_count*4);
                 hex_count += 1;
@@ -277,8 +283,12 @@ module tb_trie8;
                 hex_count = 0;
             end
         end
+        $sscanf(next_hop_i[24], "%d", tb_next_hop);
+        tb_frame_beat.data.ethertype[4:0] = tb_next_hop;
         // pipeline_prefix = {80'h0, 48'h015b_ef64_4054};
-        #200
+        bt_next_hop_offset_i[0] = 0;
+        in_valid[0] = 1;
+        #2000;
         in_valid[0] = 0;
     end
 
@@ -286,73 +296,3 @@ module tb_trie8;
     $finish;
   end
 endmodule
-// int main()
-// {
-//     init_bram();
-//     FILE *file = fopen("fib_shuffled_0", "r");
-//     char trash[50];
-//     char ipv6_addr[50];
-//     for(int i=0;i<255;i++){
-//         struct RouteTableEntry entry;
-//         entry.prefix[0] = 0x00000000;
-//         entry.prefix[1] = 0x00000000;
-//         entry.prefix[2] = 0x00000000;
-//         entry.prefix[3] = 0x00000000;
-//         fscanf_s(file, "%s %u %s %u\n", &ipv6_addr, sizeof(ipv6_addr),
-//                         &(entry.prefix_length),
-//                         &trash, sizeof(trash),
-//                         &(entry.port));
-//         char ch = '0';
-//         int j = 0;
-//         int pref = 0;
-//         unsigned int a_1bit = 0;
-//         unsigned int a_4bit = 0;
-//         int high_4bit = 0;
-//         unsigned int bitnum = 0;
-//         while(1 == 1){
-//             ch = ipv6_addr[j];
-//             j++;
-//             if(ch==':'){
-//                 while(bitnum<4){
-//                     a_4bit = a_4bit<<4;
-//                     bitnum++;
-//                 }
-//                 bitnum=0;
-//                 if(high_4bit==1){
-//                     entry.prefix[pref] += a_4bit<<16;
-//                     high_4bit=0;
-//                     pref++;
-//                 }
-//                 else{
-//                     entry.prefix[pref] += a_4bit;
-//                     high_4bit=1;
-//                 }
-//                 a_4bit=0;
-//                 if(ipv6_addr[j]==':') break;
-//                 else continue;
-//             }
-//             else{
-//                 if(ch<='9'){
-//                     a_1bit = ch - '0';
-//                 }
-//                 else{
-//                     a_1bit = ch - 'a' + 10;
-//                 }
-//                 unsigned int a_rev=0x0000;
-//                 int ib=4;
-//                 while(ib--){
-//                     a_rev=a_rev+((a_1bit&0x0001)<<ib);
-//                     a_1bit=a_1bit>>1;
-//                 }
-//                 a_4bit += a_rev<<bitnum*4;
-//                 bitnum++;
-//             }
-//         }
-//         // entry.prefix_length = 4;
-//         entry.next_hop = 31;
-//         int code = insert(entry.prefix, entry.prefix_length, entry.next_hop);
-//         if (code != 0){
-//             printf("Error on inserting route %d\n", i);
-//             break;
-//         }
-//     }
