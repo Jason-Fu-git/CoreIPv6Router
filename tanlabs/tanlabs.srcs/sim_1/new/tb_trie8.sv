@@ -5,7 +5,7 @@ module tb_trie8;
     logic clk = 0;
     logic rst_p;
 
-    logic [127:0] pipeline_prefix = 0;  // TODO: pipeline_prefix is file input
+    logic [127:0] pipeline_prefix = 0;  // pipeline_prefix is file input
     logic error;
 
   // ===========================
@@ -190,7 +190,7 @@ module tb_trie8;
       error <= 0;
     end else begin
       if (out_valid[15]) begin
-        // TODO: Match the answer
+        // Match the answer
         if (frame_beat_o[15].data.ethertype[4:0] != bt_next_hop_offset_o[15]) error <= 1;
       end
     end
@@ -217,14 +217,14 @@ module tb_trie8;
   int ipv6_16bit_count = 0;
   // Initial block
   initial begin
-    // TODO: Reset the signals
+    // Reset the signals
     frame_beat_i[0] = 0;
     in_valid[0] = 0;
     #100;
     rst_p = 1;
     #1000;
     rst_p = 0;
-    // TODO: Load the binary trie from a file into brams
+    // Load the binary trie from a file into brams
     for (int bram_num = 0; bram_num < 16; bram_num++) begin
         index = 0;
         file = $fopen($sformatf("D:/web-2024/joint-lab-g5/firmware/trie/bram_%02d.txt", bram_num), "r");
@@ -246,12 +246,12 @@ module tb_trie8;
     end
     $fclose(file);
     
-    // TODO: You may need a root for init address.
+    // You may need a root for init address.
     
-    // TODO: Test the binary trie
+    // Test the binary trie
     file = $fopen("D:/web-2024/joint-lab-g5/firmware/trie/fib_shuffled_0", "r");
     for (int i = 0; i < 255; i++) begin
-        // TODO: Input
+        // Input
         #200
         bt_next_hop_offset_i[0] = 0;
         tb_frame_beat.keep = ~0;
