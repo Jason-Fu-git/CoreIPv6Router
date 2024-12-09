@@ -125,7 +125,7 @@ module tb_trie8;
           .VC_ADDR_WIDTH(tb_VC_ADDR_WIDTH[i]),
           .VC_NEXT_ADDR_WIDTH(tb_VC_ADDR_WIDTH[i+1]),
           .VC_BIN_SIZE(tb_VC_BIN_SIZE[i]),
-          .BEGIN_LEVEL(i * 8 + 1)
+          .BEGIN_LEVEL(i * 8)
       ) uut (
           .clk(clk),
           .rst_p(rst_p),
@@ -288,10 +288,23 @@ module tb_trie8;
         // pipeline_prefix = {80'h0, 48'h015b_ef64_4054};
         bt_next_hop_offset_i[0] = 0;
         in_valid[0] = 1;
-        #2000;
+        #200;
         in_valid[0] = 0;
     end
-
+    #200;
+    pipeline_prefix = 0;
+    tb_frame_beat.data.ethertype[4:0] = 5'd5;
+    bt_next_hop_offset_i[0] = 5'd31;
+    in_valid[0] = 1;
+    #200;
+    in_valid[0] = 0;
+    #200;
+    pipeline_prefix = ~0;
+    tb_frame_beat.data.ethertype[4:0] = 5'd6;
+    bt_next_hop_offset_i[0] = 5'd1;
+    in_valid[0] = 1;
+    #200;
+    in_valid[0] = 0;
     #10000;
     $finish;
   end
