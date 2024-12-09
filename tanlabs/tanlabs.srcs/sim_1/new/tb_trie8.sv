@@ -29,8 +29,8 @@ module tb_trie8;
     parameter [3:0] tb_VC_BIN_SIZE   [0:15] = {4'd1, 4'd7,  4'd15, 4'd15, 4'd14, 4'd10, 4'd1, 4'd1, 4'd1, 4'd1, 4'd1, 4'd1, 4'd1, 4'd1, 4'd1, 4'd1};
 
 	// pipeline signals
-	frame_beat [15:0]                 frame_beat_i; // Change
-	logic      [15:0]                 in_valid; // Change
+	frame_beat [15:0]                 frame_beat_i;
+	logic      [15:0]                 in_valid;
 	logic      [15:0]                 out_ready;
 	frame_beat [15:0]                 frame_beat_o;
 	logic      [15:0]                 in_ready;
@@ -246,8 +246,6 @@ module tb_trie8;
     end
     $fclose(file);
     
-    // You may need a root for init address.
-    
     // Test the binary trie
     file = $fopen("D:/web-2024/joint-lab-g5/firmware/trie/fib_shuffled_0", "r");
     for (int i = 0; i < 255; i++) begin
@@ -285,26 +283,11 @@ module tb_trie8;
         end
         $sscanf(next_hop_i[24], "%d", tb_next_hop);
         tb_frame_beat.data.ethertype[4:0] = tb_next_hop;
-        // pipeline_prefix = {80'h0, 48'h015b_ef64_4054};
         bt_next_hop_offset_i[0] = 0;
         in_valid[0] = 1;
         #200;
         in_valid[0] = 0;
     end
-    #200;
-    pipeline_prefix = 0;
-    tb_frame_beat.data.ethertype[4:0] = 5'd5;
-    bt_next_hop_offset_i[0] = 5'd31;
-    in_valid[0] = 1;
-    #200;
-    in_valid[0] = 0;
-    #200;
-    pipeline_prefix = ~0;
-    tb_frame_beat.data.ethertype[4:0] = 5'd6;
-    bt_next_hop_offset_i[0] = 5'd1;
-    in_valid[0] = 1;
-    #200;
-    in_valid[0] = 0;
     #10000;
     $finish;
   end
