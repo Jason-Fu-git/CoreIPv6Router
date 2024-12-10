@@ -16,7 +16,6 @@ localparam MATCH_LEN_WIDTH = 8;
 
 module trie8 #(
     parameter VC_ADDR_WIDTH,
-    parameter VC_NEXT_ADDR_WIDTH,
     parameter VC_BIN_SIZE,
     parameter BEGIN_LEVEL
 ) (
@@ -60,7 +59,7 @@ module trie8 #(
     output logic [   OFFSET_WIDTH-1:0] bt_next_hop_offset_o
 );
 
-  localparam VC_NODE_WIDTH = VC_BIN_SIZE * VC_ENTRY_SIZE + 2 * VC_ADDR_WIDTH;
+  localparam VC_NODE_WIDTH = ((VC_BIN_SIZE * VC_ENTRY_SIZE + 2 * VC_ADDR_WIDTH + 17)/18)*18;
 
   typedef enum logic [3:0] {
     IDLE,
@@ -275,7 +274,6 @@ module trie8_test (
 
   trie8 #(
       .VC_ADDR_WIDTH(8),
-      .VC_NEXT_ADDR_WIDTH(8),
       .VC_BIN_SIZE(5),
       .BEGIN_LEVEL(0)
   ) trie8_i (

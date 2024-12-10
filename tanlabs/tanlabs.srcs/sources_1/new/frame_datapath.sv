@@ -142,6 +142,7 @@ module frame_datapath #(
 
   fw_frame_beat_t fwt_in, fwt_out;
   logic fwt_in_ready, fwt_out_ready;
+  logic trie128_out_ready;
 
   localparam BRAM_DATA_WIDTH = 320;
   localparam BRAM_ADDR_WIDTH = 5;
@@ -152,89 +153,10 @@ module frame_datapath #(
   reg [BRAM_ADDR_WIDTH-1:0] bram_addr_w;
   reg [BRAM_DATA_WIDTH-1:0] bram_data_w;
   reg [BRAM_DATA_WIDTH-1:0] bram_data_r;
-
-  // FIXME: Static Forward Table
-  reg [2:0] fwt_counter;
-  always_ff @(posedge eth_clk) begin
-    if (reset) begin
-      bram_wea_p  <= 0;
-      bram_addr_w <= 0;
-      bram_data_w <= 0;
-      fwt_counter <= 0;
-    end else begin
-      if (fwt_counter < 4) begin
-        if (bram_ack_p) begin
-          fwt_counter <= fwt_counter + 1;
-          bram_wea_p  <= 0;
-          bram_addr_w <= 0;
-          bram_data_w <= 0;
-        end else begin
-          bram_wea_p <= 1;
-          case (fwt_counter)
-            3'd0: begin
-              bram_addr_w <= 5'd0;
-              bram_data_w <= {
-                0,  // padding
-                1'b1,  // valid
-                8'd128,  // prefix length
-                128'h041069feff641f8e00000000000080fe,  // next hop
-                128'h041069feff641f8e00000000000080fe  // prefix
-              };
-            end
-            3'd1: begin
-              bram_addr_w <= 5'd1;
-              bram_data_w <= {
-                0,  // padding
-                1'b1,  // valid
-                8'd128,  // prefix length
-                128'h011069feff641f8e00000000000080fe,  // next hop
-                128'h011069feff641f8e00000000000080fe  // prefix
-              };
-            end
-            3'd2: begin
-              bram_addr_w <= 5'd2;
-              bram_data_w <= {
-                0,  // padding
-                1'b1,  // valid
-                8'd128,  // prefix length
-                128'h01000000000000000000000000000420,  // next hop
-                128'h01000000000000000000000000000420  // prefix
-              };
-            end
-            3'd3: begin
-              bram_addr_w <= 5'd3;
-              bram_data_w <= {
-                0,  // padding
-                1'b1,  // valid
-                8'd128,  // prefix length
-                128'h02000000000000000000000000000420,  // next hop
-                128'h02000000000000000000000000000420  // prefix
-              };
-            end
-            default: begin
-              bram_addr_w <= 0;
-              bram_data_w <= 0;
-            end
-          endcase
-        end
-      end
-    end
-  end
-
-  bram_controller #(
-      .DATA_WIDTH(BRAM_DATA_WIDTH),
-      .ADDR_WIDTH(BRAM_ADDR_WIDTH)
-  ) bram_controller_i (
-      .clk(eth_clk),
-      .rst_p(reset),
-      .rea_p(bram_rea_p),
-      .wea_p(bram_wea_p),
-      .ack_p(bram_ack_p),
-      .bram_addr_r(bram_addr_r),
-      .bram_addr_w(bram_addr_w),
-      .bram_data_w(bram_data_w),
-      .bram_data_r(bram_data_r)
-  );
+  
+  logic [  4:0] trie128_default_next_hop;
+  logic [127:0] trie128_addr;
+  logic [127:0] trie128_next_hop;
 
   neighbor_cache neighbor_cache_i (
       .clk            (eth_clk),
@@ -252,7 +174,7 @@ module frame_datapath #(
       .probe_port_id  (nud_iface)
   );
 
-  forward_table forward_table_i (
+  trie128 forward_table_i (
       .clk  (eth_clk),
       .rst_p(reset),
 
@@ -262,10 +184,12 @@ module frame_datapath #(
       .in_ready (fwt_in_ready),
       .out_ready(fwt_out_ready),
 
-      .mem_data (bram_data_r),
-      .mem_ack_p(bram_ack_p),
-      .mem_addr (bram_addr_r),
-      .mem_rea_p(bram_rea_p)
+      .in_valid (fwt_in.valid),
+      .out_valid(trie128_out_ready),
+
+      .addr(trie128_addr),
+      .next_hop(trie128_next_hop),
+      .default_next_hop(trie128_default_next_hop)
   );
 
   pipeline_forward pipeline_forward_i (

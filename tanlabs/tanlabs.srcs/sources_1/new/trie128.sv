@@ -3,8 +3,8 @@
 module trie128(
     input wire clk,
     input wire rst_p,
-    input frame_beat in,
-    output frame_beat out,
+    input fw_frame_beat_t in,
+    output fw_frame_beat_t out,
     input wire in_valid,
     input wire out_ready,
     output reg in_ready,
@@ -28,8 +28,8 @@ module trie128(
         assign frame_beat_in[i+1] = frame_beat_out[i];
     end
 
-    assign frame_beat_in[0] = in;
-    assign out              = frame_beat_out[15];
+    assign frame_beat_in[0] = in.data;
+    assign out.data         = frame_beat_out[15];
 
     // valid, ready
     logic [15:0] trie_in_valid;
@@ -50,11 +50,11 @@ module trie128(
     // VCTrie
 
     // node, addr
-    logic [MAX_VC_ADDR_WIDTH-1:0] vc_addr [15:0];
-    logic [MAX_VC_NODE_WIDTH-1:0] vc_node [15:0];
+    logic [15:0][MAX_VC_ADDR_WIDTH-1:0] vc_addr;
+    logic [15:0][MAX_VC_NODE_WIDTH-1:0] vc_node;
 
-    logic [MAX_VC_ADDR_WIDTH-1:0] vc_init_addr_in  [15:0];
-    logic [MAX_VC_ADDR_WIDTH-1:0] vc_init_addr_out [15:0];
+    logic [15:0][MAX_VC_ADDR_WIDTH-1:0] vc_init_addr_in;
+    logic [15:0][MAX_VC_ADDR_WIDTH-1:0] vc_init_addr_out;
 
     for (genvar i = 0; i < 15; i++) begin
         assign vc_init_addr_in[i+1] = vc_init_addr_out[i];
@@ -63,8 +63,8 @@ module trie128(
     assign vc_init_addr_in[0] = addr[0] ? 2 : 1;
 
     // max_match
-    logic [7:0] vc_max_match_in  [15:0];
-    logic [7:0] vc_max_match_out [15:0];
+    logic [15:0][7:0] vc_max_match_in;
+    logic [15:0][7:0] vc_max_match_out;
 
     for (genvar i = 0; i < 15; i++) begin
         assign vc_max_match_in[i+1] = vc_max_match_out[i+1];
@@ -73,8 +73,8 @@ module trie128(
     assign vc_max_match_in[0] = 0;
 
     // prefix
-    logic [127:0] vc_prefix_in  [15:0];
-    logic [127:0] vc_prefix_out [15:0];
+    logic [15:0][127:0] vc_prefix_in;
+    logic [15:0][127:0] vc_prefix_out;
 
     for (genvar i = 0; i < 15; i++) begin
         assign vc_prefix_in[i+1] = vc_prefix_out[i];
@@ -83,8 +83,8 @@ module trie128(
     assign vc_prefix_in[0] = addr;
 
     // next_hop
-    logic [4:0] vc_next_hop_in  [15:0];
-    logic [4:0] vc_next_hop_out [15:0];
+    logic [15:0][4:0] vc_next_hop_in;
+    logic [15:0][4:0] vc_next_hop_out;
 
     for (genvar i = 0; i < 15; i++) begin
         assign vc_next_hop_in[i+1] = vc_next_hop_out[i];
@@ -95,11 +95,11 @@ module trie128(
     // BTrie
 
     // node, addr
-    logic [BT_ADDR_WIDTH-1:0] bt_addr [15:0];
-    logic [BT_NODE_WIDTH-1:0] bt_node [15:0];
+    logic [15:0][BT_ADDR_WIDTH-1:0] bt_addr;
+    logic [15:0][BT_NODE_WIDTH-1:0] bt_node;
 
-    logic [BT_ADDR_WIDTH-1:0] bt_init_addr_in  [15:0];
-    logic [BT_ADDR_WIDTH-1:0] bt_init_addr_out [15:0];
+    logic [15:0][BT_ADDR_WIDTH-1:0] bt_init_addr_in;
+    logic [15:0][BT_ADDR_WIDTH-1:0] bt_init_addr_out;
 
     for (genvar i = 0; i < 15; i++) begin
         assign bt_init_addr_in[i+1] = bt_init_addr_out[i];
@@ -108,8 +108,8 @@ module trie128(
     assign bt_init_addr_in[0] = addr[0] ? 2 : 1;
 
     // max_match
-    logic [7:0] bt_max_match_in  [15:0];
-    logic [7:0] bt_max_match_out [15:0];
+    logic [15:0][7:0] bt_max_match_in;
+    logic [15:0][7:0] bt_max_match_out;
 
     for (genvar i = 0; i < 15; i++) begin
         assign bt_max_match_in[i+1] = bt_max_match_out[i];
@@ -118,8 +118,8 @@ module trie128(
     assign bt_max_match_in[0] = 0;
 
     // prefix
-    logic [127:0] bt_prefix_in  [15:0];
-    logic [127:0] bt_prefix_out [15:0];
+    logic [15:0][127:0] bt_prefix_in;
+    logic [15:0][127:0] bt_prefix_out;
 
     for (genvar i = 0; i < 15; i++) begin
         assign bt_prefix_in[i+1] = bt_prefix_out[i];
@@ -128,8 +128,8 @@ module trie128(
     assign bt_prefix_in[0] = addr;
 
     // next_hop
-    logic [4:0] bt_next_hop_in  [15:0];
-    logic [4:0] bt_next_hop_out [15:0];
+    logic [15:0][4:0] bt_next_hop_in;
+    logic [15:0][4:0] bt_next_hop_out;
 
     for (genvar i = 0; i < 15; i++) begin
         assign bt_next_hop_in[i+1] = bt_next_hop_out[i];
@@ -143,7 +143,6 @@ module trie128(
     for (genvar i = 0; i < 16; i++) begin: g_tries
         trie8 #(
             .VC_ADDR_WIDTH(VC_ADDR_WIDTH[i]),
-            .VC_NEXT_ADDR_WIDTH(VC_NODE_WIDTH[i+1]),
             .VC_BIN_SIZE(VC_BIN_SIZE[i]),
             .BEGIN_LEVEL(i * 8)
         ) t(
@@ -201,7 +200,7 @@ module trie128(
             .wea  (1'b0),       // input wire [0 : 0] wea
             .addra(vc_addr[0][VC_ADDR_WIDTH[0]-1:0]), // input wire [7 : 0] addra
             .dina (0),          // input wire [53 : 0] dina
-            .douta(vc_node[0]), // output reg [53 : 0] douta
+            .douta(vc_node[0][VC_NODE_WIDTH[0]-1:0]), // output reg [53 : 0] douta
             .clkb (clk),        // input wire clkb
             .enb  (1'b1),       // input wire enb
             .web  (1'b0),       // input wire [0 : 0] web
@@ -216,7 +215,7 @@ module trie128(
             .wea  (1'b0),       // input wire [0 : 0] wea
             .addra(vc_addr[1][VC_ADDR_WIDTH[1]-1:0]), // input wire [12 : 0] addra
             .dina (0),          // input wire [305 : 0] dina
-            .douta(vc_node[1]), // output reg [305 : 0] douta
+            .douta(vc_node[1][VC_NODE_WIDTH[1]-1:0]), // output reg [305 : 0] douta
             .clkb (clk),        // input wire clkb
             .enb  (1'b1),       // input wire enb
             .web  (1'b0),       // input wire [0 : 0] web
@@ -231,7 +230,7 @@ module trie128(
             .wea  (1'b0),       // input wire [0 : 0] wea
             .addra(vc_addr[2][VC_ADDR_WIDTH[2]-1:0]), // input wire [12 : 0] addra
             .dina (0),          // input wire [611 : 0] dina
-            .douta(vc_node[2]), // output reg [611 : 0] douta
+            .douta(vc_node[2][VC_NODE_WIDTH[2]-1:0]), // output reg [611 : 0] douta
             .clkb (clk),        // input wire clkb
             .enb  (1'b1),       // input wire enb
             .web  (1'b0),       // input wire [0 : 0] web
@@ -246,7 +245,7 @@ module trie128(
             .wea  (1'b0),       // input wire [0 : 0] wea
             .addra(vc_addr[3][VC_ADDR_WIDTH[3]-1:0]), // input wire [12 : 0] addra
             .dina (0),          // input wire [611 : 0] dina
-            .douta(vc_node[3]), // output reg [611 : 0] douta
+            .douta(vc_node[3][VC_NODE_WIDTH[3]-1:0]), // output reg [611 : 0] douta
             .clkb (clk),        // input wire clkb
             .enb  (1'b1),       // input wire enb
             .web  (1'b0),       // input wire [0 : 0] web
@@ -261,7 +260,7 @@ module trie128(
             .wea  (1'b0),       // input wire [0 : 0] wea
             .addra(vc_addr[4][VC_ADDR_WIDTH[4]-1:0]), // input wire [12 : 0] addra
             .dina (0),          // input wire [557 : 0] dina
-            .douta(vc_node[4]), // output reg [557 : 0] douta
+            .douta(vc_node[4][VC_NODE_WIDTH[4]-1:0]), // output reg [557 : 0] douta
             .clkb (clk),        // input wire clkb
             .enb  (1'b1),       // input wire enb
             .web  (1'b0),       // input wire [0 : 0] web
@@ -276,7 +275,7 @@ module trie128(
             .wea  (1'b0),       // input wire [0 : 0] wea
             .addra(vc_addr[5][VC_ADDR_WIDTH[5]-1:0]), // input wire [11 : 0] addra
             .dina (0),          // input wire [413 : 0] dina
-            .douta(vc_node[5]), // output reg [413 : 0] douta
+            .douta(vc_node[5][VC_NODE_WIDTH[5]-1:0]), // output reg [413 : 0] douta
             .clkb (clk),        // input wire clkb
             .enb  (1'b1),       // input wire enb
             .web  (1'b0),       // input wire [0 : 0] web
@@ -292,7 +291,7 @@ module trie128(
             .wea  (1'b0),       // input wire [0 : 0] wea
             .addra(vc_addr[i][VC_ADDR_WIDTH[i]-1:0]), // input wire [7 : 0] addra
             .dina (0),          // input wire [53 : 0] dina
-            .douta(vc_node[i]), // output reg [53 : 0] douta
+            .douta(vc_node[i][VC_NODE_WIDTH[i]-1:0]), // output reg [53 : 0] douta
             .clkb (clk),        // input wire clkb
             .enb  (1'b1),       // input wire enb
             .web  (1'b0),       // input wire [0 : 0] web
