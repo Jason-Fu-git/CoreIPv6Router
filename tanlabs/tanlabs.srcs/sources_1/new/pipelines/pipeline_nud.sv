@@ -11,13 +11,13 @@ module pipeline_nud (
     input  wire               clk,
     input  wire               rst_p,
     input  wire               we_i,        // needed to send NS, trigger
-    input  logic      [127:0] tgt_addr_i,  // target address
-    input  logic      [127:0] ip6_addr_i,  // self IPv6 address
-    input  logic      [ 47:0] mac_addr_i,  // self MAC address
-    input  logic      [  1:0] iface_i,     // interface ID (0, 1, 2, 3)
-    input  logic              ready_i,     // out can be sent
+    input  wire       [127:0] tgt_addr_i,  // target address
+    input  wire       [127:0] ip6_addr_i,  // self IPv6 address
+    input  wire       [ 47:0] mac_addr_i,  // self MAC address
+    input  wire       [  1:0] iface_i,     // interface ID (0, 1, 2, 3)
+    input  wire               ready_i,     // out can be sent
     output frame_beat         out,
-    output logic              valid_o
+    output reg                valid_o
 );
 
   NS_packet        NS_o;  // NS packet to be sent by datapath

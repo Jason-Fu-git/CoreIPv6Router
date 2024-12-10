@@ -5,6 +5,7 @@
 *.asm
 *.coe
 *.prm
+*.exe
 *.cache/
 *.hw/
 *.sim/
@@ -17,4 +18,5 @@
 in_frames.pcap
 out_frames.pcap
 temp.txt
+bram*.txt
 

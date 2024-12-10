@@ -40,22 +40,29 @@ module neighbor_cache #(
     input wire clk,
     input wire rst_p,
 
-    input  wire [127:0] r_IPv6_addr,  // Key : IPv6 address
-    output reg  [ 47:0] r_MAC_addr,   // Value : MAC address (read)
-    output reg  [  1:0] r_port_id,    // Value : port id (read)
+    // Read port 0
+    input  wire [127:0] r_IPv6_addr_0,  // Key : IPv6 address
+    output reg  [ 47:0] r_MAC_addr_0,   // Value : MAC address (read)
+    output reg  [  1:0] r_port_id_0,    // Value : port id (read)
+    output reg          r_exists_0,     // FLAG : whether the key exists
 
+    // Read port 1
+    input  wire [127:0] r_IPv6_addr_1,  // Key : IPv6 address
+    output reg  [ 47:0] r_MAC_addr_1,   // Value : MAC address (read)
+    output reg  [  1:0] r_port_id_1,    // Value : port id (read)
+    output reg          r_exists_1,     // FLAG : whether the key exists
+
+    // Write port
     input wire [127:0] w_IPv6_addr,  // Key : IPv6 address (write)
     input wire [ 47:0] w_MAC_addr,   // Value : MAC address (write)
     input wire [  1:0] w_port_id,    // Value : port id (write)
 
     input wire wea_p,  // write enable, should be positive when writing mac address
 
-    output reg exists,    // FLAG : whether the key exists
-
     // All NUD signals will be hold for one cycle after the probe timer reaches the PROBE_LIMIT
-    output reg nud_probe,                // FLAG : whether the external module should probe the IPv6 address
+    output reg nud_probe,  // FLAG : whether the external module should probe the IPv6 address
     output reg [127:0] probe_IPv6_addr,  // Key : IPv6 address to probe
-    output reg [1:0] probe_port_id       // Value : port id to probe
+    output reg [1:0] probe_port_id  // Value : port id to probe
 );
 
   // ============================= NC entry ====================================
@@ -63,7 +70,7 @@ module neighbor_cache #(
     reg valid;
     reg [1:0] port_id;
     reg [127:0] IPv6_addr;
-    reg [ 47:0] MAC_addr;
+    reg [47:0] MAC_addr;
     reg [31:0] reachable_timer;
   } neighbor_cache_entry_t;
 
@@ -83,24 +90,42 @@ module neighbor_cache #(
   // updatablitity flag
   reg updatable;
 
-  // =================== CAM entry query (R), higher address first =============
+  // =================== CAM entry query (R0), higher address first =============
   always_comb begin : CAM_R
-    exists      = 0;
-    r_MAC_addr  = 0;
-    r_port_id   = 0;
+    r_exists_0   = 0;
+    r_MAC_addr_0 = 0;
+    r_port_id_0  = 0;
     for (int i = 0; i < NUM_ENTRIES; i = i + 1) begin
       if (
            neighbor_cache_entries[i].valid &&
-           (neighbor_cache_entries[i].IPv6_addr == r_IPv6_addr)
+           (neighbor_cache_entries[i].IPv6_addr == r_IPv6_addr_0)
           ) begin
         // read MAC address
-        exists  = 1;
-        r_MAC_addr = neighbor_cache_entries[i].MAC_addr;
-        r_port_id  = neighbor_cache_entries[i].port_id;
+        r_exists_0   = 1;
+        r_MAC_addr_0 = neighbor_cache_entries[i].MAC_addr;
+        r_port_id_0  = neighbor_cache_entries[i].port_id;
       end
     end
   end
   // ===========================================================================
+
+  // =================== CAM entry query (R1), higher address first =============
+  always_comb begin : CAM_R1
+    r_exists_1   = 0;
+    r_MAC_addr_1 = 0;
+    r_port_id_1  = 0;
+    for (int i = 0; i < NUM_ENTRIES; i = i + 1) begin
+      if (
+           neighbor_cache_entries[i].valid &&
+           (neighbor_cache_entries[i].IPv6_addr == r_IPv6_addr_1)
+          ) begin
+        // read MAC address
+        r_exists_1   = 1;
+        r_MAC_addr_1 = neighbor_cache_entries[i].MAC_addr;
+        r_port_id_1  = neighbor_cache_entries[i].port_id;
+      end
+    end
+  end
 
 
   // =================== CAM entry query (W), higher address first =============

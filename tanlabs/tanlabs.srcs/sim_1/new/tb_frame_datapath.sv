@@ -14,13 +14,17 @@ module tb_frame_datapath
     reg reset;
     initial begin
         // set ip addr 0
-        ip_addrs[0] = 128'h051069feff641f8e00000000000080fe;
+        ip_addrs[0] = 128'h541069feff641f8e00000000000080fe;
+        ip_valid[0] = 1;
         mac_addrs[0] = 48'h541069641f8c;
-        ip_addrs[1] = 128'h061069feff641f8e00000000000080fe;
+        ip_addrs[1] = 128'h551069feff641f8e00000000000080fe;
+        ip_valid[1] = 1;
         mac_addrs[1] = 48'h551069641f8c;
-        ip_addrs[2] = 128'h071069feff641f8e00000000000080fe;
+        ip_addrs[2] = 128'h561069feff641f8e00000000000080fe;
+        ip_valid[2] = 1;
         mac_addrs[2] = 48'h561069641f8c;
-        ip_addrs[3] = 128'h081069feff641f8e00000000000080fe;
+        ip_addrs[3] = 128'h571069feff641f8e00000000000080fe;
+        ip_valid[3] = 1;
         mac_addrs[3] = 48'h571069641f8c;
         reset = 1;
         #6000
