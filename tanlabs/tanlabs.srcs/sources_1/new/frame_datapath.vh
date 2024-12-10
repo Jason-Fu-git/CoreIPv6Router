@@ -1,5 +1,5 @@
 `ifndef _FRAME_DATAPATH_VH_
-`define _FRAME_DATAPATH_VH_ 
+`define _FRAME_DATAPATH_VH_
 
 // 'w' means wide.
 localparam DATAW_WIDTH = 8 * 56;
@@ -8,6 +8,9 @@ localparam ID_WIDTH = 3;
 // README: Your code here.
 
 parameter IP6_HDR_TYPE_ICMPv6 = 8'd58;
+parameter IP6_HDR_TYPE_UDP = 8'd17;
+
+parameter UDP_PORT_RIP = 16'd521;
 
 parameter ICMPv6_HDR_TYPE_NS = 8'd135;
 parameter ICMPv6_HDR_TYPE_NA = 8'd136;

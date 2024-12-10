@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 
 /* Tsinghua Advanced Networking Labs */
-
+`include "frame_datapath.vh"
 module tanlabs #(
     parameter SIM = 0
 ) (
@@ -699,6 +699,9 @@ module tanlabs #(
   wire [ID_WIDTH - 1:0] dp_tx_dest;
   wire dp_tx_valid;
 
+  logic dma_in_ready, dma_out_ready;
+  frame_beat dma_in, dma_out;
+
   frame_datapath #(
       .DATA_WIDTH(DATA_WIDTH),
       .ID_WIDTH  (ID_WIDTH)
@@ -735,10 +738,13 @@ module tanlabs #(
       .mac_addr_0(mac_addrs[0]),
       .mac_addr_1(mac_addrs[1]),
       .mac_addr_2(mac_addrs[2]),
-      .mac_addr_3(mac_addrs[3])
+      .mac_addr_3(mac_addrs[3]),
 
-      // README: You will need to add some signals for your CPU to control the datapath,
-      // or access the forwarding table or the address resolution cache.
+      // dma interface
+      .dma_in(dma_in),
+      .dma_in_ready(dma_in_ready),
+      .dma_out(dma_out),
+      .dma_out_ready(dma_out_ready)
   );
 
 
@@ -773,7 +779,10 @@ module tanlabs #(
   logic csr_we;
   logic csr_error;
 
-
+  logic dma_cpu_stb, dma_cpu_we;
+  logic [31:0] dma_cpu_adr, dma_cpu_dat_width;
+  logic dma_ack;
+  logic [31:0] dma_dat_width;
 
   cpu_controller controller_i (
       // Clock and reset
@@ -887,13 +896,13 @@ module tanlabs #(
   // Wishbone
   // =======================================
 
-  logic [22:0] icache_sram_adr, dcache_sram_adr;
-  logic [31:0] icache_sram_dat_o, dcache_sram_dat_o;
-  logic [31:0] icache_sram_dat_i, dcache_sram_dat_i;
-  logic [3:0] icache_sram_sel, dcache_sram_sel;
-  logic icache_sram_we, dcache_sram_we;
-  logic icache_sram_stb, dcache_sram_stb;
-  logic icache_sram_ack, dcache_sram_ack;
+  logic [22:0] icache_sram_adr, dcache_sram_adr, dma_sram_adr;
+  logic [31:0] icache_sram_dat_o, dcache_sram_dat_o, dma_sram_dat_o;
+  logic [31:0] icache_sram_dat_i, dcache_sram_dat_i, dma_sram_dat_i;
+  logic [3:0] icache_sram_sel, dcache_sram_sel, dma_sram_sel;
+  logic icache_sram_we, dcache_sram_we, dma_sram_we;
+  logic icache_sram_stb, dcache_sram_stb, dma_sram_stb;
+  logic icache_sram_ack, dcache_sram_ack, dma_sram_ack;
 
   logic [21:0] arbiter_sram_addr;
   logic [31:0] arbiter_sram_data_in;
@@ -912,16 +921,16 @@ module tanlabs #(
       .GROUP_WIDTH(4),
       .GROUP_SIZE (4)
   ) cache_IF (
-      .clk(core_clk),
+      .clk  (core_clk),
       .rst_p(reset_core),
 
-      .adr_ctl_i(im_adr),
-      .stb_ctl_i(im_fence || im_stb),
-      .sel_ctl_i(4'b1111),
+      .adr_ctl_i (im_adr),
+      .stb_ctl_i (im_fence || im_stb),
+      .sel_ctl_i (4'b1111),
       .we_p_ctl_i(1'b0),
-      .ack_ctl_o(im_ack),
-      .dat_ctl_i(0),
-      .dat_ctl_o(im_dat_r),
+      .ack_ctl_o (im_ack),
+      .dat_ctl_i (0),
+      .dat_ctl_o (im_dat_r),
 
       .ack_sram_i (icache_sram_ack),
       .stb_sram_o (icache_sram_stb),
@@ -942,16 +951,16 @@ module tanlabs #(
       .GROUP_WIDTH(4),
       .GROUP_SIZE (4)
   ) cache_MEM (
-      .clk(core_clk),
+      .clk  (core_clk),
       .rst_p(reset_core),
 
-      .adr_ctl_i(dm_adr),
-      .stb_ctl_i(dm_fence || dm_stb),
-      .sel_ctl_i(dm_sel),
+      .adr_ctl_i (dm_adr),
+      .stb_ctl_i (dm_fence || dm_stb),
+      .sel_ctl_i (dm_sel),
       .we_p_ctl_i(dm_we),
-      .ack_ctl_o(dm_ack),
-      .dat_ctl_i(dm_dat_w),
-      .dat_ctl_o(dm_dat_r),
+      .ack_ctl_o (dm_ack),
+      .dat_ctl_i (dm_dat_w),
+      .dat_ctl_o (dm_dat_r),
 
       .ack_sram_i (dcache_sram_ack),
       .stb_sram_o (dcache_sram_stb),
@@ -964,32 +973,133 @@ module tanlabs #(
       .fence(dm_fence)
   );
 
+  dma #(
+      .IN_DATA_WIDTH (DATAW_WIDTH),  // FIXME: Attach to FIFO in the future
+      .OUT_DATA_WIDTH(DATAW_WIDTH)
+  ) dma_i (
+      .clk  (eth_clk),
+      .rst_p(reset_eth),
 
-  wb_arbiter_2 #(
+      // Ethernet
+      .in(dma_in),
+      .in_ready(dma_in_ready),
+
+      .out(dma_out),
+      .out_ready(dma_out_ready),
+
+      // SRAM
+      .dm_adr_o(dma_sram_adr),
+      .dm_dat_o(dma_sram_dat_o),
+      .dm_dat_i(dma_sram_dat_i),
+      .dm_sel_o(dma_sram_sel),
+      .dm_we_o (dma_sram_we),
+      .dm_stb_o(dma_sram_stb),
+      .dm_ack_i(dma_sram_ack),
+      .dm_err_i(0),
+      .dm_rty_i(0),
+      .dm_cyc_o(),
+
+      // Status Registers
+      .cpu_stb_i(dma_cpu_stb),
+      .cpu_we_i(dma_cpu_we),
+      .cpu_adr_i(dma_cpu_adr),
+      .cpu_dat_width_i(dma_cpu_dat_width),
+
+      .dma_ack_o(dma_ack),
+      .dma_dat_width_o(dma_dat_width)
+  );
+
+
+  // FIXME: Codes for testing DMA
+  typedef enum logic[2:0] {
+     DMA_IDLE,
+     DMA_WRITE,
+     DMA_WRITE_DONE,
+     DMA_READ,
+     DMA_READ_DONE
+  } test_dma_state_t;
+  test_dma_state_t test_dma_state;
+
+  assign dma_cpu_dat_width = 66;
+  assign dma_cpu_adr = 32'h80200000;
+  assign dma_cpu_we = (test_dma_state == DMA_WRITE);
+  always_ff @( posedge core_clk ) begin : TESTDMA
+    if (reset_core) begin
+        dma_cpu_stb <= 0;
+    end else begin
+        case (test_dma_state)
+            DMA_IDLE:begin
+                dma_cpu_stb    <= 0;
+                test_dma_state <= DMA_WRITE;
+            end
+            DMA_WRITE:begin
+                if (dma_ack) begin
+                    dma_cpu_stb    <= 0;
+                    test_dma_state <= DMA_WRITE_DONE;
+                end else begin
+                    dma_cpu_stb    <= 1;
+                end
+            end
+            DMA_WRITE_DONE:begin
+                dma_cpu_stb    <= 0;
+                test_dma_state <= DMA_READ;
+            end
+            DMA_READ:begin
+                if (dma_ack) begin
+                    dma_cpu_stb    <= 0;
+                    test_dma_state <= DMA_READ_DONE;
+                end else begin
+                    dma_cpu_stb    <= 1;
+                end
+            end
+            DMA_READ_DONE:begin
+                dma_cpu_stb    <= 0;
+                test_dma_state <= DMA_IDLE;
+            end
+            default: begin
+                dma_cpu_stb    <= 0;
+                test_dma_state <= DMA_IDLE;
+            end
+        endcase
+    end
+  end
+  // END FIXME
+
+
+  wb_arbiter_3 #(
       .DATA_WIDTH  (32),
       .ADDR_WIDTH  (22),
       .SELECT_WIDTH(4)
-  ) cache_arbiter_i (
+  ) sram_arbiter_i (
       .clk(core_clk),
       .rst(reset_core),
 
-      .wbm0_adr_i(dcache_sram_adr),
-      .wbm0_dat_i(dcache_sram_dat_o),
-      .wbm0_sel_i(dcache_sram_sel),
-      .wbm0_we_i (dcache_sram_we),
-      .wbm0_cyc_i(dcache_sram_stb),
-      .wbm0_stb_i(dcache_sram_stb),
-      .wbm0_ack_o(dcache_sram_ack),
-      .wbm0_dat_o(dcache_sram_dat_i),
+      .wbm0_adr_i(dma_sram_adr),
+      .wbm0_dat_i(dma_sram_dat_o),
+      .wbm0_sel_i(dma_sram_sel),
+      .wbm0_we_i (dma_sram_we),
+      .wbm0_cyc_i(dma_sram_stb),
+      .wbm0_stb_i(dma_sram_stb),
+      .wbm0_ack_o(dma_sram_ack),
+      .wbm0_dat_o(dma_sram_dat_i),
 
-      .wbm1_adr_i(icache_sram_adr),
-      .wbm1_dat_i(icache_sram_dat_o),
-      .wbm1_sel_i(icache_sram_sel),
-      .wbm1_we_i (icache_sram_we),
-      .wbm1_cyc_i(icache_sram_stb),
-      .wbm1_stb_i(icache_sram_stb),
-      .wbm1_ack_o(icache_sram_ack),
-      .wbm1_dat_o(icache_sram_dat_i),
+      .wbm1_adr_i(dcache_sram_adr),
+      .wbm1_dat_i(dcache_sram_dat_o),
+      .wbm1_sel_i(dcache_sram_sel),
+      .wbm1_we_i (dcache_sram_we),
+      .wbm1_cyc_i(dcache_sram_stb),
+      .wbm1_stb_i(dcache_sram_stb),
+      .wbm1_ack_o(dcache_sram_ack),
+      .wbm1_dat_o(dcache_sram_dat_i),
+
+      .wbm2_adr_i(icache_sram_adr),
+      .wbm2_dat_i(icache_sram_dat_o),
+      .wbm2_sel_i(icache_sram_sel),
+      .wbm2_we_i (icache_sram_we),
+      .wbm2_cyc_i(icache_sram_stb),
+      .wbm2_stb_i(icache_sram_stb),
+      .wbm2_ack_o(icache_sram_ack),
+      .wbm2_dat_o(icache_sram_dat_i),
 
       .wbs_adr_o(arbiter_sram_addr),
       .wbs_dat_i(arbiter_sram_data_in),
