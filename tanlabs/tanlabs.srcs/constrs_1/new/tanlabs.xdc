@@ -417,11 +417,3 @@ set_property -dict {PACKAGE_PIN P19 IOSTANDARD LVCMOS33} [get_ports sfp_sda]
 
 set_property CFGBVS VCCO [current_design]
 set_property CONFIG_VOLTAGE 3.3 [current_design]
-
-connect_debug_port u_ila_0/probe14 [get_nets [list {frame_datapath_i/in[meta][id]_64[0]} {frame_datapath_i/in[meta][id]_64[1]} {frame_datapath_i/in[meta][id]_64[2]}]]
-
-
-
-
-connect_debug_port u_ila_0/probe11 [get_nets [list {frame_datapath_i/in[meta][id]_65[0]} {frame_datapath_i/in[meta][id]_65[1]} {frame_datapath_i/in[meta][id]_65[2]}]]
-

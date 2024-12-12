@@ -1196,7 +1196,7 @@ module cpu_controller (
       ex_mem_load   <= 0;
       ex_mem_store  <= 0;
       ex_mem_csr    <= 0;
-    end else if (if_flush) begin
+    end else if (id_flush) begin
       id_pc         <= 0;
       id_op         <= 0;
       id_imm        <= 0;
@@ -1215,7 +1215,25 @@ module cpu_controller (
       ex_mem_store  <= 0;
       ex_mem_csr    <= 0;
     end else if (id_ready) begin
-      if ((if_valid && (!id_bc))  // Normal Case
+      if (if_flush) begin
+        id_pc         <= 0;
+        id_op         <= 0;
+        id_imm        <= 0;
+        id_rd         <= 0;
+        id_valid      <= 0;
+        id_rs1_dat    <= 0;
+        id_rs2_dat    <= 0;
+        id_rs1        <= 0;
+        id_rs2        <= 0;
+        id_csr        <= 0;
+        id_ec         <= EC_NONE;
+        ex_rs1_ea     <= 0;
+        ex_rs2_ea     <= 0;
+        ex_mem_rs2_ea <= 0;
+        ex_mem_load   <= 0;
+        ex_mem_store  <= 0;
+        ex_mem_csr    <= 0;
+      end else if ((if_valid && (!id_bc))  // Normal Case
           || (!if_flush && id_bc && if_idle)  // Special Case for JALR t0, t0
           ) begin  // Not a bubble
         id_pc         <= if_pc;

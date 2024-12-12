@@ -48,15 +48,6 @@ module pipeline_rip(
   logic buffer_ready;
   assign in_ready = buffer_ready;
 
-  //  FIXME: For Testing DMA Only
-  frame_beat in_test;
-  always_comb begin : TEST
-    in_test = in;
-    in_test.data.ip6.src = in.data.ip6.dst;
-    in_test.data.ip6.dst = in.data.ip6.src;
-  end
-  // END FIXME
-
   always_ff @(posedge clk) begin : FW_IN_REG
     if (rst_p) begin
       in_buffer <= 0;
@@ -65,9 +56,7 @@ module pipeline_rip(
         in_buffer.valid <= in_valid;
         in_buffer.error <= in_error_next;
         if (in_valid) begin
-          // FIXME: For Testing DMA Only
-          // in_buffer.data <= in;
-          in_buffer.data <= in_test;
+          in_buffer.data <= in;
         end
       end
     end

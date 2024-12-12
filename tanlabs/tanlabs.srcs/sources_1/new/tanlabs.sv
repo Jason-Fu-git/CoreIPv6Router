@@ -77,8 +77,6 @@ module tanlabs #(
   wire debug_datapath_fifo_ready;
   wire debug_egress_interconnect_ready;
 
-  assign uart_tx = uart_rx;
-
   wire reset_in = RST;
   wire locked0, locked1;
   wire gtref_clk;  // 125MHz for the PHY/MAC IP core
@@ -896,6 +894,16 @@ module tanlabs #(
   // Wishbone
   // =======================================
 
+  logic [31:0] wbs0_adr, wbs1_adr, wbs2_adr;
+  logic [31:0] wbs0_dat_r, wbs0_dat_w, wbs1_dat_r, wbs1_dat_w, wbs2_dat_r, wbs2_dat_w;
+  logic [3:0] wbs0_sel, wbs1_sel, wbs2_sel;
+  logic wbs0_we, wbs1_we, wbs2_we;
+  logic wbs0_stb, wbs1_stb, wbs2_stb;
+  logic wbs0_ack, wbs1_ack, wbs2_ack;
+  logic wbs0_err, wbs1_err, wbs2_err;
+  logic wbs0_rty, wbs1_rty, wbs2_rty;
+  logic wbs0_cyc, wbs1_cyc, wbs2_cyc;
+
   logic [22:0] icache_sram_adr, dcache_sram_adr, dma_sram_adr;
   logic [31:0] icache_sram_dat_o, dcache_sram_dat_o, dma_sram_dat_o;
   logic [31:0] icache_sram_dat_i, dcache_sram_dat_i, dma_sram_dat_i;
@@ -912,6 +920,76 @@ module tanlabs #(
   logic        arbiter_sram_cyc;
   logic        arbiter_sram_stb;
   logic        arbiter_sram_ack;
+
+  wb_mux_3 #(
+      .DATA_WIDTH  (32),
+      .ADDR_WIDTH  (32),
+      .SELECT_WIDTH(4)
+  ) wb_mux_3_i (
+      .clk(core_clk),
+      .rst(reset_core),
+
+      // Master interface (Data Memory)
+      .wbm_adr_i(dm_adr),
+      .wbm_dat_i(dm_dat_w),
+      .wbm_dat_o(dm_dat_r),
+      .wbm_we_i (dm_we),
+      .wbm_sel_i(dm_sel),
+      .wbm_stb_i(dm_stb),
+      .wbm_ack_o(dm_ack),
+      .wbm_err_o(dm_err),
+      .wbm_rty_o(dm_rty),
+      .wbm_cyc_i(dm_cyc),
+
+      // Slave interface 0 (to data cache, connected to BaseRAM/ExtRAM controller later)
+      // Address range: 0x8000_0000 ~ 0x807F_FFFF
+      .wbs0_addr    (32'h8000_0000),
+      .wbs0_addr_msk(32'hFF80_0000),
+
+      .wbs0_adr_o(wbs0_adr),
+      .wbs0_dat_i(wbs0_dat_r),
+      .wbs0_dat_o(wbs0_dat_w),
+      .wbs0_we_o (wbs0_we),
+      .wbs0_sel_o(wbs0_sel),
+      .wbs0_stb_o(wbs0_stb),
+      .wbs0_ack_i(wbs0_ack),
+      .wbs0_err_i('0),
+      .wbs0_rty_i('0),
+      .wbs0_cyc_o(wbs0_cyc),
+
+
+      // Slave interface 1 (to UART controller)
+      // Address range: 0x1000_0000 ~ 0x1000_FFFF
+      .wbs1_addr    (32'h1000_0000),
+      .wbs1_addr_msk(32'hFFFF_0000),
+
+      .wbs1_adr_o(wbs1_adr),
+      .wbs1_dat_i(wbs1_dat_r),
+      .wbs1_dat_o(wbs1_dat_w),
+      .wbs1_we_o (wbs1_we),
+      .wbs1_sel_o(wbs1_sel),
+      .wbs1_stb_o(wbs1_stb),
+      .wbs1_ack_i(wbs1_ack),
+      .wbs1_err_i('0),
+      .wbs1_rty_i('0),
+      .wbs1_cyc_o(wbs1_cyc),
+
+      // Slave interface 2 (to DMA adapter)
+      // Address range: 0x0100_0000 ~ 0x0100_FFFF
+      .wbs2_addr    (32'h0100_0000),
+      .wbs2_addr_msk(32'hFFFF_0000),
+
+      .wbs2_adr_o(wbs2_adr),
+      .wbs2_dat_i(wbs2_dat_r),
+      .wbs2_dat_o(wbs2_dat_w),
+      .wbs2_we_o (wbs2_we),
+      .wbs2_sel_o(wbs2_sel),
+      .wbs2_stb_o(wbs2_stb),
+      .wbs2_ack_i(wbs2_ack),
+      .wbs2_err_i('0),
+      .wbs2_rty_i('0),
+      .wbs2_cyc_o(wbs2_cyc)
+  );
 
   cache #(
       .BLOCK_WIDTH(2),
@@ -954,13 +1032,13 @@ module tanlabs #(
       .clk  (core_clk),
       .rst_p(reset_core),
 
-      .adr_ctl_i (dm_adr),
-      .stb_ctl_i (dm_fence || dm_stb),
-      .sel_ctl_i (dm_sel),
-      .we_p_ctl_i(dm_we),
-      .ack_ctl_o (dm_ack),
-      .dat_ctl_i (dm_dat_w),
-      .dat_ctl_o (dm_dat_r),
+      .adr_ctl_i (wbs0_adr),
+      .stb_ctl_i (dm_fence || wbs0_stb),
+      .sel_ctl_i (wbs0_sel),
+      .we_p_ctl_i(wbs0_we),
+      .ack_ctl_o (wbs0_ack),
+      .dat_ctl_i (wbs0_dat_w),
+      .dat_ctl_o (wbs0_dat_r),
 
       .ack_sram_i (dcache_sram_ack),
       .stb_sram_o (dcache_sram_stb),
@@ -1009,61 +1087,29 @@ module tanlabs #(
       .dma_dat_width_o(dma_dat_width)
   );
 
+  dma_adapter dma_adapter_i (
+      .clk(core_clk),
+      .rst(reset_core),
 
-  // FIXME: Codes for testing DMA
-  typedef enum logic[2:0] {
-     DMA_IDLE,
-     DMA_WRITE,
-     DMA_WRITE_DONE,
-     DMA_READ,
-     DMA_READ_DONE
-  } test_dma_state_t;
-  test_dma_state_t test_dma_state;
+      .wbm_adr_i(wbs2_adr),
+      .wbm_dat_i(wbs2_dat_w),
+      .wbm_dat_o(wbs2_dat_r),
+      .wbm_sel_i(wbs2_sel),
+      .wbm_we_i (wbs2_we),
+      .wbm_stb_i(wbs2_stb),
+      .wbm_ack_o(wbs2_ack),
 
-  assign dma_cpu_dat_width = 66;
-  assign dma_cpu_adr = 32'h80200000;
-  assign dma_cpu_we = (test_dma_state == DMA_WRITE);
-  always_ff @( posedge core_clk ) begin : TESTDMA
-    if (reset_core) begin
-        dma_cpu_stb <= 0;
-    end else begin
-        case (test_dma_state)
-            DMA_IDLE:begin
-                dma_cpu_stb    <= 0;
-                test_dma_state <= DMA_WRITE;
-            end
-            DMA_WRITE:begin
-                if (dma_ack) begin
-                    dma_cpu_stb    <= 0;
-                    test_dma_state <= DMA_WRITE_DONE;
-                end else begin
-                    dma_cpu_stb    <= 1;
-                end
-            end
-            DMA_WRITE_DONE:begin
-                dma_cpu_stb    <= 0;
-                test_dma_state <= DMA_READ;
-            end
-            DMA_READ:begin
-                if (dma_ack) begin
-                    dma_cpu_stb    <= 0;
-                    test_dma_state <= DMA_READ_DONE;
-                end else begin
-                    dma_cpu_stb    <= 1;
-                end
-            end
-            DMA_READ_DONE:begin
-                dma_cpu_stb    <= 0;
-                test_dma_state <= DMA_IDLE;
-            end
-            default: begin
-                dma_cpu_stb    <= 0;
-                test_dma_state <= DMA_IDLE;
-            end
-        endcase
-    end
-  end
-  // END FIXME
+      .dma_ack_i(dma_ack),
+      .dma_dat_width_i(dma_dat_width),
+      .dma_cpu_stb_o(dma_cpu_stb),
+      .dma_cpu_we_o(dma_cpu_we),
+      .dma_cpu_addr_o(dma_cpu_adr),
+      .dma_cpu_dat_width_o(dma_cpu_dat_width)
+  );
+
+  //   assign dma_cpu_dat_width = 66;
+  //   assign dma_cpu_adr = 32'h80200000;
+  //   assign dma_cpu_we = (test_dma_state == DMA_WRITE);
 
 
   wb_arbiter_3 #(
@@ -1137,6 +1183,28 @@ module tanlabs #(
       .sram_we_n(base_ram_we_n),
       .sram_be_n(base_ram_be_n)
   );
+
+  uart_controller #(
+      .CLK_FREQ(50_000_000),
+      .BAUD    (115200)
+  ) uart_controller (
+      .clk_i(core_clk),
+      .rst_i(reset_core),
+
+      .wb_cyc_i(wbs1_cyc),
+      .wb_stb_i(wbs1_stb),
+      .wb_ack_o(wbs1_ack),
+      .wb_adr_i(wbs1_adr),
+      .wb_dat_i(wbs1_dat_w),
+      .wb_dat_o(wbs1_dat_r),
+      .wb_sel_i(wbs1_sel),
+      .wb_we_i (wbs1_we),
+
+      // to UART pins
+      .uart_txd_o(uart_tx),
+      .uart_rxd_i(uart_rx)
+  );
+
 
 
   // =======================================

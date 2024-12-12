@@ -6,14 +6,17 @@ module tb #(
     parameter ID_WIDTH   = 3
 ) ();
 
-  parameter BASE_RAM_INIT_FILE = "D:\\rv-2024\\rvtests_simple\\testall.bin";
+  parameter BASE_RAM_INIT_FILE = "D:\\Programming\\VivadoProjects\\joint-lab-g5\\firmware\\kernel.bin";
 
-  wire [31:0] base_ram_data;  // BaseRAM 数据，低 8 位与 CPLD 串口控制器共享
-  wire [19:0] base_ram_addr;  // BaseRAM 地址
-  wire [3:0] base_ram_be_n;   // BaseRAM 字节使能，低有效。如果不使用字节使能，请保持为 0
-  wire base_ram_ce_n;  // BaseRAM 片选，低有效
-  wire base_ram_oe_n;  // BaseRAM 读使能，低有效
-  wire base_ram_we_n;  // BaseRAM 写使能，低有效
+  wire txd;
+  wire rxd;
+
+  wire [31:0] base_ram_data;
+  wire [19:0] base_ram_addr;
+  wire [3:0] base_ram_be_n;
+  wire base_ram_ce_n;
+  wire base_ram_oe_n;
+  wire base_ram_we_n;
 
   reg reset;
   initial begin
@@ -115,6 +118,9 @@ module tb #(
 
       .led(),
 
+      .uart_tx(txd),
+      .uart_rx(rxd),
+
       .sfp_rx_los(4'd0),
       .sfp_rx_p(sfp_tb2dut_p),
       .sfp_rx_n(sfp_tb2dut_n),
@@ -153,6 +159,12 @@ module tb #(
       .WE_n(base_ram_we_n),
       .LB_n(base_ram_be_n[2]),
       .UB_n(base_ram_be_n[3])
+  );
+
+  // 直连串口仿真模型
+  uart_model uart (
+      .rxd(txd),
+      .txd(rxd)
   );
 
   // 从文件加载 BaseRAM

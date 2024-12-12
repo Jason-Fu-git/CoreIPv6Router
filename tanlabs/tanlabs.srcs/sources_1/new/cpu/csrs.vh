@@ -29,5 +29,13 @@ parameter MTIMECMP_LADDR = 32'h02004000; // lower 32 bits of mtimecmp
 parameter MTIME_HADDR    = 32'h0200BFFC; // higher 32 bits of mtime
 parameter MTIMECMP_HADDR = 32'h02004004; // higher 32 bits of mtimecmp
 
+parameter DMA_CPU_STB        = 32'h01000000;
+parameter DMA_CPU_WE         = 32'h01000004;
+parameter DMA_CPU_ADDR       = 32'h01000008;
+parameter DMA_CPU_DATA_WIDTH = 32'h0100000C;
+parameter DMA_ACK            = 32'h01000010;
+parameter DMA_DATA_WIDTH     = 32'h01000014;
+
+
 
 `endif

@@ -184,8 +184,11 @@ module dma #(
       state <= next_state;
       case (state)
         IDLE: begin
-          data_width <= 0;
-          dm_out     <= 0;
+          // Reserve the data width
+          if (next_state != IDLE) begin
+            data_width <= 0;
+          end
+          dm_out <= 0;
         end
         READ: begin
           if (dm_ack_i && dm_stb_reg) begin
@@ -209,7 +212,7 @@ module dma #(
                 2'd2: dm_out.data <= dm_dat_i[15:0];
                 2'd3: dm_out.data <= dm_dat_i[23:0];
                 default: dm_out.data <= dm_dat_i[31:0];
-            endcase
+              endcase
             end else begin
               dm_out.keep <= 4'hF;
               dm_out.last <= 0;
