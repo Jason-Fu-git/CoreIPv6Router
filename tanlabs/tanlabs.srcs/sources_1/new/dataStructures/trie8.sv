@@ -227,6 +227,7 @@ module trie8 #(
             out_valid <= 0;
           end
           frame_beat_o          <= frame_beat_i;
+          frame_beat_o.valid    <= 0;
           vc_addr_reg           <= vc_init_addr_i;
           vc_max_match_o        <= vc_max_match_i;
           vc_remaining_prefix_o <= vc_remaining_prefix_i;
@@ -261,6 +262,7 @@ module trie8 #(
         end
         vc_init_addr_o <= vc_remaining_prefix_o[0] ? vc_node_i[2*VC_ADDR_WIDTH-1:VC_ADDR_WIDTH] : vc_node_i[VC_ADDR_WIDTH-1:0];
         bt_init_addr_o <= bt_remaining_prefix_o[0] ? bt_node_i[2*BT_ADDR_WIDTH-1:BT_ADDR_WIDTH] : bt_node_i[BT_ADDR_WIDTH-1:0];
+        frame_beat_o.valid <= 1;
         out_valid <= 1;
       end
     end
