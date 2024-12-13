@@ -1055,8 +1055,11 @@ module tanlabs #(
       .IN_DATA_WIDTH (DATAW_WIDTH),  // FIXME: Attach to FIFO in the future
       .OUT_DATA_WIDTH(DATAW_WIDTH)
   ) dma_i (
-      .clk  (eth_clk),
-      .rst_p(reset_eth),
+      .eth_clk(eth_clk),
+      .eth_rst(reset_eth),
+
+      .core_clk(core_clk),
+      .core_rst(reset_core),
 
       // Ethernet
       .in(dma_in),
