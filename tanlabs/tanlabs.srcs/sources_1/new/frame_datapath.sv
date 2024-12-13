@@ -136,6 +136,7 @@ module frame_datapath #(
   logic cache_wea_p, cache_exists;
   logic nud_we_p;
   logic [127:0] nud_exp_addr, cache_ip6_addr_o;
+  logic [127:0] trie128_next_hop;
   logic [ 1:0] nud_iface;
   logic [47:0] cache_mac_addr_o;
   logic [ 1:0] cache_iface_o;
@@ -153,10 +154,6 @@ module frame_datapath #(
   reg [BRAM_ADDR_WIDTH-1:0] bram_addr_w;
   reg [BRAM_DATA_WIDTH-1:0] bram_data_w;
   reg [BRAM_DATA_WIDTH-1:0] bram_data_r;
-  
-  logic [  4:0] trie128_default_next_hop;
-  logic [127:0] trie128_addr;
-  logic [127:0] trie128_next_hop;
 
   neighbor_cache neighbor_cache_i (
       .clk            (eth_clk),
@@ -187,9 +184,9 @@ module frame_datapath #(
       .in_valid (fwt_in.valid),
       .out_valid(trie128_out_ready),
 
-      .addr(trie128_addr),
+      .addr(ipv6_addrs[0]),
       .next_hop(trie128_next_hop),
-      .default_next_hop(trie128_default_next_hop)
+      .default_next_hop(0)
   );
 
   pipeline_forward pipeline_forward_i (
@@ -213,6 +210,7 @@ module frame_datapath #(
       .fwt_out      (fwt_out),
       .fwt_in_ready (fwt_in_ready),
       .fwt_out_ready(fwt_out_ready),
+      .fwt_next_hop(trie128_next_hop),
 
       .mac_addrs(mac_addrs)
   );

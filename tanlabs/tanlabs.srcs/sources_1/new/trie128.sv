@@ -67,7 +67,7 @@ module trie128(
     logic [15:0][7:0] vc_max_match_out;
 
     for (genvar i = 0; i < 15; i++) begin
-        assign vc_max_match_in[i+1] = vc_max_match_out[i+1];
+        assign vc_max_match_in[i+1] = vc_max_match_out[i];
     end
 
     assign vc_max_match_in[0] = 0;

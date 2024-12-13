@@ -138,7 +138,7 @@ module trie8 #(
     vc_now_next_hop_offset = 0;
     for (int i = 0; i < VC_BIN_SIZE; i = i + 1) begin
       Entry entry = vc_node_i[2*VC_ADDR_WIDTH+(i+1)*VC_ENTRY_SIZE-1-:VC_ENTRY_SIZE];
-      logic [27:0] mask = 28'hfffffff >> entry.prefix_length;
+      logic [27:0] mask = 28'hfffffff >> (28 - entry.prefix_length);
       if ((entry.prefix_length != 5'b11111) && ((vc_remaining_prefix_o[27:0] & mask) == (entry.prefix & mask))) begin
         logic [7:0] match_length = BEGIN_LEVEL + (state - L0) + entry.prefix_length;
         if (match_length > vc_now_max_match) begin
