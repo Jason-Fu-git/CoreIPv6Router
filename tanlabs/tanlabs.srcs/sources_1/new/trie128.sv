@@ -11,7 +11,7 @@ module trie128(
     output reg out_valid,
     input wire [  4:0] default_next_hop,
     input wire [127:0] addr,
-    output reg [127:0] next_hop
+    output reg [  4:0] next_hop
 );
     parameter int VC_ADDR_WIDTH [0:16] = {8, 13, 13, 13, 13, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 0};
     parameter int VC_BIN_SIZE   [0:15] = {1, 7,  15, 15, 14, 10, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
@@ -29,7 +29,21 @@ module trie128(
     end
 
     assign frame_beat_in[0] = in.data;
-    assign out.data         = frame_beat_out[15];
+
+    reg [127:0] next_hop_ip6;
+    reg [  1:0] next_hop_iface;
+
+    fwt_lookup fwt_lookup_i (
+        .in(next_hop),
+        .out(next_hop_ip6),
+        .out_iface(next_hop_iface)
+    );
+
+    always_comb begin
+        out.data = frame_beat_out[15];
+        out.data.data.ip6.dst = next_hop_ip6;
+        out.data.meta.dest = next_hop_iface;
+    end
 
     // valid, ready
     logic [15:0] trie_in_valid;
