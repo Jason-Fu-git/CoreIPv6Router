@@ -57,11 +57,11 @@ module out_arbiter (
     end else begin
       if (rip_valid && in_rip.is_first) begin
         handling_rip <= 1;
-      end else if (ns_valid && in_ns.is_first) begin
+      end else if (!handling_rip && ns_valid && in_ns.is_first) begin
         handling_ns <= 1;
-      end else if (nud_valid && in_nud.is_first) begin
+      end else if (!handling_rip && !handling_ns && nud_valid && in_nud.is_first) begin
         handling_nud <= 1;
-      end else if (fw_valid && in_fw.is_first) begin
+      end else if (!handling_rip && !handling_ns && !handling_nud && fw_valid && in_fw.is_first) begin
         handling_fw <= 1;
       end
       if (handling_rip && rip_valid && in_rip.last && out_ready) begin
@@ -86,9 +86,12 @@ module out_arbiter (
              (nud_valid ? in_nud :
              (fw_valid ? in_fw : 0)))))));
     out.valid = ( (handling_rip || in_rip.is_first) && rip_valid
-                 || ((handling_ns || in_ns.is_first) && ns_valid)
-                 || ((handling_nud || in_nud.is_first) && nud_valid)
-                 || ((handling_fw || in_fw.is_first) && fw_valid));
+                 || ( (!handling_rip && !in_rip.is_first)
+                 && (handling_ns || in_ns.is_first) && ns_valid)
+                 || ( (!handling_rip && !in_rip.is_first && !handling_ns && !in_ns.is_first)
+                 &&(handling_nud || in_nud.is_first) && nud_valid)
+                 || ((!handling_rip && !in_rip.is_first && !handling_ns && !in_ns.is_first && !handling_nud && !in_nud.is_first)
+                 && (handling_fw || in_fw.is_first) && fw_valid));
     out_valid = out.valid;
   end
 
