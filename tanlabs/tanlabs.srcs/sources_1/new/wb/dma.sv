@@ -35,8 +35,10 @@ module dma #(
     input wire [31:0] cpu_adr_i,       // Address
     input wire [31:0] cpu_dat_width_i, // Data Width (in bytes)
 
-    output reg        dma_ack_o,       // DMA Acknowledge, will be held until STB is de-asserted
-    output reg [31:0] dma_dat_width_o  // Data Width (in bytes)
+    output reg dma_ack_o,  // DMA Acknowledge, will be held until STB is de-asserted
+    output reg [31:0] dma_dat_width_o,  // Data Width (in bytes)
+    output reg [15:0] dma_checksum_o,  // Checksum
+    output reg dma_checksum_valid_o  // Checksum Valid
 );
 
   // Considering that we only have one SRAM, DMA cannot execute multiple transactions at the same time
@@ -71,6 +73,16 @@ module dma #(
   reg fifo_in_last;
   reg fifo_in_valid;
   reg fifo_in_prog_full;
+
+  reg [31:0] buffer_in_data;
+  reg [3:0] buffer_in_keep;
+  reg buffer_in_last;
+  reg buffer_in_valid;
+
+  reg [31:0] buffer_out_data;
+  reg [3:0] buffer_out_keep;
+  reg buffer_out_last;
+  reg buffer_out_valid;
 
   reg [31:0] fifo_out_data;
   reg [3:0] fifo_out_keep;
@@ -181,6 +193,30 @@ module dma #(
       end
     end
   end
+
+  // in buffer, for alignment
+  always_ff @(posedge core_clk) begin : INBUFFER
+    if (core_rst) begin
+      buffer_in_data  <= 0;
+      buffer_in_keep  <= 4'hF;
+      buffer_in_last  <= 0;
+      buffer_in_valid <= 0;
+    end else if (state == IDLE) begin
+      buffer_in_data  <= 0;
+      buffer_in_keep  <= 0;
+      buffer_in_last  <= 0;
+      buffer_in_valid <= 0;
+    end else if (state == WRITE) begin
+      if (dm_ack_i) begin
+        buffer_in_data  <= fifo_in_data;
+        buffer_in_keep  <= fifo_in_keep;
+        buffer_in_last  <= fifo_in_last;
+        buffer_in_valid <= 1;
+      end else if (dm_stb_o) begin
+        buffer_in_valid <= 0;
+      end
+    end
+  end
   // ================================
 
 
@@ -205,15 +241,17 @@ module dma #(
   // SRAM signals
   assign dm_cyc_o = dm_stb_o;
   assign dm_adr_o = addr;
-  assign dm_dat_o = fifo_in_data[31:0];
+  assign dm_dat_o = (state == WRITE) ? {fifo_in_data[15:0], buffer_in_data[31:16]} : dm_dat_i;
   assign dm_we_o  = (state == WRITE);
 
   always_comb begin : SRAM_SEL
-    dm_sel_o = 4'hF;
+    dm_sel_o = {fifo_in_keep[1:0], buffer_in_keep[3:2]};
     if (state == WRITE) begin
-      if (fifo_in_last) begin
-        dm_sel_o = fifo_in_keep[3:0];
+      if (buffer_in_last) begin
+        dm_sel_o = {2'b00, buffer_in_keep[3:2]};
       end
+    end else if (state == READ) begin
+      dm_sel_o = 4'hF;
     end
   end
 
@@ -224,7 +262,7 @@ module dma #(
     end else begin
       case (state)
         READ: begin
-          if (!(fifo_out_last) && out_dm_ready) begin
+          if (!(buffer_out_last) && out_dm_ready) begin
             dm_stb_o = 1;
           end else if (dm_stb_reg) begin
             // Guarantee that a request won't be interrupted
@@ -232,7 +270,7 @@ module dma #(
           end
         end
         WRITE: begin
-          if (fifo_in_valid) begin
+          if (fifo_in_valid || buffer_in_valid) begin
             if ((data_width == 0) && fifo_in_is_first) begin
               dm_stb_o = 1;
             end else if (data_width > 0) begin
@@ -267,13 +305,13 @@ module dma #(
       end
       READ: begin
         // Last beat sent
-        if ((data_width >= cpu_dat_width_i) && out_dm_ready) begin
+        if (fifo_out_last && out_dm_ready) begin
           next_state = DONE;
         end
       end
       WRITE: begin
         // Write complete
-        if (dm_ack_i && fifo_in_last && dm_stb_reg) begin
+        if (dm_ack_i && buffer_in_last && dm_stb_reg) begin
           next_state = DONE;
         end
       end
@@ -292,12 +330,16 @@ module dma #(
   // State Machine
   always_ff @(posedge core_clk) begin : StateMachine
     if (core_rst) begin
-      state          <= IDLE;
-      data_width     <= 0;
-      fifo_out_data  <= 0;
-      fifo_out_keep  <= 0;
-      fifo_out_last  <= 0;
-      fifo_out_valid <= 0;
+      state            <= IDLE;
+      data_width       <= 0;
+      buffer_out_data  <= 0;
+      buffer_out_keep  <= 0;
+      buffer_out_last  <= 0;
+      buffer_out_valid <= 0;
+      fifo_out_data    <= 0;
+      fifo_out_keep    <= 0;
+      fifo_out_last    <= 0;
+      fifo_out_valid   <= 0;
     end else begin
       state <= next_state;
       case (state)
@@ -306,53 +348,77 @@ module dma #(
           if (next_state != IDLE) begin
             data_width <= 0;
           end
-          fifo_out_data  <= 0;
-          fifo_out_keep  <= 0;
-          fifo_out_last  <= 0;
-          fifo_out_valid <= 0;
+          buffer_out_data  <= 0;
+          buffer_out_keep  <= 0;
+          buffer_out_last  <= 0;
+          buffer_out_valid <= 0;
+          fifo_out_data    <= 0;
+          fifo_out_keep    <= 0;
+          fifo_out_last    <= 0;
+          fifo_out_valid   <= 0;
         end
         READ: begin
           if (dm_ack_i && dm_stb_reg) begin
             data_width <= data_width + 4;
-            // fill in the data
-            fifo_out_valid <= 1;
+            // Buffer the output data
+            buffer_out_valid <= 1;
             if ((data_width + 4) >= cpu_dat_width_i) begin
-              fifo_out_last <= 1;
+              buffer_out_last <= 1;
               case (cpu_dat_width_i[1:0])
-                2'd0: fifo_out_keep <= 4'b1111;
-                2'd1: fifo_out_keep <= 4'b0001;
-                2'd2: fifo_out_keep <= 4'b0011;
-                2'd3: fifo_out_keep <= 4'b0111;
-                default: fifo_out_keep <= 4'b1111;
+                2'd0: buffer_out_keep <= 4'b1111;
+                2'd1: buffer_out_keep <= 4'b0001;
+                2'd2: buffer_out_keep <= 4'b0011;
+                2'd3: buffer_out_keep <= 4'b0111;
+                default: buffer_out_keep <= 4'b1111;
               endcase
               case (cpu_dat_width_i[1:0])
-                2'd0: fifo_out_data <= dm_dat_i[31:0];
-                2'd1: fifo_out_data <= dm_dat_i[7:0];
-                2'd2: fifo_out_data <= dm_dat_i[15:0];
-                2'd3: fifo_out_data <= dm_dat_i[23:0];
-                default: fifo_out_data <= dm_dat_i[31:0];
+                2'd0: buffer_out_data <= dm_dat_i[31:0];
+                2'd1: buffer_out_data <= dm_dat_i[7:0];
+                2'd2: buffer_out_data <= dm_dat_i[15:0];
+                2'd3: buffer_out_data <= dm_dat_i[23:0];
+                default: buffer_out_data <= dm_dat_i[31:0];
               endcase
             end else begin
-              fifo_out_keep <= 4'hF;
-              fifo_out_last <= 0;
-              fifo_out_data <= dm_dat_i[31:0];
+              buffer_out_keep <= 4'hF;
+              buffer_out_last <= 0;
+              buffer_out_data <= dm_dat_i[31:0];
             end
-            // if (data_width == 0) begin
-            //   dm_out.is_first <= 1;
-            // end else begin
-            //   dm_out.is_first <= 0;
-            // end
+            // If this is not the first beat, construct FIFO out
+            if (data_width > 0) begin
+              fifo_out_valid <= 1;
+              fifo_out_data  <= {dm_dat_i[15:0], buffer_out_data[31:16]};
+              if ((data_width + 4) >= cpu_dat_width_i) begin
+                case (cpu_dat_width_i[1:0])
+                  2'd0: fifo_out_keep <= 4'b1111;
+                  2'd1: fifo_out_keep <= 4'b0111;
+                  2'd2: fifo_out_keep <= 4'b1111;
+                  2'd3: fifo_out_keep <= 4'b1111;
+                  default: fifo_out_keep <= 4'b1111;
+                endcase
+              end else begin
+                fifo_out_keep <= 4'hF;
+              end
+            end
           end else if (out_dm_ready) begin
-            fifo_out_valid <= 0;
+            if (buffer_out_last) begin
+              buffer_out_last <= 0;
+              fifo_out_valid  <= 1;
+              fifo_out_data   <= {16'd0, buffer_out_data[31:16]};
+              fifo_out_keep   <= {2'b00, buffer_out_keep[3:2]};
+              fifo_out_last   <= 1;
+            end else begin
+              fifo_out_valid <= 0;
+            end
           end
         end
         WRITE: begin
           if (dm_ack_i && dm_stb_reg) begin
-            case (fifo_in_keep[3:0])
+            case (dm_sel_o[3:0])
               4'b1111: data_width <= data_width + 4;
               4'b0111: data_width <= data_width + 3;
               4'b0011: data_width <= data_width + 2;
               4'b0001: data_width <= data_width + 1;
+              4'b0000: data_width <= data_width + 0;
               default: data_width <= data_width + 4;
             endcase
           end
@@ -374,6 +440,62 @@ module dma #(
                               && (!dm_ack_i || dm_stb_reg)
                               && (next_state != DONE);
 
+
+  // ===============================
+  // Checksum Calculation
+  // ===============================
+  localparam IP6_PAYLEN_OFFSET = 20;  // Lower Half
+  localparam IP6_SRC_OFFSET = 24;
+  localparam IP6_DST_OFFSET = 40;
+  localparam UDP_OFFSET = 56;
+
+  reg [15:0] checksum;
+  logic [16:0] local_checksum;
+  logic checksum_valid;
+
+  always_comb begin : CHECKSUM
+    local_checksum = 0;
+    checksum_valid = 1'b0;
+    if (dm_sel_o != 4'hF) begin
+      checksum_valid = 1'b0;
+    end else if ((data_width == IP6_PAYLEN_OFFSET)) begin
+      local_checksum = checksum + {dm_dat_o[7:0], dm_dat_o[15:8]};
+      checksum_valid = 1'b1;
+    end else if ((data_width >= IP6_SRC_OFFSET) && (data_width < IP6_DST_OFFSET + 16)) begin
+      local_checksum = {dm_dat_o[23:16], dm_dat_o[31:24]} + {dm_dat_o[7:0], dm_dat_o[15:8]};
+      local_checksum = checksum + local_checksum[15:0] + local_checksum[16];
+      checksum_valid = 1'b1;
+    end else if (data_width >= UDP_OFFSET) begin
+      local_checksum = {dm_dat_o[23:16], dm_dat_o[31:24]} + {dm_dat_o[7:0], dm_dat_o[15:8]};
+      local_checksum = checksum + local_checksum[15:0] + local_checksum[16];
+      checksum_valid = 1'b1;
+    end
+  end
+
+  always_ff @(posedge core_clk) begin : CHECKSUM_REG
+    if (core_rst) begin
+      checksum <= 16'd17;  // UDP Next Header
+    end else if (state == IDLE) begin
+      checksum <= 16'd17;  // UDP Next Header
+    end else if (dm_ack_i && dm_stb_reg && checksum_valid) begin
+      checksum <= local_checksum[15:0] + local_checksum[16];
+    end
+  end
+
+  always_ff @(posedge core_clk) begin : CHECKSUM_CSR
+    if (core_rst) begin
+      dma_checksum_o <= 0;
+      dma_checksum_valid_o <= 0;
+    end else begin
+      if ((state == IDLE) && (next_state == READ)) begin
+        dma_checksum_valid_o <= 0;
+      end else if ((state == READ) && (next_state == DONE)) begin
+        dma_checksum_valid_o <= 1;
+      end else if (state == DONE) begin
+        dma_checksum_o <= ~checksum;
+      end
+    end
+  end
 
 
   // ================================

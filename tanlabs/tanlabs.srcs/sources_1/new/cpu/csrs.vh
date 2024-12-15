@@ -35,6 +35,7 @@ parameter DMA_CPU_ADDR       = 32'h01000008;
 parameter DMA_CPU_DATA_WIDTH = 32'h0100000C;
 parameter DMA_ACK            = 32'h01000010;
 parameter DMA_DATA_WIDTH     = 32'h01000014;
+parameter DMA_CHECKSUM       = 32'h01000018;
 
 
 

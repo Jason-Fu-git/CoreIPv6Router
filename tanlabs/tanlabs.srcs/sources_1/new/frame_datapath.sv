@@ -48,7 +48,10 @@ module frame_datapath #(
     input wire dma_in_ready,
 
     input frame_beat dma_out,
-    output wire dma_out_ready
+    output reg dma_out_ready,
+
+    input wire [15:0] dma_checksum,
+    input wire dma_checksum_valid
 );
 
   frame_beat in8, in;
@@ -131,9 +134,9 @@ module frame_datapath #(
   logic cache_wea_p, cache_exists0, cache_exists1;
   logic nud_we_p;
   logic [127:0] nud_exp_addr, cache_ip6_addr0_o, cache_ip6_addr1_o;
-  logic [ 1:0] nud_iface;
+  logic [1:0] nud_iface;
   logic [47:0] cache_mac_addr0_o, cache_mac_addr1_o;
-  logic [ 1:0] cache_iface0_o, cache_iface1_o;
+  logic [1:0] cache_iface0_o, cache_iface1_o;
 
   fw_frame_beat_t fwt_in, fwt_out;
   logic fwt_in_ready, fwt_out_ready;
@@ -232,23 +235,23 @@ module frame_datapath #(
   );
 
   neighbor_cache neighbor_cache_i (
-      .clk            (eth_clk),
-      .rst_p          (reset),
+      .clk  (eth_clk),
+      .rst_p(reset),
 
-      .r_IPv6_addr_0  (cache_ip6_addr0_o),
-      .r_MAC_addr_0   (cache_mac_addr0_o),
-      .r_port_id_0    (cache_iface0_o),
-      .r_exists_0     (cache_exists0),
+      .r_IPv6_addr_0(cache_ip6_addr0_o),
+      .r_MAC_addr_0 (cache_mac_addr0_o),
+      .r_port_id_0  (cache_iface0_o),
+      .r_exists_0   (cache_exists0),
 
-      .r_IPv6_addr_1  (cache_ip6_addr1_o),
-      .r_MAC_addr_1   (cache_mac_addr1_o),
-      .r_port_id_1    (cache_iface1_o),
-      .r_exists_1     (cache_exists1),
+      .r_IPv6_addr_1(cache_ip6_addr1_o),
+      .r_MAC_addr_1 (cache_mac_addr1_o),
+      .r_port_id_1  (cache_iface1_o),
+      .r_exists_1   (cache_exists1),
 
-      .w_IPv6_addr    (cache_w.ip6_addr),
-      .w_MAC_addr     (cache_w.mac_addr),
-      .w_port_id      (cache_w.iface),
-      .wea_p          (cache_wea_p),
+      .w_IPv6_addr(cache_w.ip6_addr),
+      .w_MAC_addr (cache_w.mac_addr),
+      .w_port_id  (cache_w.iface),
+      .wea_p      (cache_wea_p),
 
       .nud_probe      (nud_we_p),
       .probe_IPv6_addr(nud_exp_addr),
@@ -271,9 +274,21 @@ module frame_datapath #(
       .mem_rea_p(bram_rea_p)
   );
 
-  assign rip_in_valid = dma_out.valid;
-  assign dma_out_ready = rip_in_ready;
   assign rip_in = dma_out;
+
+  always_comb begin : RIP_IN_VALID
+    rip_in_valid = rip_in.valid;
+    if (rip_in.is_first && !dma_checksum_valid) begin
+      rip_in_valid = 0;
+    end
+  end
+
+  always_comb begin : DMA_OUT_READY
+    dma_out_ready = rip_in_ready;
+    if (rip_in.is_first && !dma_checksum_valid) begin
+      dma_out_ready = 0;
+    end
+  end
 
   pipeline_rip pipeline_rip_i (
       .clk  (eth_clk),
@@ -292,7 +307,10 @@ module frame_datapath #(
       .cache_r_port_id  (cache_iface1_o),
       .cache_r_exists   (cache_exists1),
 
-      .mac_addrs(mac_addrs)
+      .mac_addrs(mac_addrs),
+
+      .checksum(dma_checksum),
+      .checksum_valid(dma_checksum_valid)
   );
   pipeline_forward pipeline_forward_i (
       .clk  (eth_clk),
@@ -364,11 +382,11 @@ module frame_datapath #(
       .ns_ready(ns_in_ready),
       .na_ready(na_in_ready),
       .fw_ready(fw_in_ready),
-      .rip_ready(dma_in_ready), // FIXME: Attach to FIFO Later
+      .rip_ready(dma_in_ready),  // FIXME: Attach to FIFO Later
       .out_ns(ns_in),
       .out_na(na_in),
       .out_fw(fw_in),
-      .out_rip(dma_in), // FIXME: Attach to FIFO Later
+      .out_rip(dma_in),  // FIXME: Attach to FIFO Later
       .ns_valid(ns_in_valid),
       .na_valid(na_in_valid),
       .fw_valid(fw_in_valid),

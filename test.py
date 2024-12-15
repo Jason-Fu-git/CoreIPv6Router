@@ -2,6 +2,7 @@ from scapy.all import *
 from scapy.layers.inet6 import *
 from scapy.layers.inet import *
 from scapy.layers.rip import *
+from scapy.contrib.ripng import *
 import time
 
 # IN FRAME CONSTRUCTION
@@ -78,9 +79,24 @@ def send_ripng_request():
     ipv6_packet = IPv6(src=src_address, dst=dst_address)
     udp_packet = UDP(sport=521, dport=521)  # RIPng 使用 UDP 端口 521
     ripng_packet = RIP(cmd=1)  # cmd=1 表示 Request 报文
+    
+    # 添加 RIPng 表项
+    ripng_entry1 = RIPngEntry(
+        prefix_or_nh="2001:db8::",  # 路由前缀
+        routetag=0,              # 路由标签
+        prefixlen=64,       # 前缀长度
+        metric=1            # 跳数
+    )
+
+    ripng_entry2 = RIPngEntry(
+        prefix_or_nh="2001:db8:1::",  # 路由前缀
+        routetag=0,                # 路由标签
+        prefixlen=64,         # 前缀长度
+        metric=2              # 跳数
+    )
 
     # 构建完整数据包
-    packet = ether_packet / ipv6_packet / udp_packet / ripng_packet
+    packet = ether_packet / ipv6_packet / udp_packet / ripng_packet / ripng_entry1 / ripng_entry2
 
     # 发送数据包，iface指定接口名（根据实际接口调整）
     sendp(packet, iface="本地连接* 12")

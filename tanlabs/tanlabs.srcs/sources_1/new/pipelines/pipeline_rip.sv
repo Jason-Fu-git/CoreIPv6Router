@@ -2,7 +2,7 @@
 `include "frame_datapath.vh"
 
 
-module pipeline_rip(
+module pipeline_rip (
     input wire clk,
     input wire rst_p,
 
@@ -21,7 +21,11 @@ module pipeline_rip(
     input  wire         cache_r_exists,
 
     // Address config
-    input wire [3:0][47:0] mac_addrs  // router MAC address
+    input wire [3:0][47:0] mac_addrs,  // router MAC address
+
+    // Checksum
+    input wire [15:0] checksum,
+    input wire checksum_valid // IMPORTANT: In order to make this design work, FIFO must at least hold 2 MTU
 );
 
   fw_error_t in_error_next;
@@ -46,17 +50,36 @@ module pipeline_rip(
   // =======================
   fw_frame_beat_t in_buffer;
   logic buffer_ready;
+  logic is_second;
   assign in_ready = buffer_ready;
+
+  frame_beat in_buffer_data;
+  always_comb begin : FW_IN_BUFFER_DATA
+    in_buffer_data = in;
+    if (is_second) begin
+      in_buffer_data.data[39:32] = checksum[15:8];
+      in_buffer_data.data[47:40] = checksum[7:0];
+    end
+  end
 
   always_ff @(posedge clk) begin : FW_IN_REG
     if (rst_p) begin
       in_buffer <= 0;
+      is_second <= 0;
     end else begin
       if (buffer_ready) begin
         in_buffer.valid <= in_valid;
         in_buffer.error <= in_error_next;
         if (in_valid) begin
-          in_buffer.data <= in;
+          in_buffer.data <= in_buffer_data;
+          // Set is_second
+          if (in.is_first) begin
+            is_second <= 1;
+          end else if (in.last) begin
+            is_second <= 0;
+          end else begin
+            is_second <= 0;
+          end
         end
       end
     end

@@ -15,13 +15,11 @@ void start(void)
     }
 
     init_uart();
-    
-    printf("OK\n");
 
     // FIXME: DMA Test
     while (true){
         // Grant DMA access (write) to the memory
-        _grant_dma_access(DMA_BLOCK_ADDR, 66, 1);
+        _grant_dma_access(DMA_BLOCK_ADDR, 80, 1);
         // Wait for the DMA to finish
         _wait_for_dma();
         // Get the write data width of the DMA (in bytes)
@@ -32,15 +30,20 @@ void start(void)
 
         // Read the data from the Memory
         for (int i = 0; i < 4; i++){
-            ip6_src[i] = *((uint32_t *)(DMA_BLOCK_ADDR + 22 + i * 4));
-            ip6_dst[i] = *((uint32_t *)(DMA_BLOCK_ADDR + 38 + i * 4));
+            ip6_src[i] = *((uint32_t *)(DMA_BLOCK_ADDR + 24 + i * 4));
+            ip6_dst[i] = *((uint32_t *)(DMA_BLOCK_ADDR + 40 + i * 4));
         }
 
         // Swap the source and destination IP addresses
         for (int i = 0; i < 4; i++){
-            *((uint32_t *)(DMA_BLOCK_ADDR + 22 + i * 4)) = ip6_dst[i];
-            *((uint32_t *)(DMA_BLOCK_ADDR + 38 + i * 4)) = ip6_src[i];
+            *((uint32_t *)(DMA_BLOCK_ADDR + 24 + i * 4)) = ip6_dst[i];
+            *((uint32_t *)(DMA_BLOCK_ADDR + 40 + i * 4)) = ip6_src[i];
         }
+
+        // Reset the checksum
+        uint32_t checksum = *((uint32_t *)(DMA_BLOCK_ADDR + 60));
+        checksum = checksum & 0x0000FFFF;
+        *((uint32_t *)(DMA_BLOCK_ADDR + 60)) = checksum;
 
         asm volatile("fence.i");
 
