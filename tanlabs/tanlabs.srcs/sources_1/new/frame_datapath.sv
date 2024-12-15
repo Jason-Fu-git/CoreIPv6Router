@@ -41,7 +41,16 @@ module frame_datapath #(
     input wire [47:0] mac_addr_0,
     input wire [47:0] mac_addr_1,
     input wire [47:0] mac_addr_2,
-    input wire [47:0] mac_addr_3
+    input wire [47:0] mac_addr_3,
+
+    input wire cpu_clk,
+    input wire cpu_rst_p,
+    input wire [31:0] cpu_adr,
+    input wire [31:0] cpu_dat_in,
+    output reg [31:0] cpu_dat_out,
+    input wire cpu_wea,
+    input wire cpu_stb,
+    output reg cpu_ack
 );
 
   frame_beat in8, in;
@@ -171,6 +180,8 @@ module frame_datapath #(
       .probe_port_id  (nud_iface)
   );
 
+
+
   trie128 forward_table_i (
       .clk  (eth_clk),
       .rst_p(reset),
@@ -184,9 +195,18 @@ module frame_datapath #(
       .in_valid (fwt_in.valid),
       .out_valid(trie128_out_ready),
 
-      .addr(ipv6_addrs[0]),
+      .addr(fwt_in.data.data.ip6.dst),
       .next_hop(trie128_next_hop),
-      .default_next_hop(0)
+      .default_next_hop(0),
+
+      .cpu_clk(cpu_clk),
+      .cpu_rst_p(cpu_rst_p),
+      .cpu_adr(cpu_adr),
+      .cpu_dat_in(cpu_dat_in),
+      .cpu_dat_out(cpu_dat_out),
+      .cpu_wea(cpu_wea),
+      .cpu_stb(cpu_stb),
+      .cpu_ack(cpu_ack)
   );
 
   pipeline_forward pipeline_forward_i (

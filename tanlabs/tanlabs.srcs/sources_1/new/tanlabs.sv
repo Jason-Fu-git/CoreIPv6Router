@@ -699,6 +699,15 @@ module tanlabs #(
   wire [ID_WIDTH - 1:0] dp_tx_dest;
   wire dp_tx_valid;
 
+  reg bram_cpu_clk;
+  reg bram_cpu_rst_p;
+  reg [31:0] bram_cpu_adr;
+  reg [31:0] bram_cpu_dat_in;
+  reg [31:0] bram_cpu_dat_out;
+  reg bram_cpu_wea;
+  reg bram_cpu_stb;
+  reg bram_cpu_ack;
+
   frame_datapath #(
       .DATA_WIDTH(DATA_WIDTH),
       .ID_WIDTH  (ID_WIDTH)
@@ -735,10 +744,19 @@ module tanlabs #(
       .mac_addr_0(mac_addrs[0]),
       .mac_addr_1(mac_addrs[1]),
       .mac_addr_2(mac_addrs[2]),
-      .mac_addr_3(mac_addrs[3])
+      .mac_addr_3(mac_addrs[3]),
 
       // README: You will need to add some signals for your CPU to control the datapath,
       // or access the forwarding table or the address resolution cache.
+
+      .cpu_clk(bram_cpu_clk),
+      .cpu_rst_p(bram_cpu_rst_p),
+      .cpu_adr(bram_cpu_adr),
+      .cpu_dat_in(bram_cpu_dat_in),
+      .cpu_dat_out(bram_cpu_dat_out),
+      .cpu_wea(bram_cpu_wea),
+      .cpu_stb(bram_cpu_stb),
+      .cpu_ack(bram_cpu_ack)
   );
 
 
