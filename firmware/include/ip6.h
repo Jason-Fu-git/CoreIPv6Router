@@ -15,6 +15,9 @@
 
 #define IP6_HDR_LEN 40
 
+// protocol numbers
+#define IPPROTO_UDP 17
+
 // IPv6 Address
 struct ip6_addr
 {
