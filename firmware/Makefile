@@ -58,4 +58,8 @@ debug: $(TARGET)
 
 .PHONY: clean
 clean:
-	-rm *.o *.elf *.bin *.asm $(TARGET)
+	-rm *.o *.elf *.asm
+
+.PHONY: disassemble
+disassemble:
+	$(OBJDUMP) -D $(TARGET) > kernel.asm

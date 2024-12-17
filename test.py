@@ -1,6 +1,8 @@
 from scapy.all import *
 from scapy.layers.inet6 import *
 from scapy.layers.inet import *
+from scapy.layers.rip import *
+from scapy.contrib.ripng import *
 import time
 
 # IN FRAME CONSTRUCTION
@@ -8,7 +10,7 @@ import time
 # pkt = Ether(src="8c:1f:64:69:10:04", dst="8c:1f:64:69:10:57") \
 #         / IP(src="10.9.47.66",dst="10.6.47.88") / TCP()
 # sendp(pkt, iface="本地连接* 4")
-    
+
 
 # ether_src = "aa:aa:aa:aa:aa:aa"
 # ether_dst = "54:10:69:64:1f:8c"
@@ -23,11 +25,11 @@ import time
 
 # TEST
 
-na_pkt = Ether(src="8c:1f:64:69:11:04", dst="8c:1f:64:69:10:54")/IPv6(src="fe80::8e1f:64ff:fe69:1114", dst="fe80::8e1f:64ff:fe69:1054", hlim=255)/ICMPv6ND_NA(tgt="fe80::8e1f:64ff:fe69:1054")/ICMPv6NDOptDstLLAddr(lladdr="8c:1f:64:69:11:04")
-sendp(na_pkt, iface="以太网 10")
+# na_pkt = Ether(src="8c:1f:64:69:11:04", dst="8c:1f:64:69:10:54")/IPv6(src="fe80::8e1f:64ff:fe69:1114", dst="fe80::8e1f:64ff:fe69:1054", hlim=255)/ICMPv6ND_NA(tgt="fe80::8e1f:64ff:fe69:1054")/ICMPv6NDOptDstLLAddr(lladdr="8c:1f:64:69:11:04")
+# sendp(na_pkt, iface="以太网 10")
 
-na_pkt2 = Ether(src="8c:1f:64:69:11:03", dst="8c:1f:64:69:10:54")/IPv6(src="fe80::8e1f:64ff:fe69:1113", dst="fe80::8e1f:64ff:fe69:1054", hlim=255)/ICMPv6ND_NA(tgt="fe80::8e1f:64ff:fe69:1054")/ICMPv6NDOptDstLLAddr(lladdr="8c:1f:64:69:11:03")
-sendp(na_pkt2, iface="以太网 10")
+# na_pkt2 = Ether(src="8c:1f:64:69:11:03", dst="8c:1f:64:69:10:54")/IPv6(src="fe80::8e1f:64ff:fe69:1113", dst="fe80::8e1f:64ff:fe69:1054", hlim=255)/ICMPv6ND_NA(tgt="fe80::8e1f:64ff:fe69:1054")/ICMPv6NDOptDstLLAddr(lladdr="8c:1f:64:69:11:03")
+# sendp(na_pkt2, iface="以太网 10")
 
 # NS from 1004 to router
 # ns_pkt2 = Ether(src="8c:1f:64:69:10:04", dst="8c:1f:64:69:10:54")/IPv6(src="fe80::8e1f:64ff:fe69:1004", dst="fe80::8e1f:64ff:fe69:1054", hlim=255)/ICMPv6ND_NS(tgt="fe80::8e1f:64ff:fe69:1054")/ICMPv6NDOptSrcLLAddr(lladdr="8c:1f:64:69:10:04")
@@ -66,3 +68,38 @@ sendp(na_pkt2, iface="以太网 10")
 # sendp(ipv4_pkt, iface="以太网 10")
 # sendp(ipv4_pkt, iface="以太网 10")
 # sendp(ipv4_pkt, iface="以太网 10")
+
+def send_ripng_request():
+    # 源地址和目的地址
+    src_address = "fe80::8e1f:64ff:fe69:1001"
+    dst_address = "fe80::8e1f:64ff:fe69:1054"
+
+    # 创建RIPng请求包
+    ether_packet = Ether(src="8c:1f:64:69:10:01", dst="8c:1f:64:69:10:54")
+    ipv6_packet = IPv6(src=src_address, dst=dst_address)
+    udp_packet = UDP(sport=521, dport=521)  # RIPng 使用 UDP 端口 521
+    ripng_packet = RIP(cmd=1)  # cmd=1 表示 Request 报文
+    
+    # 添加 RIPng 表项
+    ripng_entry1 = RIPngEntry(
+        prefix_or_nh="2001:db8::",  # 路由前缀
+        routetag=0,              # 路由标签
+        prefixlen=64,       # 前缀长度
+        metric=1            # 跳数
+    )
+
+    ripng_entry2 = RIPngEntry(
+        prefix_or_nh="2001:db8:1::",  # 路由前缀
+        routetag=0,                # 路由标签
+        prefixlen=64,         # 前缀长度
+        metric=2              # 跳数
+    )
+
+    # 构建完整数据包
+    packet = ether_packet / ipv6_packet / udp_packet / ripng_packet / ripng_entry1 / ripng_entry2
+
+    # 发送数据包，iface指定接口名（根据实际接口调整）
+    sendp(packet, iface="本地连接* 12")
+
+
+send_ripng_request()

@@ -9,22 +9,21 @@ module tb_frame_datapath
 
 );
     //added for ip configuration
-    reg [127:0] ip_addrs[3:0];
-    reg [ 47:0] mac_addrs[3:0];
-    reg ip_valid[3:0];
+    reg [3:0][127:0] ip_addrs;
+    reg [3:0][ 47:0] mac_addrs;
     reg reset;
     initial begin
         // set ip addr 0
-        ip_addrs[0] = 128'h051069feff641f8e00000000000080fe;
+        ip_addrs[0] = 128'h541069feff641f8e00000000000080fe;
         ip_valid[0] = 1;
         mac_addrs[0] = 48'h541069641f8c;
-        ip_addrs[1] = 128'h061069feff641f8e00000000000080fe;
+        ip_addrs[1] = 128'h551069feff641f8e00000000000080fe;
         ip_valid[1] = 1;
         mac_addrs[1] = 48'h551069641f8c;
-        ip_addrs[2] = 128'h071069feff641f8e00000000000080fe;
+        ip_addrs[2] = 128'h561069feff641f8e00000000000080fe;
         ip_valid[2] = 1;
         mac_addrs[2] = 48'h561069641f8c;
-        ip_addrs[3] = 128'h081069feff641f8e00000000000080fe;
+        ip_addrs[3] = 128'h571069feff641f8e00000000000080fe;
         ip_valid[3] = 1;
         mac_addrs[3] = 48'h571069641f8c;
         reset = 1;
@@ -88,18 +87,8 @@ module tb_frame_datapath
         .m_valid(out_valid),
         .m_ready(out_ready),
 
-        .ip_addr_0(ip_addrs[0]),
-        .ip_valid_0(ip_valid[0]),
-        .mac_addr_0(mac_addrs[0]),
-        .ip_addr_1(ip_addrs[1]),
-        .ip_valid_1(ip_valid[1]),
-        .mac_addr_1(mac_addrs[1]),
-        .ip_addr_2(ip_addrs[2]),
-        .ip_valid_2(ip_valid[2]),
-        .mac_addr_2(mac_addrs[2]),
-        .ip_addr_3(ip_addrs[3]),
-        .ip_valid_3(ip_valid[3]),
-        .mac_addr_3(mac_addrs[3])
+        .ip_addr(ip_addrs),
+        .mac_addr(mac_addrs)
     );
 
     axis_receiver axis_receiver_i(

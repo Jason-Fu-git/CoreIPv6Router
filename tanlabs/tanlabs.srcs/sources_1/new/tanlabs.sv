@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 
 /* Tsinghua Advanced Networking Labs */
-
+`include "frame_datapath.vh"
 module tanlabs #(
     parameter SIM = 0
 ) (
@@ -76,8 +76,6 @@ module tanlabs #(
   wire [4:0] debug_ingress_interconnect_ready;
   wire debug_datapath_fifo_ready;
   wire debug_egress_interconnect_ready;
-
-  assign uart_tx = uart_rx;
 
   wire reset_in = RST;
   wire locked0, locked1;
@@ -707,6 +705,30 @@ module tanlabs #(
   reg bram_cpu_wea;
   reg bram_cpu_stb;
   reg bram_cpu_ack;
+  
+  logic dma_in_ready, dma_out_ready;
+  frame_beat dma_in, dma_out;
+
+  logic dma_cpu_stb, dma_cpu_we;
+  logic [31:0] dma_cpu_adr, dma_cpu_dat_width;
+  logic dma_ack;
+  logic [31:0] dma_dat_width;
+  logic [15:0] dma_checksum, dma_checksum_synced;
+  logic dma_checksum_valid, dma_checksum_valid_synced;
+
+  logic checksum_fifo_in_ready;
+  axis_data_async_fifo_checksum axis_data_async_fifo_checksum_i (
+      .s_axis_aresetn(~reset_core),                // input wire s_axis_aresetn
+      .s_axis_aclk   (core_clk),                   // input wire s_axis_aclk
+      .s_axis_tvalid (dma_checksum_valid),         // input wire s_axis_tvalid
+      .s_axis_tready (checksum_fifo_in_ready),     // output wire s_axis_tready
+      .s_axis_tdata  (dma_checksum),               // input wire [15 : 0] s_axis_tdata
+      .m_axis_aclk   (eth_clk),                    // input wire m_axis_aclk
+      .m_axis_tvalid (dma_checksum_valid_synced),  // output wire m_axis_tvalid
+      .m_axis_tready (1'b1),                       // input wire m_axis_tready
+      .m_axis_tdata  (dma_checksum_synced)         // output wire [15 : 0] m_axis_tdata
+  );
+
 
   frame_datapath #(
       .DATA_WIDTH(DATA_WIDTH),
@@ -756,7 +778,17 @@ module tanlabs #(
       .cpu_dat_out(bram_cpu_dat_out),
       .cpu_wea(bram_cpu_wea),
       .cpu_stb(bram_cpu_stb),
-      .cpu_ack(bram_cpu_ack)
+      .cpu_ack(bram_cpu_ack),
+      
+      // dma interface
+      .dma_in(dma_in),
+      .dma_in_ready(dma_in_ready),
+      .dma_out(dma_out),
+      .dma_out_ready(dma_out_ready),
+
+      // rip checksum
+      .dma_checksum(dma_checksum_synced),
+      .dma_checksum_valid(dma_checksum_valid_synced)
   );
 
 
@@ -790,7 +822,6 @@ module tanlabs #(
   logic [31:0] csr_data_w;
   logic csr_we;
   logic csr_error;
-
 
 
   cpu_controller controller_i (
@@ -905,13 +936,40 @@ module tanlabs #(
   // Wishbone
   // =======================================
 
-  logic [22:0] icache_sram_adr, dcache_sram_adr;
-  logic [31:0] icache_sram_dat_o, dcache_sram_dat_o;
-  logic [31:0] icache_sram_dat_i, dcache_sram_dat_i;
-  logic [3:0] icache_sram_sel, dcache_sram_sel;
-  logic icache_sram_we, dcache_sram_we;
-  logic icache_sram_stb, dcache_sram_stb;
-  logic icache_sram_ack, dcache_sram_ack;
+  logic [31:0] wbs0_adr, wbs1_adr, wbs2_adr, wbs3_adr;
+  logic [31:0] wbs0_dat_r, wbs0_dat_w, wbs1_dat_r, wbs1_dat_w, wbs2_dat_r, wbs2_dat_w, wbs3_dat_r, wbs3_dat_o;
+  logic [3:0] wbs0_sel, wbs1_sel, wbs2_sel, wbs3_sel;
+  logic wbs0_we, wbs1_we, wbs2_we, wbs3_we;
+  logic wbs0_stb, wbs1_stb, wbs2_stb, wbs3_stb;
+  logic wbs0_ack, wbs1_ack, wbs2_ack, wbs3_ack;
+  logic wbs0_err, wbs1_err, wbs2_err, wbs3_err;
+  logic wbs0_rty, wbs1_rty, wbs2_rty, wbs3_rty;
+  logic wbs0_cyc, wbs1_cyc, wbs2_cyc, wbs3_cyc;
+
+  assign bram_cpu_adr = wbs3_adr;
+  assign bram_cpu_dat_in = wbs3_dat_w;
+  assign wbs3_dat_r = bram_cpu_dat_out;
+  assign bram_cpu_wea = wbs3_we;
+  assign wbs3_ack = bram_cpu_ack;
+  assign bram_cpu_stb = wbs3_stb;
+
+  reg wbs3_ack_wait;
+
+  always_ff @(posedge core_clk) begin
+    if (reset_core) begin
+      wbs3_ack_wait <= 0;
+    end else begin
+      wbs3_ack_wait <= wbs3_ack;
+    end
+  end
+
+  logic [22:0] icache_sram_adr, dcache_sram_adr, dma_sram_adr;
+  logic [31:0] icache_sram_dat_o, dcache_sram_dat_o, dma_sram_dat_o;
+  logic [31:0] icache_sram_dat_i, dcache_sram_dat_i, dma_sram_dat_i;
+  logic [3:0] icache_sram_sel, dcache_sram_sel, dma_sram_sel;
+  logic icache_sram_we, dcache_sram_we, dma_sram_we;
+  logic icache_sram_stb, dcache_sram_stb, dma_sram_stb;
+  logic icache_sram_ack, dcache_sram_ack, dma_sram_ack;
 
   logic [21:0] arbiter_sram_addr;
   logic [31:0] arbiter_sram_data_in;
@@ -922,6 +980,92 @@ module tanlabs #(
   logic        arbiter_sram_stb;
   logic        arbiter_sram_ack;
 
+  wb_mux_4 #(
+      .DATA_WIDTH  (32),
+      .ADDR_WIDTH  (32),
+      .SELECT_WIDTH(4)
+  ) wb_mux_4_i (
+      .clk(core_clk),
+      .rst(reset_core),
+
+      // Master interface (Data Memory)
+      .wbm_adr_i(dm_adr),
+      .wbm_dat_i(dm_dat_w),
+      .wbm_dat_o(dm_dat_r),
+      .wbm_we_i (dm_we),
+      .wbm_sel_i(dm_sel),
+      .wbm_stb_i(dm_stb),
+      .wbm_ack_o(dm_ack),
+      .wbm_err_o(dm_err),
+      .wbm_rty_o(dm_rty),
+      .wbm_cyc_i(dm_cyc),
+
+      // Slave interface 0 (to data cache, connected to BaseRAM/ExtRAM controller later)
+      // Address range: 0x8000_0000 ~ 0x807F_FFFF
+      .wbs0_addr    (32'h8000_0000),
+      .wbs0_addr_msk(32'hFF80_0000),
+
+      .wbs0_adr_o(wbs0_adr),
+      .wbs0_dat_i(wbs0_dat_r),
+      .wbs0_dat_o(wbs0_dat_w),
+      .wbs0_we_o (wbs0_we),
+      .wbs0_sel_o(wbs0_sel),
+      .wbs0_stb_o(wbs0_stb),
+      .wbs0_ack_i(wbs0_ack),
+      .wbs0_err_i('0),
+      .wbs0_rty_i('0),
+      .wbs0_cyc_o(wbs0_cyc),
+
+
+      // Slave interface 1 (to UART controller)
+      // Address range: 0x1000_0000 ~ 0x1000_FFFF
+      .wbs1_addr    (32'h1000_0000),
+      .wbs1_addr_msk(32'hFFFF_0000),
+
+      .wbs1_adr_o(wbs1_adr),
+      .wbs1_dat_i(wbs1_dat_r),
+      .wbs1_dat_o(wbs1_dat_w),
+      .wbs1_we_o (wbs1_we),
+      .wbs1_sel_o(wbs1_sel),
+      .wbs1_stb_o(wbs1_stb),
+      .wbs1_ack_i(wbs1_ack),
+      .wbs1_err_i('0),
+      .wbs1_rty_i('0),
+      .wbs1_cyc_o(wbs1_cyc),
+
+      // Slave interface 2 (to DMA adapter)
+      // Address range: 0x0100_0000 ~ 0x0100_FFFF
+      .wbs2_addr    (32'h0100_0000),
+      .wbs2_addr_msk(32'hFFFF_0000),
+
+      .wbs2_adr_o(wbs2_adr),
+      .wbs2_dat_i(wbs2_dat_r),
+      .wbs2_dat_o(wbs2_dat_w),
+      .wbs2_we_o (wbs2_we),
+      .wbs2_sel_o(wbs2_sel),
+      .wbs2_stb_o(wbs2_stb),
+      .wbs2_ack_i(wbs2_ack_wait),
+      .wbs2_err_i('0),
+      .wbs2_rty_i('0),
+      .wbs2_cyc_o(wbs2_cyc),
+
+      // Slave interface 3 (to BRAMs)
+      // Address range: 0x2000_0000 ~ 0x2FFF_FFFF
+      .wbs3_addr    (32'h2000_0000),
+      .wbs3_addr_msk(32'hF000_0000),
+
+      .wbs3_adr_o(wbs3_adr),
+      .wbs3_dat_i(wbs3_dat_r),
+      .wbs3_dat_o(wbs3_dat_w),
+      .wbs3_we_o (wbs3_we),
+      .wbs3_sel_o(wbs3_sel),
+      .wbs3_stb_o(wbs3_stb),
+      .wbs3_ack_i(wbs3_ack),
+      .wbs3_err_i('0),
+      .wbs3_rty_i('0),
+      .wbs3_cyc_o(wbs3_cyc)
+  );
+
   cache #(
       .BLOCK_WIDTH(2),
       .BLOCK_SIZE (4),
@@ -930,16 +1074,16 @@ module tanlabs #(
       .GROUP_WIDTH(4),
       .GROUP_SIZE (4)
   ) cache_IF (
-      .clk(core_clk),
+      .clk  (core_clk),
       .rst_p(reset_core),
 
-      .adr_ctl_i(im_adr),
-      .stb_ctl_i(im_fence || im_stb),
-      .sel_ctl_i(4'b1111),
+      .adr_ctl_i (im_adr),
+      .stb_ctl_i (im_fence || im_stb),
+      .sel_ctl_i (4'b1111),
       .we_p_ctl_i(1'b0),
-      .ack_ctl_o(im_ack),
-      .dat_ctl_i(0),
-      .dat_ctl_o(im_dat_r),
+      .ack_ctl_o (im_ack),
+      .dat_ctl_i (0),
+      .dat_ctl_o (im_dat_r),
 
       .ack_sram_i (icache_sram_ack),
       .stb_sram_o (icache_sram_stb),
@@ -952,62 +1096,141 @@ module tanlabs #(
       .fence(im_fence)
   );
 
-  cache #(
-      .BLOCK_WIDTH(2),
-      .BLOCK_SIZE (4),
-      .TAG_WIDTH  (17),
-      .GROUP_NUM  (16),
-      .GROUP_WIDTH(4),
-      .GROUP_SIZE (4)
-  ) cache_MEM (
-      .clk(core_clk),
-      .rst_p(reset_core),
+  //   cache #(
+  //       .BLOCK_WIDTH(2),
+  //       .BLOCK_SIZE (4),
+  //       .TAG_WIDTH  (17),
+  //       .GROUP_NUM  (16),
+  //       .GROUP_WIDTH(4),
+  //       .GROUP_SIZE (4)
+  //   ) cache_MEM (
+  //       .clk  (core_clk),
+  //       .rst_p(reset_core),
 
-      .adr_ctl_i(dm_adr),
-      .stb_ctl_i(dm_fence || dm_stb),
-      .sel_ctl_i(dm_sel),
-      .we_p_ctl_i(dm_we),
-      .ack_ctl_o(dm_ack),
-      .dat_ctl_i(dm_dat_w),
-      .dat_ctl_o(dm_dat_r),
+  //       .adr_ctl_i (wbs0_adr),
+  //       .stb_ctl_i (dm_fence || wbs0_stb),
+  //       .sel_ctl_i (wbs0_sel),
+  //       .we_p_ctl_i(wbs0_we),
+  //       .ack_ctl_o (wbs0_ack),
+  //       .dat_ctl_i (wbs0_dat_w),
+  //       .dat_ctl_o (wbs0_dat_r),
 
-      .ack_sram_i (dcache_sram_ack),
-      .stb_sram_o (dcache_sram_stb),
-      .adr_sram_o (dcache_sram_adr),
-      .sel_sram_o (dcache_sram_sel),
-      .we_p_sram_o(dcache_sram_we),
-      .dat_sram_o (dcache_sram_dat_o),
-      .dat_sram_i (dcache_sram_dat_i),
+  //       .ack_sram_i (dcache_sram_ack),
+  //       .stb_sram_o (dcache_sram_stb),
+  //       .adr_sram_o (dcache_sram_adr),
+  //       .sel_sram_o (dcache_sram_sel),
+  //       .we_p_sram_o(dcache_sram_we),
+  //       .dat_sram_o (dcache_sram_dat_o),
+  //       .dat_sram_i (dcache_sram_dat_i),
 
-      .fence(dm_fence)
+  //       .fence(dm_fence)
+  //   );
+
+  dma #(
+      .IN_DATA_WIDTH (DATAW_WIDTH),  // FIXME: Attach to FIFO in the future
+      .OUT_DATA_WIDTH(DATAW_WIDTH)
+  ) dma_i (
+      .eth_clk(eth_clk),
+      .eth_rst(reset_eth),
+
+      .core_clk(core_clk),
+      .core_rst(reset_core),
+
+      // Ethernet
+      .in(dma_in),
+      .in_ready(dma_in_ready),
+
+      .out(dma_out),
+      .out_ready(dma_out_ready),
+
+      // SRAM
+      .dm_adr_o(dma_sram_adr),
+      .dm_dat_o(dma_sram_dat_o),
+      .dm_dat_i(dma_sram_dat_i),
+      .dm_sel_o(dma_sram_sel),
+      .dm_we_o (dma_sram_we),
+      .dm_stb_o(dma_sram_stb),
+      .dm_ack_i(dma_sram_ack),
+      .dm_err_i(0),
+      .dm_rty_i(0),
+      .dm_cyc_o(),
+
+      // Status Registers
+      .cpu_stb_i(dma_cpu_stb),
+      .cpu_we_i(dma_cpu_we),
+      .cpu_adr_i(dma_cpu_adr),
+      .cpu_dat_width_i(dma_cpu_dat_width),
+
+      .dma_ack_o(dma_ack),
+      .dma_dat_width_o(dma_dat_width),
+      .dma_checksum_o(dma_checksum),
+      .dma_checksum_valid_o(dma_checksum_valid)
   );
 
-
-  wb_arbiter_2 #(
-      .DATA_WIDTH  (32),
-      .ADDR_WIDTH  (22),
-      .SELECT_WIDTH(4)
-  ) cache_arbiter_i (
+  dma_adapter dma_adapter_i (
       .clk(core_clk),
       .rst(reset_core),
 
-      .wbm0_adr_i(dcache_sram_adr),
-      .wbm0_dat_i(dcache_sram_dat_o),
-      .wbm0_sel_i(dcache_sram_sel),
-      .wbm0_we_i (dcache_sram_we),
-      .wbm0_cyc_i(dcache_sram_stb),
-      .wbm0_stb_i(dcache_sram_stb),
-      .wbm0_ack_o(dcache_sram_ack),
-      .wbm0_dat_o(dcache_sram_dat_i),
+      .wbm_adr_i(wbs2_adr),
+      .wbm_dat_i(wbs2_dat_w),
+      .wbm_dat_o(wbs2_dat_r),
+      .wbm_sel_i(wbs2_sel),
+      .wbm_we_i (wbs2_we),
+      .wbm_stb_i(wbs2_stb),
+      .wbm_ack_o(wbs2_ack),
 
-      .wbm1_adr_i(icache_sram_adr),
-      .wbm1_dat_i(icache_sram_dat_o),
-      .wbm1_sel_i(icache_sram_sel),
-      .wbm1_we_i (icache_sram_we),
-      .wbm1_cyc_i(icache_sram_stb),
-      .wbm1_stb_i(icache_sram_stb),
-      .wbm1_ack_o(icache_sram_ack),
-      .wbm1_dat_o(icache_sram_dat_i),
+      .dma_ack_i(dma_ack),
+      .dma_dat_width_i(dma_dat_width),
+      .dma_cpu_stb_o(dma_cpu_stb),
+      .dma_cpu_we_o(dma_cpu_we),
+      .dma_cpu_addr_o(dma_cpu_adr),
+      .dma_cpu_dat_width_o(dma_cpu_dat_width)
+  );
+
+
+  wb_arbiter_3 #(
+      .DATA_WIDTH  (32),
+      .ADDR_WIDTH  (22),
+      .SELECT_WIDTH(4)
+  ) sram_arbiter_i (
+      .clk(core_clk),
+      .rst(reset_core),
+
+      .wbm0_adr_i(dma_sram_adr),
+      .wbm0_dat_i(dma_sram_dat_o),
+      .wbm0_sel_i(dma_sram_sel),
+      .wbm0_we_i (dma_sram_we),
+      .wbm0_cyc_i(dma_sram_stb),
+      .wbm0_stb_i(dma_sram_stb),
+      .wbm0_ack_o(dma_sram_ack),
+      .wbm0_dat_o(dma_sram_dat_i),
+
+      //   .wbm1_adr_i(dcache_sram_adr),
+      //   .wbm1_dat_i(dcache_sram_dat_o),
+      //   .wbm1_sel_i(dcache_sram_sel),
+      //   .wbm1_we_i (dcache_sram_we),
+      //   .wbm1_cyc_i(dcache_sram_stb),
+      //   .wbm1_stb_i(dcache_sram_stb),
+      //   .wbm1_ack_o(dcache_sram_ack),
+      //   .wbm1_dat_o(dcache_sram_dat_i),
+
+      .wbm1_adr_i(wbs0_adr),
+      .wbm1_dat_i(wbs0_dat_w),
+      .wbm1_sel_i(wbs0_sel),
+      .wbm1_we_i (wbs0_we),
+      .wbm1_cyc_i(wbs0_cyc),
+      .wbm1_stb_i(wbs0_stb),
+      .wbm1_ack_o(wbs0_ack),
+      .wbm1_dat_o(wbs0_dat_r),
+
+      .wbm2_adr_i(icache_sram_adr),
+      .wbm2_dat_i(icache_sram_dat_o),
+      .wbm2_sel_i(icache_sram_sel),
+      .wbm2_we_i (icache_sram_we),
+      .wbm2_cyc_i(icache_sram_stb),
+      .wbm2_stb_i(icache_sram_stb),
+      .wbm2_ack_o(icache_sram_ack),
+      .wbm2_dat_o(icache_sram_dat_i),
 
       .wbs_adr_o(arbiter_sram_addr),
       .wbs_dat_i(arbiter_sram_data_in),
@@ -1045,6 +1268,28 @@ module tanlabs #(
       .sram_we_n(base_ram_we_n),
       .sram_be_n(base_ram_be_n)
   );
+
+  uart_controller #(
+      .CLK_FREQ(50_000_000),
+      .BAUD    (115200)
+  ) uart_controller (
+      .clk_i(core_clk),
+      .rst_i(reset_core),
+
+      .wb_cyc_i(wbs1_cyc),
+      .wb_stb_i(wbs1_stb),
+      .wb_ack_o(wbs1_ack),
+      .wb_adr_i(wbs1_adr),
+      .wb_dat_i(wbs1_dat_w),
+      .wb_dat_o(wbs1_dat_r),
+      .wb_sel_i(wbs1_sel),
+      .wb_we_i (wbs1_we),
+
+      // to UART pins
+      .uart_txd_o(uart_tx),
+      .uart_rxd_i(uart_rx)
+  );
+
 
 
   // =======================================

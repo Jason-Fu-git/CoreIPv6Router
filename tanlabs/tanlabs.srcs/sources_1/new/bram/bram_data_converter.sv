@@ -22,8 +22,10 @@ endmodule : bram_data_converter_bt
 // So that we have address 0x2??????? for BRAM, and 0x2X??????? for the X-th trie.
 // | 31-28 | 27-24 | 23-20 | 19-16 | 15-12 | 11--8 |  7--4 |  3--0 |
 // |-------|-------|-------|-------|-------|-------|-------|-------|
-// |     2 |  0~15 | 0 / 1 |  zero |  zero |  zero | entry | field |
-// |  BRAM |  trie | vc/bt |  none |  none |  none |   sel |   sel |
+// |     2 |  0~15 | 0 / 1 |  addr |  addr |  addr | entry | field |
+// |  BRAM |  trie | vc/bt |  addr |  addr |  addr |   sel |   sel |
+//                 | ... . |
+//                 | adr s |
 //
 // The lower part is given to the converters below.
 // Since the entry index is less than 15, we use 4 bits to represent it.

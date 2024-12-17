@@ -65,7 +65,7 @@ module axis_model
                     end
                     else
                     begin
-                        $write("Ingress frame from interface #%d, %d bytes\n", iface, len);
+                        // $write("Ingress frame from interface #%d, %d bytes\n", iface, len);
                         for (i = 0; i < DATA_WIDTH / 8; i = i + 1)
                         begin
                             if (len > i)

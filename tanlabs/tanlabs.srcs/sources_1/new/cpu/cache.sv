@@ -24,7 +24,7 @@ localparam BYTE_WIDTH = 8;
 module cache #(
     parameter BLOCK_WIDTH,  // 字节宽，2
     parameter BLOCK_SIZE,   // 块大小，4
-    parameter TAG_WIDTH,    // 地址前缀长度，16
+    parameter TAG_WIDTH,    // 地址前缀长度，17
     parameter GROUP_NUM,    // 组数，16
     parameter GROUP_WIDTH,  // 组数宽度，4
     parameter GROUP_SIZE    // 每组路数，任意
@@ -50,6 +50,8 @@ module cache #(
 
     input wire fence  // If `fence` when posedge stb_ctl_i, write back and clear all
 );
+
+  reg ack_ctl_o_reg;
 
   typedef struct packed {
     logic [TAG_WIDTH-1:0]             tag;
@@ -134,6 +136,7 @@ module cache #(
   typedef enum logic [3:0] {
     IDLE,
     FENCE,
+    WAIT,
     DONE
   } fence_state_t;
 
@@ -149,10 +152,11 @@ module cache #(
 
   always_comb begin
     case (fence_state)
-      IDLE: fence_next_state = (fence) ? FENCE : IDLE;
+      IDLE: fence_next_state = (stb_ctl_i && fence && !ack_ctl_o_reg) ? FENCE : IDLE;
       FENCE:
       fence_next_state = ((fence_group == {GROUP_WIDTH{1'b1}}) &&
-                          (fence_line == {$clog2(GROUP_SIZE) {1'b1}})) ? DONE : FENCE;
+                          (fence_line == {$clog2(GROUP_SIZE) {1'b1}})) ? WAIT : FENCE;
+      WAIT: fence_next_state = (fencing ? (ack_sram_i ? DONE : WAIT) : DONE);
       DONE: fence_next_state = IDLE;
       default: fence_next_state = IDLE;
     endcase
@@ -160,7 +164,7 @@ module cache #(
 
   always_ff @(posedge clk) begin
     if (rst_p) begin
-      ack_ctl_o   <= 0;
+      ack_ctl_o_reg   <= 0;
       stb_sram_o  <= 0;
       acquiring   <= 0;
       writing     <= 0;
@@ -188,14 +192,14 @@ module cache #(
         end else begin
           fence_line <= fence_line + 1;
         end
-      end else if ((fence_state == FENCE) && fencing && ack_sram_i) begin
+      end else if (((fence_state == FENCE) || (fence_state == WAIT)) && fencing && ack_sram_i) begin
         fencing    <= 0;
         stb_sram_o <= 0;
       end else if (fence_state == DONE) begin
-        ack_ctl_o <= 1;
+        ack_ctl_o_reg <= 1;
       end else if (stb_ctl_i && !acquiring && !writing && !fence) begin  // when free
         if (cache_hit) begin
-          ack_ctl_o <= 1;
+          ack_ctl_o_reg <= 1;
           if (!we_p_ctl_i) begin  // Read cache hit
             dat_ctl_o <= hit_data;
             cache_file[in_group][hit_index].lru <= 0;
@@ -223,7 +227,7 @@ module cache #(
             end
           end
         end else begin  // cache miss
-          ack_ctl_o      <= 0;
+          ack_ctl_o_reg      <= 0;
           acquiring      <= 1;
           stb_sram_o     <= 1;
           adr_ctl_i_reg  <= adr_ctl_i;
@@ -269,7 +273,7 @@ module cache #(
             end
           end
         end else begin
-          ack_ctl_o <= 1;
+          ack_ctl_o_reg <= 1;
           if (!we_p_ctl_i) begin
             dat_ctl_o <= dat_sram_i;
           end
@@ -301,16 +305,18 @@ module cache #(
           if (ack_sram_i) begin
             stb_sram_o <= 0;
             writing    <= 0;
-            ack_ctl_o  <= 1;
+            ack_ctl_o_reg  <= 1;
             if (!we_p_ctl_i) begin
-              dat_ctl_o <= dat_sram_i;
+              dat_ctl_o <= hit_data;
             end
           end
         end
       end else begin
-        ack_ctl_o <= 0;
+        ack_ctl_o_reg <= 0;
       end
     end
   end
+
+  assign ack_ctl_o = ack_ctl_o_reg && (stb_ctl_i || fence);
 
 endmodule : cache

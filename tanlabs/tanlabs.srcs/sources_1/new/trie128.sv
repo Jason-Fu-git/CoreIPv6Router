@@ -24,6 +24,7 @@ module trie128(
     output reg cpu_ack
 );
     parameter int VC_ADDR_WIDTH [0:16] = {8, 13, 13, 13, 13, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 0};
+    parameter int VC_SIZE_WIDTH [0:15] = {6, 8, 13, 13, 13, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
     parameter int VC_BIN_SIZE   [0:15] = {1, 7,  15, 15, 14, 10, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
     parameter int VC_NODE_WIDTH [0:15] = {54,306,612,612,558,414,54,54,54,54,54,54,54,54,54,54};
     parameter MAX_VC_ADDR_WIDTH        = 13;
@@ -244,6 +245,7 @@ module trie128(
     always_comb begin
         for (int i = 0; i < LEVELS; i = i + 1) begin
             cpu_bt_node_wea[i] = bt_bram_write_stb[i];
+            cpu_bt_addr[i] = {cpu_adr[23:21], cpu_adr[19:8]};
         end
     end
 
@@ -274,6 +276,14 @@ module trie128(
 
     logic [LEVELS-1:0][MAX_VC_NODE_WIDTH-1:0] cpu_vc_node_buffer;
     logic [LEVELS-1:0] vc_bram_buffer_stb;
+
+    always_comb begin
+        for (int i = 0; i < LEVELS; i = i + 1) begin
+            cpu_vc_node_in[i] = cpu_vc_node_buffer[i];
+            cpu_vc_addr[i] = {cpu_adr[23:21], cpu_adr[19:8]};
+            cpu_vc_node_wea[i] = vc_bram_buffer_stb[i];
+        end
+    end
 
     always_ff @(posedge clk) begin
         if (cpu_rst_p) begin
