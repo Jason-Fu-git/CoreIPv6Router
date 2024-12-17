@@ -699,6 +699,8 @@ module tanlabs #(
 
   reg bram_cpu_clk;
   reg bram_cpu_rst_p;
+  assign bram_cpu_clk = core_clk;
+  assign bram_cpu_rst_p = reset_core;
   reg [31:0] bram_cpu_adr;
   reg [31:0] bram_cpu_dat_in;
   reg [31:0] bram_cpu_dat_out;

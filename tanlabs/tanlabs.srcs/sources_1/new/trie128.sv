@@ -16,13 +16,18 @@ module trie128(
     // Wishbone signals
     input wire cpu_clk,
     input wire cpu_rst_p,
-    input wire [31:0] cpu_adr,
-    input wire [31:0] cpu_dat_in,
-    output reg [31:0] cpu_dat_out,
-    input wire cpu_wea,
-    input wire cpu_stb,
-    output reg cpu_ack
+    input wire [31:0] cpu_adr_raw,
+    input wire [31:0] cpu_dat_in_raw,
+    output reg [31:0] cpu_dat_out_raw,
+    input wire cpu_wea_raw,
+    input wire cpu_stb_raw,
+    output reg cpu_ack_raw
 );
+
+    logic [31:0] cpu_adr, cpu_dat_in, cpu_dat_out;
+    logic cpu_wea, cpu_stb, cpu_ack;
+    logic cpu_read_valid, cpu_write_valid, bram_read_valid, bram_write_valid;
+
     parameter int VC_ADDR_WIDTH [0:16] = {8, 13, 13, 13, 13, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 0};
     parameter int VC_SIZE_WIDTH [0:15] = {6, 8, 13, 13, 13, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
     parameter int VC_BIN_SIZE   [0:15] = {1, 7,  15, 15, 14, 10, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
@@ -239,6 +244,8 @@ module trie128(
     logic [LEVELS-1:0] bt_bram_write_stb;
     logic [LEVELS-1:0][31:0] bt_wbs_dat_out;
     logic [LEVELS-1:0][31:0] vc_wbs_dat_out;
+    logic [LEVELS-1:0][1:0] bt_wbs_ack_state;
+    logic [LEVELS-1:0][1:0] vc_wbs_ack_state;
     logic [LEVELS-1:0] bt_wbs_ack;
     logic [LEVELS-1:0] vc_wbs_ack;
 
@@ -258,7 +265,7 @@ module trie128(
                 .addra(bt_addr[i]), // input wire [12 : 0] addra
                 .dina (0),          // input wire [35 : 0] dina
                 .douta(bt_node[i]), // output reg [35 : 0] douta
-                .clkb (cpu_clk),        // input wire clkb
+                .clkb (clk),        // input wire clkb
                 .enb  (1'b1),       // input wire enb
                 .web  (cpu_bt_node_wea[i]),       // input wire [0 : 0] web
                 .addrb(cpu_bt_addr[i]),       // input wire [12 : 0] addrb
@@ -287,21 +294,32 @@ module trie128(
 
     always_ff @(posedge clk) begin
         if (cpu_rst_p) begin
-            bt_wbs_ack <= 0;
-            vc_wbs_ack <= 0;
+            bt_wbs_ack_state <= 0;
+            vc_wbs_ack_state <= 0;
         end else begin
             for (int i = 0; i < LEVELS; i = i + 1) begin
-                if (bt_bram_write_stb[i]) begin
-                    bt_wbs_ack[i] <= 1;
+                if ((bt_wbs_ack_state[i] == 2'b00) && bt_bram_write_stb[i]) begin
+                    bt_wbs_ack_state[i] <= 2'b01;  // STATE WAIT
+                end else if (bt_wbs_ack_state[i] == 2'b01) begin
+                    bt_wbs_ack_state[i] <= 2'b11;  // STATE DONE
                 end else begin
-                    bt_wbs_ack[i] <= 0;
+                    bt_wbs_ack_state[i] <= 2'b00;  // STATE IDLE
                 end
-                if (vc_bram_buffer_stb[i]) begin
-                    vc_wbs_ack[i] <= 1;
+                if ((vc_wbs_ack_state[i] == 2'b00) && vc_bram_buffer_stb[i]) begin
+                    vc_wbs_ack_state[i] <= 2'b01;  // STATE WAIT
+                end else if (vc_wbs_ack_state[i] == 2'b01) begin
+                    vc_wbs_ack_state[i] <= 2'b11;  // STATE DONE
                 end else begin
-                    vc_wbs_ack[i] <= 0;
+                    vc_wbs_ack_state[i] <= 2'b00;  // STATE IDLE
                 end
             end
+        end
+    end
+
+    always_comb begin
+        for (int i = 0; i < LEVELS; i = i + 1) begin
+            bt_wbs_ack[i] = (bt_wbs_ack_state[i] == 2'b11);
+            vc_wbs_ack[i] = (vc_wbs_ack_state[i] == 2'b11);
         end
     end
 
@@ -312,7 +330,7 @@ module trie128(
             .addra(vc_addr[0][VC_ADDR_WIDTH[0]-1:0]), // input wire [7 : 0] addra
             .dina (0),          // input wire [53 : 0] dina
             .douta(vc_node[0][VC_NODE_WIDTH[0]-1:0]), // output reg [53 : 0] douta
-            .clkb (cpu_clk),        // input wire clkb
+            .clkb (clk),        // input wire clkb
             .enb  (1'b1),       // input wire enb
             .web  (cpu_vc_node_wea[0]),       // input wire [0 : 0] web
             .addrb(cpu_vc_addr[0][VC_ADDR_WIDTH[0]-1:0]),       // input wire [7 : 0] addrb
@@ -321,8 +339,8 @@ module trie128(
     );
 
     bram_buffer_1 vc_bram_buffer_0(
-        .clk(cpu_clk),
-        .rst_p(cpu_rst_p),
+        .clk(clk),
+        .rst_p(rst_p),
         .dat_in(cpu_dat_in),
         .sel(cpu_adr[7:0]),
         .stb(vc_bram_buffer_stb[0]),
@@ -341,7 +359,7 @@ module trie128(
             .addra(vc_addr[1][VC_ADDR_WIDTH[1]-1:0]), // input wire [12 : 0] addra
             .dina (0),          // input wire [305 : 0] dina
             .douta(vc_node[1][VC_NODE_WIDTH[1]-1:0]), // output reg [305 : 0] douta
-            .clkb (cpu_clk),        // input wire clkb
+            .clkb (clk),        // input wire clkb
             .enb  (1'b1),       // input wire enb
             .web  (cpu_vc_node_wea[1]),                      // input wire [0 : 0] web
             .addrb(cpu_vc_addr[1][VC_ADDR_WIDTH[1]-1:0]),    // input wire [12 : 0] addrb
@@ -350,8 +368,8 @@ module trie128(
     );
 
     bram_buffer_7 vc_bram_buffer_1(
-        .clk(cpu_clk),
-        .rst_p(cpu_rst_p),
+        .clk(clk),
+        .rst_p(rst_p),
         .dat_in(cpu_dat_in),
         .sel(cpu_adr[7:0]),
         .stb(vc_bram_buffer_stb[1]),
@@ -370,7 +388,7 @@ module trie128(
             .addra(vc_addr[2][VC_ADDR_WIDTH[2]-1:0]), // input wire [12 : 0] addra
             .dina (0),          // input wire [611 : 0] dina
             .douta(vc_node[2][VC_NODE_WIDTH[2]-1:0]), // output reg [611 : 0] douta
-            .clkb (cpu_clk),        // input wire clkb
+            .clkb (clk),        // input wire clkb
             .enb  (1'b1),       // input wire enb
             .web  (cpu_vc_node_wea[2]),                      // input wire [0 : 0] web
             .addrb(cpu_vc_addr[2][VC_ADDR_WIDTH[2]-1:0]),    // input wire [12 : 0] addrb
@@ -379,8 +397,8 @@ module trie128(
     );
 
     bram_buffer_15 vc_bram_buffer_2(
-        .clk(cpu_clk),
-        .rst_p(cpu_rst_p),
+        .clk(clk),
+        .rst_p(rst_p),
         .dat_in(cpu_dat_in),
         .sel(cpu_adr[7:0]),
         .stb(vc_bram_buffer_stb[2]),
@@ -399,7 +417,7 @@ module trie128(
             .addra(vc_addr[3][VC_ADDR_WIDTH[3]-1:0]), // input wire [12 : 0] addra
             .dina (0),          // input wire [611 : 0] dina
             .douta(vc_node[3][VC_NODE_WIDTH[3]-1:0]), // output reg [611 : 0] douta
-            .clkb (cpu_clk),        // input wire clkb
+            .clkb (clk),        // input wire clkb
             .enb  (1'b1),       // input wire enb
             .web  (cpu_vc_node_wea[3]),                      // input wire [0 : 0] web
             .addrb(cpu_vc_addr[3][VC_ADDR_WIDTH[3]-1:0]),    // input wire [12 : 0] addrb
@@ -407,8 +425,8 @@ module trie128(
             .doutb(cpu_vc_node[3][VC_NODE_WIDTH[3]-1:0])     // output reg [611 : 0] doutb
     );
     bram_buffer_15 vc_bram_buffer_3(
-        .clk(cpu_clk),
-        .rst_p(cpu_rst_p),
+        .clk(clk),
+        .rst_p(rst_p),
         .dat_in(cpu_dat_in),
         .sel(cpu_adr[7:0]),
         .stb(vc_bram_buffer_stb[3]),
@@ -427,7 +445,7 @@ module trie128(
             .addra(vc_addr[4][VC_ADDR_WIDTH[4]-1:0]), // input wire [12 : 0] addra
             .dina (0),          // input wire [557 : 0] dina
             .douta(vc_node[4][VC_NODE_WIDTH[4]-1:0]), // output reg [557 : 0] douta
-            .clkb (cpu_clk),        // input wire clkb
+            .clkb (clk),        // input wire clkb
             .enb  (1'b1),       // input wire enb
             .web  (cpu_vc_node_wea[4]),                      // input wire [0 : 0] web
             .addrb(cpu_vc_addr[4][VC_ADDR_WIDTH[4]-1:0]),    // input wire [12 : 0] addrb
@@ -436,8 +454,8 @@ module trie128(
     );
 
     bram_buffer_14 vc_bram_buffer_4(
-        .clk(cpu_clk),
-        .rst_p(cpu_rst_p),
+        .clk(clk),
+        .rst_p(rst_p),
         .dat_in(cpu_dat_in),
         .sel(cpu_adr[7:0]),
         .stb(vc_bram_buffer_stb[4]),
@@ -456,7 +474,7 @@ module trie128(
             .addra(vc_addr[5][VC_ADDR_WIDTH[5]-1:0]), // input wire [11 : 0] addra
             .dina (0),          // input wire [413 : 0] dina
             .douta(vc_node[5][VC_NODE_WIDTH[5]-1:0]), // output reg [413 : 0] douta
-            .clkb (cpu_clk),        // input wire clkb
+            .clkb (clk),        // input wire clkb
             .enb  (1'b1),       // input wire enb
             .web  (cpu_vc_node_wea[5]),                      // input wire [0 : 0] web
             .addrb(cpu_vc_addr[5][VC_ADDR_WIDTH[5]-1:0]),    // input wire [11 : 0] addrb
@@ -465,8 +483,8 @@ module trie128(
     );
 
     bram_buffer_10 vc_bram_buffer_5(
-        .clk(cpu_clk),
-        .rst_p(cpu_rst_p),
+        .clk(clk),
+        .rst_p(rst_p),
         .dat_in(cpu_dat_in),
         .sel(cpu_adr[7:0]),
         .stb(vc_bram_buffer_stb[5]),
@@ -487,7 +505,7 @@ module trie128(
                 .addra(vc_addr[i][VC_ADDR_WIDTH[i]-1:0]), // input wire [7 : 0] addra
                 .dina (0),          // input wire [53 : 0] dina
                 .douta(vc_node[i][VC_NODE_WIDTH[i]-1:0]), // output reg [53 : 0] douta
-                .clkb (cpu_clk),        // input wire clkb
+                .clkb (clk),        // input wire clkb
                 .enb  (1'b1),       // input wire enb
                 .web  (cpu_vc_node_wea[i]),                      // input wire [0 : 0] web
                 .addrb(cpu_vc_addr[i][VC_ADDR_WIDTH[i]-1:0]),    // input wire [7 : 0] addrb
@@ -495,8 +513,8 @@ module trie128(
                 .doutb(cpu_vc_node[i][VC_NODE_WIDTH[i]-1:0])     // output reg [53 : 0] doutb
             );
             bram_buffer_1 vc_bram_buffer_i(
-                .clk(cpu_clk),
-                .rst_p(cpu_rst_p),
+                .clk(clk),
+                .rst_p(rst_p),
                 .dat_in(cpu_dat_in),
                 .sel(cpu_adr[7:0]),
                 .stb(vc_bram_buffer_stb[i]),
@@ -510,9 +528,61 @@ module trie128(
         end
     endgenerate
 
+    logic cpu_stb_trigger;
+    logic cpu_stb_lock;
+    logic bram_ack_trigger;
+    logic bram_ack_lock;
+
+    always_ff @(posedge cpu_clk) begin
+        if (cpu_rst_p) begin
+            cpu_stb_lock <= 0;
+        end else begin
+            cpu_stb_lock <= cpu_stb_raw;
+        end
+    end
+
+    always_ff @(posedge clk) begin
+        if (rst_p) begin
+            bram_ack_lock <= 0;
+        end else begin
+            bram_ack_lock <= cpu_ack;
+        end
+    end
+
+    assign cpu_stb_trigger = cpu_stb_raw && !cpu_stb_lock;
+    assign cpu_write_valid = cpu_stb_trigger;
+    assign bram_ack_trigger = cpu_ack && !bram_ack_lock;
+    assign bram_read_valid = bram_ack_trigger;
+
+    axis_data_fifo_bram axis_data_fifo_bram_read_i(
+        .s_axis_aclk(clk),
+        .m_axis_aclk(cpu_clk),
+        .s_axis_aresetn(~rst_p),
+
+        .s_axis_tdata({cpu_ack, cpu_dat_out}),
+        .s_axis_tready(), // NULL
+        .s_axis_tvalid(bram_read_valid),
+        .m_axis_tdata({cpu_ack_raw, cpu_dat_out_raw}),
+        .m_axis_tready(1'b1),
+        .m_axis_tvalid(cpu_read_valid)
+    );
+
+    axis_data_fifo_bram axis_data_fifo_bram_write_i(
+        .s_axis_aclk(cpu_clk),
+        .m_axis_aclk(clk),
+        .s_axis_aresetn(~cpu_rst_p),
+        
+        .s_axis_tdata({cpu_stb_raw, cpu_wea_raw, cpu_adr_raw, cpu_dat_in_raw}),
+        .s_axis_tready(), // NULL
+        .s_axis_tvalid(cpu_write_valid),
+        .m_axis_tdata({cpu_stb, cpu_wea, cpu_adr, cpu_dat_in}),
+        .m_axis_tready(1'b1),
+        .m_axis_tvalid(bram_write_valid)
+    );
+
     bram_mux bram_mux_i(
-        .clk(cpu_clk),
-        .rst(cpu_rst_p),
+        .clk(clk),
+        .rst(rst_p),
         .wbm_adr_i(cpu_adr),
         .wbm_dat_i(cpu_dat_in),
         .wbm_dat_o(cpu_dat_out),

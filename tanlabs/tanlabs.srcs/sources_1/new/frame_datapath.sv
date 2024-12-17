@@ -208,12 +208,12 @@ module frame_datapath #(
 
       .cpu_clk(cpu_clk),
       .cpu_rst_p(cpu_rst_p),
-      .cpu_adr(cpu_adr),
-      .cpu_dat_in(cpu_dat_in),
-      .cpu_dat_out(cpu_dat_out),
-      .cpu_wea(cpu_wea),
-      .cpu_stb(cpu_stb),
-      .cpu_ack(cpu_ack)
+      .cpu_adr_raw(cpu_adr),
+      .cpu_dat_in_raw(cpu_dat_in),
+      .cpu_dat_out_raw(cpu_dat_out),
+      .cpu_wea_raw(cpu_wea),
+      .cpu_stb_raw(cpu_stb),
+      .cpu_ack_raw(cpu_ack)
   );
 
   assign rip_in = dma_out;
