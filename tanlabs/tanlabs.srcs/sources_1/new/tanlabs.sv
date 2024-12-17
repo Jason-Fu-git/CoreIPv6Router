@@ -697,6 +697,17 @@ module tanlabs #(
   wire [ID_WIDTH - 1:0] dp_tx_dest;
   wire dp_tx_valid;
 
+  reg bram_cpu_clk;
+  reg bram_cpu_rst_p;
+  assign bram_cpu_clk = core_clk;
+  assign bram_cpu_rst_p = reset_core;
+  reg [31:0] bram_cpu_adr;
+  reg [31:0] bram_cpu_dat_in;
+  reg [31:0] bram_cpu_dat_out;
+  reg bram_cpu_wea;
+  reg bram_cpu_stb;
+  reg bram_cpu_ack;
+  
   logic dma_in_ready, dma_out_ready;
   frame_beat dma_in, dma_out;
 
@@ -759,6 +770,18 @@ module tanlabs #(
       .mac_addr_2(mac_addrs[2]),
       .mac_addr_3(mac_addrs[3]),
 
+      // README: You will need to add some signals for your CPU to control the datapath,
+      // or access the forwarding table or the address resolution cache.
+
+      .cpu_clk(bram_cpu_clk),
+      .cpu_rst_p(bram_cpu_rst_p),
+      .cpu_adr(bram_cpu_adr),
+      .cpu_dat_in(bram_cpu_dat_in),
+      .cpu_dat_out(bram_cpu_dat_out),
+      .cpu_wea(bram_cpu_wea),
+      .cpu_stb(bram_cpu_stb),
+      .cpu_ack(bram_cpu_ack),
+      
       // dma interface
       .dma_in(dma_in),
       .dma_in_ready(dma_in_ready),
@@ -915,15 +938,32 @@ module tanlabs #(
   // Wishbone
   // =======================================
 
-  logic [31:0] wbs0_adr, wbs1_adr, wbs2_adr;
-  logic [31:0] wbs0_dat_r, wbs0_dat_w, wbs1_dat_r, wbs1_dat_w, wbs2_dat_r, wbs2_dat_w;
-  logic [3:0] wbs0_sel, wbs1_sel, wbs2_sel;
-  logic wbs0_we, wbs1_we, wbs2_we;
-  logic wbs0_stb, wbs1_stb, wbs2_stb;
-  logic wbs0_ack, wbs1_ack, wbs2_ack;
-  logic wbs0_err, wbs1_err, wbs2_err;
-  logic wbs0_rty, wbs1_rty, wbs2_rty;
-  logic wbs0_cyc, wbs1_cyc, wbs2_cyc;
+  logic [31:0] wbs0_adr, wbs1_adr, wbs2_adr, wbs3_adr;
+  logic [31:0] wbs0_dat_r, wbs0_dat_w, wbs1_dat_r, wbs1_dat_w, wbs2_dat_r, wbs2_dat_w, wbs3_dat_r, wbs3_dat_o;
+  logic [3:0] wbs0_sel, wbs1_sel, wbs2_sel, wbs3_sel;
+  logic wbs0_we, wbs1_we, wbs2_we, wbs3_we;
+  logic wbs0_stb, wbs1_stb, wbs2_stb, wbs3_stb;
+  logic wbs0_ack, wbs1_ack, wbs2_ack, wbs3_ack;
+  logic wbs0_err, wbs1_err, wbs2_err, wbs3_err;
+  logic wbs0_rty, wbs1_rty, wbs2_rty, wbs3_rty;
+  logic wbs0_cyc, wbs1_cyc, wbs2_cyc, wbs3_cyc;
+
+  assign bram_cpu_adr = wbs3_adr;
+  assign bram_cpu_dat_in = wbs3_dat_w;
+  assign wbs3_dat_r = bram_cpu_dat_out;
+  assign bram_cpu_wea = wbs3_we;
+  assign wbs3_ack = bram_cpu_ack;
+  assign bram_cpu_stb = wbs3_stb;
+
+  reg wbs3_ack_wait;
+
+  always_ff @(posedge core_clk) begin
+    if (reset_core) begin
+      wbs3_ack_wait <= 0;
+    end else begin
+      wbs3_ack_wait <= wbs3_ack;
+    end
+  end
 
   logic [22:0] icache_sram_adr, dcache_sram_adr, dma_sram_adr;
   logic [31:0] icache_sram_dat_o, dcache_sram_dat_o, dma_sram_dat_o;
@@ -942,11 +982,11 @@ module tanlabs #(
   logic        arbiter_sram_stb;
   logic        arbiter_sram_ack;
 
-  wb_mux_3 #(
+  wb_mux_4 #(
       .DATA_WIDTH  (32),
       .ADDR_WIDTH  (32),
       .SELECT_WIDTH(4)
-  ) wb_mux_3_i (
+  ) wb_mux_4_i (
       .clk(core_clk),
       .rst(reset_core),
 
@@ -1006,10 +1046,26 @@ module tanlabs #(
       .wbs2_we_o (wbs2_we),
       .wbs2_sel_o(wbs2_sel),
       .wbs2_stb_o(wbs2_stb),
-      .wbs2_ack_i(wbs2_ack),
+      .wbs2_ack_i(wbs2_ack_wait),
       .wbs2_err_i('0),
       .wbs2_rty_i('0),
-      .wbs2_cyc_o(wbs2_cyc)
+      .wbs2_cyc_o(wbs2_cyc),
+
+      // Slave interface 3 (to BRAMs)
+      // Address range: 0x2000_0000 ~ 0x2FFF_FFFF
+      .wbs3_addr    (32'h2000_0000),
+      .wbs3_addr_msk(32'hF000_0000),
+
+      .wbs3_adr_o(wbs3_adr),
+      .wbs3_dat_i(wbs3_dat_r),
+      .wbs3_dat_o(wbs3_dat_w),
+      .wbs3_we_o (wbs3_we),
+      .wbs3_sel_o(wbs3_sel),
+      .wbs3_stb_o(wbs3_stb),
+      .wbs3_ack_i(wbs3_ack),
+      .wbs3_err_i('0),
+      .wbs3_rty_i('0),
+      .wbs3_cyc_o(wbs3_cyc)
   );
 
   cache #(

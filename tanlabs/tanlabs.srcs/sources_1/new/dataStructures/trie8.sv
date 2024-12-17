@@ -16,7 +16,6 @@ localparam MATCH_LEN_WIDTH = 8;
 
 module trie8 #(
     parameter VC_ADDR_WIDTH,
-    parameter VC_NEXT_ADDR_WIDTH,
     parameter VC_BIN_SIZE,
     parameter BEGIN_LEVEL
 ) (
@@ -60,7 +59,7 @@ module trie8 #(
     output logic [   OFFSET_WIDTH-1:0] bt_next_hop_offset_o
 );
 
-  localparam VC_NODE_WIDTH = VC_BIN_SIZE * VC_ENTRY_SIZE + 2 * VC_ADDR_WIDTH;
+  localparam VC_NODE_WIDTH = ((VC_BIN_SIZE * VC_ENTRY_SIZE + 2 * VC_ADDR_WIDTH + 17)/18)*18;
 
   typedef enum logic [3:0] {
     IDLE,
@@ -139,7 +138,7 @@ module trie8 #(
     vc_now_next_hop_offset = 0;
     for (int i = 0; i < VC_BIN_SIZE; i = i + 1) begin
       Entry entry = vc_node_i[2*VC_ADDR_WIDTH+(i+1)*VC_ENTRY_SIZE-1-:VC_ENTRY_SIZE];
-      logic [27:0] mask = 28'hfffffff >> entry.prefix_length;
+      logic [27:0] mask = 28'hfffffff >> (28 - entry.prefix_length);
       if ((entry.prefix_length != 5'b11111) && ((vc_remaining_prefix_o[27:0] & mask) == (entry.prefix & mask))) begin
         logic [7:0] match_length = BEGIN_LEVEL + (state - L0) + entry.prefix_length;
         if (match_length > vc_now_max_match) begin
@@ -228,6 +227,7 @@ module trie8 #(
             out_valid <= 0;
           end
           frame_beat_o          <= frame_beat_i;
+          frame_beat_o.valid    <= 0;
           vc_addr_reg           <= vc_init_addr_i;
           vc_max_match_o        <= vc_max_match_i;
           vc_remaining_prefix_o <= vc_remaining_prefix_i;
@@ -262,6 +262,7 @@ module trie8 #(
         end
         vc_init_addr_o <= vc_remaining_prefix_o[0] ? vc_node_i[2*VC_ADDR_WIDTH-1:VC_ADDR_WIDTH] : vc_node_i[VC_ADDR_WIDTH-1:0];
         bt_init_addr_o <= bt_remaining_prefix_o[0] ? bt_node_i[2*BT_ADDR_WIDTH-1:BT_ADDR_WIDTH] : bt_node_i[BT_ADDR_WIDTH-1:0];
+        frame_beat_o.valid <= 1;
         out_valid <= 1;
       end
     end
@@ -275,7 +276,6 @@ module trie8_test (
 
   trie8 #(
       .VC_ADDR_WIDTH(8),
-      .VC_NEXT_ADDR_WIDTH(8),
       .VC_BIN_SIZE(5),
       .BEGIN_LEVEL(0)
   ) trie8_i (

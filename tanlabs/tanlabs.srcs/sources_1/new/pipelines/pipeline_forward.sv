@@ -25,6 +25,7 @@ module pipeline_forward (
     input  fw_frame_beat_t fwt_out,
     input  wire            fwt_in_ready,
     output reg             fwt_out_ready,
+    input  wire [127:0]    fwt_next_hop,
 
     // Address config
     input wire [3:0][47:0] mac_addrs  // router MAC address
@@ -92,7 +93,8 @@ module pipeline_forward (
   assign fwt_out_ready = cache_ready;
 
   always_comb begin : FW_CACHE_SIGNALS
-    cache_r_IPv6_addr = fwt_in.data.data.ip6.dst;
+    // cache_r_IPv6_addr = fwt_out.data.data.ip6.dst;
+    cache_r_IPv6_addr = fwt_next_hop;
   end
 
   always_ff @(posedge clk) begin : FW_CACHE_R_PORT_REG
@@ -136,6 +138,7 @@ module pipeline_forward (
                 cache_beat.data.data.src        <= fwt_out.data.data.src;
                 cache_beat.data.data.dst        <= cache_r_MAC_addr;
                 cache_beat.data.data.ip6        <= fwt_out.data.data.ip6;
+                cache_beat.data.data.ip6.dst    <= fwt_next_hop;
               end else begin
                 cache_beat.error <= ERR_NC_MISS;
                 cache_beat.data  <= fwt_out.data;

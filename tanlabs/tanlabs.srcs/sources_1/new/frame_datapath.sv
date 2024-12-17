@@ -43,6 +43,15 @@ module frame_datapath #(
     input wire [47:0] mac_addr_2,
     input wire [47:0] mac_addr_3,
 
+    input wire cpu_clk,
+    input wire cpu_rst_p,
+    input wire [31:0] cpu_adr,
+    input wire [31:0] cpu_dat_in,
+    output reg [31:0] cpu_dat_out,
+    input wire cpu_wea,
+    input wire cpu_stb,
+    output reg cpu_ack,
+    
     // dma interface
     output frame_beat dma_in,
     input wire dma_in_ready,
@@ -133,6 +142,8 @@ module frame_datapath #(
   cache_entry ns_cache_entry, na_cache_entry, cache_w;
   logic cache_wea_p, cache_exists0, cache_exists1;
   logic nud_we_p;
+  
+  logic [127:0] trie128_next_hop;
   logic [127:0] nud_exp_addr, cache_ip6_addr0_o, cache_ip6_addr1_o;
   logic [1:0] nud_iface;
   logic [47:0] cache_mac_addr0_o, cache_mac_addr1_o;
@@ -140,6 +151,7 @@ module frame_datapath #(
 
   fw_frame_beat_t fwt_in, fwt_out;
   logic fwt_in_ready, fwt_out_ready;
+  logic trie128_out_ready;
 
   localparam BRAM_DATA_WIDTH = 320;
   localparam BRAM_ADDR_WIDTH = 5;
@@ -150,89 +162,6 @@ module frame_datapath #(
   reg [BRAM_ADDR_WIDTH-1:0] bram_addr_w;
   reg [BRAM_DATA_WIDTH-1:0] bram_data_w;
   reg [BRAM_DATA_WIDTH-1:0] bram_data_r;
-
-  // FIXME: Static Forward Table
-  reg [2:0] fwt_counter;
-  always_ff @(posedge eth_clk) begin
-    if (reset) begin
-      bram_wea_p  <= 0;
-      bram_addr_w <= 0;
-      bram_data_w <= 0;
-      fwt_counter <= 0;
-    end else begin
-      if (fwt_counter < 4) begin
-        if (bram_ack_p) begin
-          fwt_counter <= fwt_counter + 1;
-          bram_wea_p  <= 0;
-          bram_addr_w <= 0;
-          bram_data_w <= 0;
-        end else begin
-          bram_wea_p <= 1;
-          case (fwt_counter)
-            3'd0: begin
-              bram_addr_w <= 5'd0;
-              bram_data_w <= {
-                0,  // padding
-                1'b1,  // valid
-                8'd128,  // prefix length
-                128'h041069feff641f8e00000000000080fe,  // next hop
-                128'h041069feff641f8e00000000000080fe  // prefix
-              };
-            end
-            3'd1: begin
-              bram_addr_w <= 5'd1;
-              bram_data_w <= {
-                0,  // padding
-                1'b1,  // valid
-                8'd128,  // prefix length
-                128'h011069feff641f8e00000000000080fe,  // next hop
-                128'h011069feff641f8e00000000000080fe  // prefix
-              };
-            end
-            3'd2: begin
-              bram_addr_w <= 5'd2;
-              bram_data_w <= {
-                0,  // padding
-                1'b1,  // valid
-                8'd128,  // prefix length
-                128'h01000000000000000000000000000420,  // next hop
-                128'h01000000000000000000000000000420  // prefix
-              };
-            end
-            3'd3: begin
-              bram_addr_w <= 5'd3;
-              bram_data_w <= {
-                0,  // padding
-                1'b1,  // valid
-                8'd128,  // prefix length
-                128'h02000000000000000000000000000420,  // next hop
-                128'h02000000000000000000000000000420  // prefix
-              };
-            end
-            default: begin
-              bram_addr_w <= 0;
-              bram_data_w <= 0;
-            end
-          endcase
-        end
-      end
-    end
-  end
-
-  bram_controller #(
-      .DATA_WIDTH(BRAM_DATA_WIDTH),
-      .ADDR_WIDTH(BRAM_ADDR_WIDTH)
-  ) bram_controller_i (
-      .clk(eth_clk),
-      .rst_p(reset),
-      .rea_p(bram_rea_p),
-      .wea_p(bram_wea_p),
-      .ack_p(bram_ack_p),
-      .bram_addr_r(bram_addr_r),
-      .bram_addr_w(bram_addr_w),
-      .bram_data_w(bram_data_w),
-      .bram_data_r(bram_data_r)
-  );
 
   neighbor_cache neighbor_cache_i (
       .clk  (eth_clk),
@@ -258,7 +187,9 @@ module frame_datapath #(
       .probe_port_id  (nud_iface)
   );
 
-  forward_table forward_table_i (
+
+
+  trie128 forward_table_i (
       .clk  (eth_clk),
       .rst_p(reset),
 
@@ -268,10 +199,21 @@ module frame_datapath #(
       .in_ready (fwt_in_ready),
       .out_ready(fwt_out_ready),
 
-      .mem_data (bram_data_r),
-      .mem_ack_p(bram_ack_p),
-      .mem_addr (bram_addr_r),
-      .mem_rea_p(bram_rea_p)
+      .in_valid (fwt_in.valid),
+      .out_valid(trie128_out_ready),
+
+      .addr(fwt_in.data.data.ip6.dst),
+      .next_hop(trie128_next_hop),
+      .default_next_hop(0),
+
+      .cpu_clk(cpu_clk),
+      .cpu_rst_p(cpu_rst_p),
+      .cpu_adr_raw(cpu_adr),
+      .cpu_dat_in_raw(cpu_dat_in),
+      .cpu_dat_out_raw(cpu_dat_out),
+      .cpu_wea_raw(cpu_wea),
+      .cpu_stb_raw(cpu_stb),
+      .cpu_ack_raw(cpu_ack)
   );
 
   assign rip_in = dma_out;
@@ -333,6 +275,7 @@ module frame_datapath #(
       .fwt_out      (fwt_out),
       .fwt_in_ready (fwt_in_ready),
       .fwt_out_ready(fwt_out_ready),
+      .fwt_next_hop(trie128_next_hop),
 
       .mac_addrs(mac_addrs)
   );
