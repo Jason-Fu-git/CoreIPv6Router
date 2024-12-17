@@ -38,6 +38,7 @@ module trie128(
     parameter BT_NODE_WIDTH            = 36;
 
     parameter LEVELS = 16;
+    parameter BT_LEVELS = 8;
     
     // frame_beat
     frame_beat [LEVELS-1:0] frame_beat_in;
@@ -257,7 +258,7 @@ module trie128(
     end
 
     generate
-        for (genvar i = 0; i < LEVELS; i = i + 1) begin : g_bt_brams
+        for (genvar i = 0; i < BT_LEVELS; i = i + 1) begin : g_bt_brams
             blk_mem_bt bt_bram_i (
                 .clka (clk),        // input wire clka
                 .ena  (1'b1),       // input wire ena
@@ -281,6 +282,13 @@ module trie128(
         end
     endgenerate
 
+    always_comb begin
+        for (int i = BT_LEVELS; i < LEVELS; i = i + 1) begin
+            bt_node[i] = 0;
+            cpu_bt_node[i] = 0;
+        end
+    end
+
     logic [LEVELS-1:0][MAX_VC_NODE_WIDTH-1:0] cpu_vc_node_buffer;
     logic [LEVELS-1:0] vc_bram_buffer_stb;
 
@@ -293,7 +301,7 @@ module trie128(
     end
 
     always_ff @(posedge clk) begin
-        if (cpu_rst_p) begin
+        if (rst_p) begin
             bt_wbs_ack_state <= 0;
             vc_wbs_ack_state <= 0;
         end else begin
@@ -567,7 +575,7 @@ module trie128(
         .m_axis_tvalid(cpu_read_valid)
     );
 
-    axis_data_fifo_bram axis_data_fifo_bram_write_i(
+    axis_data_fifo_bram_cpu axis_data_fifo_bram_write_i(
         .s_axis_aclk(cpu_clk),
         .m_axis_aclk(clk),
         .s_axis_aresetn(~cpu_rst_p),

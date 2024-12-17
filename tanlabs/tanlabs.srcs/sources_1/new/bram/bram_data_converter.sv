@@ -30,7 +30,7 @@ endmodule : bram_data_converter_bt
 // The lower part is given to the converters below.
 // Since the entry index is less than 15, we use 4 bits to represent it.
 // field: 0000 for prefix_length, 0001 for prefix, 0010 for entry_offset, 1000 for lc (no matter what entry is) and 1100 for rc.
-// Especially, the highest 4 bits 0010 means read, and we will design how to write to BRAM using the highest 4 bits 0011.
+// // [Discarded] Especially, the highest 4 bits 0010 means read, and we will design how to write to BRAM using the highest 4 bits 0011.
 
 module bram_data_converter_1 (
 	input wire [53:0] in,

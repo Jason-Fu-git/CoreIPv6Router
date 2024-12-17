@@ -19,4 +19,4 @@ in_frames.pcap
 out_frames.pcap
 temp.txt
 bram*.txt
-
+*/.idea
