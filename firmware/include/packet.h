@@ -9,5 +9,6 @@
 #define PADDING 0
 #define ETHER_HDR_LEN 14
 
+#define MTU 1500
 
 #endif // _PACKET_H_
