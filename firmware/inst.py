@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import sys
 
 INST19 = {'auipc', 'add', 'addi', 'and', 'andi', 'or', 'ori', 'slli', 'srli',

@@ -31,7 +31,7 @@ viasm: $(TARGET)
 
 .PHONY: inst
 inst: $(TARGET)
-	$(OBJDUMP) -Mno-aliases -d $< | ./inst.py
+	$(OBJDUMP) -Mno-aliases -d $< | python ./inst.py
 
 %.asm: %.elf
 	$(OBJDUMP) -xd $< > $@
