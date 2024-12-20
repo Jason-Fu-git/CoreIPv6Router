@@ -5,7 +5,7 @@
  * @brief Grant the DMA access to the memory
  *
  */
-void _grant_dma_access(uint32_t address, uint32_t size, uint32_t write_enable)
+void _grant_dma_access(uint32_t address, uint32_t size, uint32_t write_enable) // write_enable: 1 for in, 0 for out
 {
     *((volatile uint32_t *)DMA_CPU_ADDR) = address;
     *((volatile uint32_t *)DMA_CPU_DATA_WIDTH) = size;
@@ -14,14 +14,30 @@ void _grant_dma_access(uint32_t address, uint32_t size, uint32_t write_enable)
 }
 
 /**
- * @brief Wait for the DMA to finish
- *
+ * @brief Check what the DMA is busy with
+ * 0 for idle, 1 for out, 2 for in
  */
-void _wait_for_dma()
+int _check_dma_busy()
 {
-    while (*((volatile uint32_t *)DMA_ACK) == 0)
-        ;
-    *((volatile uint32_t *)DMA_CPU_STB) = 0;
+    if(*((volatile uint32_t *)DMA_CPU_STB) == 1){
+        return *((volatile uint32_t *)DMA_CPU_WE) + 1;
+    }
+    else{
+        return 0;
+    }
+}
+
+/**
+ * @brief Check if ACK (and release stb)
+ * 0 for out, 1 for in
+ */
+int _check_dma_ack()
+{
+    int res = *((volatile uint32_t *)DMA_ACK);
+    if(res == 1){
+        *((volatile uint32_t *)DMA_CPU_STB) = 0;
+    }
+    return res;
 }
 
 /**

@@ -20,10 +20,16 @@
 void _grant_dma_access(uint32_t address, uint32_t size, uint32_t write_enable);
 
 /**
- * @brief Wait for the DMA to finish
- *
+ * @brief Check what the DMA is busy with
+ * 0 for idle, 1 for out, 2 for in
  */
-void _wait_for_dma();
+int _check_dma_busy();
+
+/**
+ * @brief Check if ACK (and release stb)
+ * 0 for out, 1 for in
+ */
+int _check_dma_ack();
 
 /**
  * @brief Get the write data width of the DMA (in bytes)

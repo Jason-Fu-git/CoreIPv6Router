@@ -124,9 +124,12 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length)
             }
         }
 
-        // TODO: Process the RIPng entry here
-
-        // END OF TODO:
+        if (ripng_hdr->cmd == RIPNG_CMD_REQUEST){
+            // TODO: Handle the request
+        }
+        else{
+            // TODO: check the route table and trigger the update
+        }
 
         // increment the length and index
         len += 20;
