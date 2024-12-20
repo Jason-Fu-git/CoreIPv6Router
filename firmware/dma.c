@@ -19,22 +19,21 @@ void _grant_dma_access(uint32_t address, uint32_t size, uint32_t write_enable) /
  */
 int _check_dma_busy()
 {
-    if(*((volatile uint32_t *)DMA_CPU_STB) == 1){
+    if (*((volatile uint32_t *)DMA_CPU_STB) == 1)
+    {
         return *((volatile uint32_t *)DMA_CPU_WE) + 1;
     }
-    else{
-        return 0;
-    }
+    return 0;
 }
 
 /**
  * @brief Check if ACK (and release stb)
- * 0 for out, 1 for in
  */
 int _check_dma_ack()
 {
     int res = *((volatile uint32_t *)DMA_ACK);
-    if(res == 1){
+    if (res == 1)
+    {
         *((volatile uint32_t *)DMA_CPU_STB) = 0;
     }
     return res;

@@ -10,6 +10,7 @@
 #define ETHER_HDR_LEN 14
 
 #define MTU 1500
+#define RIPNG_MAX_RTE_NUM 72
 
 #define __REVS(x)                              \
     asm volatile("mv a0, %0" ::"r"(x) : "a0"); \
