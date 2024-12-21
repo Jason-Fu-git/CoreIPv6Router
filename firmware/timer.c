@@ -1,4 +1,8 @@
 #include <timer.h>
+#include <stdint.h>
+
+uint32_t multicast_timer_ldata = 0;
+uint32_t multicast_timer_hdata = 0;
 
 int check_timeout(uint32_t time_llimit, uint32_t time_hlimit, uint32_t timer_laddr, uint32_t timer_haddr)
 {

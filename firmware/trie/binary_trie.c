@@ -6,7 +6,6 @@
  *
  */
 
-#define _BINARY_TRIE_C_
 // ! Should not surpass 1024 !
 #define N 256
 // From SV

@@ -2,7 +2,15 @@
 #include "stdio.h"
 #include "stdint.h"
 #include "packet.h"
+#include "dma.h"
 
+/**
+ * @brief Disassemble the packet and check the correctness of the packet.
+ * @param base_addr The base address of the packet.
+ * @param length The length of the packet.
+ * @return RipngErrorCode The error code of the packet.
+ *
+ */
 RipngErrorCode disassemble(uint32_t base_addr, uint32_t length)
 {
     base_addr = base_addr + PADDING + ETHER_HDR_LEN;
@@ -36,11 +44,6 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length)
      * 长度加上 RIPng entry 长度的整数倍。
      */
     int udp_len = ntohs(udp->len);
-    // FIXME: OUR CPU DOES NOT SUPPORT MOD OPERATION
-    // if ((udp_len - UDP_HDR_LEN - RIPNG_HDR_LEN) % 20 != 0)
-    // {
-    //     return ERR_LENGTH;
-    // }
     // get RIPng header
     struct ripng_hdr *ripng_hdr = (struct ripng_hdr *)(base_addr + IP6_HDR_LEN + UDP_HDR_LEN);
     /*
@@ -61,8 +64,6 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length)
     }
     // get the entries
     struct ripng_rte *entries = (struct ripng_rte *)(base_addr + IP6_HDR_LEN + UDP_HDR_LEN + RIPNG_HDR_LEN);
-    // FIXME: OUR CPU DOES NOT SUPPORT DIVISION OPERATION
-    // int entry_num = (udp_len - 8 - 4) / 20;
     int entry_length = udp_len - UDP_HDR_LEN - RIPNG_HDR_LEN;
     int len = 0, i = 0;
     while (len < entry_length)
@@ -124,10 +125,16 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length)
             }
         }
 
-        if (ripng_hdr->cmd == RIPNG_CMD_REQUEST){
+        if (ripng_hdr->cmd == RIPNG_CMD_REQUEST)
+        {
             // TODO: Handle the request
+            /*
+              - 如果请求只有一个RTE，`destination prefix`为0，`prefix length`为0，`metric`为16，则**发送自己的全部路由表**。
+              - 否则，逐一处理RTE，如果自己通往某一network有路由，则将`metric`填为自己的`metric`；若没有路由，填为16。
+             */
         }
-        else{
+        else
+        {
             // TODO: check the route table and trigger the update
         }
 
@@ -137,4 +144,43 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length)
     }
 
     return SUCCESS;
+}
+
+/**
+ * @brief Send multicast request.
+ * @note This function will only write the packet to the SRAM.
+ *  To initiate the DMA transfer, you need to call _grant_dma_access()
+ */
+void send_multicast_request()
+{
+    // TODO: Write to DMA_BLOCK_RADDR
+
+    // TODO: Set the length to DMA_OUT_LENGTH
+}
+
+/**
+ * @brief Send unsolicited response.
+ * @note This function will block until the whole routing table is sent.
+ * 
+ */
+void send_unsolicited_response(struct ip6_addr *dst_addr)
+{
+    // TODO: Write to DMA_BLOCK_RADDR
+
+    // TODO: Set the length to DMA_OUT_LENGTH
+}
+
+
+/**
+ * @brief Send triggered update.
+ * @note  This function will block until the whole routing table is sent.
+ * @param src_addr The source address of the packet.
+ * @param dst_addr The destination address of the packet.
+ * @param entries The routing table entries.
+ * @param num_entries The number of routing table entries. If num_entries > RIPNG_MAX_RTE_NUM, split the entries into multiple packets.
+ * @author Eason Liu
+ *
+ */
+void send_triggered_update(struct ip6_addr *src_addr, struct ip6_addr *dst_addr, struct ripng_entry *entries, int num_entries){
+    
 }
