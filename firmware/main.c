@@ -52,7 +52,7 @@ void start(void)
     // Send multicast request.
     send_multicast_request();
     // Grant DMA access (Read) to the memory
-    _grant_dma_access(DMA_BLOCK_RADDR, DMA_OUT_LENGTH, 0);
+    _grant_dma_access(DMA_BLOCK_RADDR, *(volatile uint32_t *)DMA_OUT_LENGTH, 0);
     // Wait for the DMA to finish
     _wait_for_dma();
     *(volatile uint32_t *)DMA_CPU_STB = 0;

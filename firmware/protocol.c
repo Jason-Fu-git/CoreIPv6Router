@@ -185,6 +185,51 @@ void send_multicast_request()
 }
 
 /**
+ * @brief Assemble a packet.
+ * @param packet_hdr Where the packet is assembled at.
+ * @param src_addr The source address of the packet.
+ * @param dst_addr The destination address of the packet.
+ * @param entries The routing table entries.
+ * @param num_entries The number of routing table entries. It shouldn't be bigger than RIPNG_MAX_RTE_NUM.
+ * @return The size of the packet.
+ * @author Eason Liu
+ *
+ */
+int assemble(struct packet_hdr *packet_hdr, struct ip6_addr *src_addr, struct ip6_addr *dst_addr, struct ripng_rte *entries, int num_entries){
+    packet_hdr->ether.padding = 0;
+    packet_hdr->ether.ethertype = 0x86dd;
+    packet_hdr->ip6.version = 6;
+    packet_hdr->ip6.traffic_class = 0;
+    packet_hdr->ip6.flow_label = 0;
+    packet_hdr->ip6.next_header = IPPROTO_UDP;
+    packet_hdr->ip6.hop_limit = 64;
+    for(int i = 0; i < 4; i++){
+        packet_hdr->ip6.src_addr.s6_addr32[i] = htonl(src_addr->s6_addr32[i]);
+        packet_hdr->ip6.dst_addr.s6_addr32[i] = htonl(dst_addr->s6_addr32[i]);
+    }
+    packet_hdr->udp.src_port = packet_hdr->udp.dst_port = htons(UDP_PORT_RIPNG);
+    packet_hdr->udp.checksum = 0;
+    packet_hdr->ripng.cmd = RIPNG_CMD_RESPONSE;
+    packet_hdr->ripng.vers = 1;
+    packet_hdr->ripng.reserved = 0;
+    struct ripng_rte *rte = (struct ripng_rte *)packet_hdr + PACKET_HDR_LEN;
+    int entries_size = 0;
+    for(int i = 0; i < num_entries; i++){
+        rte->ip6_addr.s6_addr32[0] = htonl(entries[i].ip6_addr.s6_addr32[0]);
+        rte->ip6_addr.s6_addr32[1] = htonl(entries[i].ip6_addr.s6_addr32[1]);
+        rte->ip6_addr.s6_addr32[2] = htonl(entries[i].ip6_addr.s6_addr32[2]);
+        rte->ip6_addr.s6_addr32[3] = htonl(entries[i].ip6_addr.s6_addr32[3]);
+        rte->prefix_len = entries[i].prefix_len;
+        rte->metric = entries[i].metric;
+        rte->route_tag = htons(entries[i].route_tag);
+        entries_size += RTE_LEN;
+    }
+    packet_hdr->ip6.payload_len = htons(UDP_HDR_LEN + RIPNG_HDR_LEN + entries_size);
+    packet_hdr->udp.len = htons(UDP_HDR_LEN + RIPNG_HDR_LEN + entries_size);
+    return PACKET_HDR_LEN + entries_size;
+}
+
+/**
  * @brief Send triggered update.
  * @note  This function will block until the whole routing table is sent.
  * @param src_addr The source address of the packet.
@@ -194,8 +239,23 @@ void send_multicast_request()
  * @author Eason Liu
  *
  */
-void send_triggered_update(struct ip6_addr *src_addr, struct ip6_addr *dst_addr, struct ripng_rte *entries, int num_entries)
-{
+void send_triggered_update(struct ip6_addr *src_addr, struct ip6_addr *dst_addr, struct ripng_rte *entries, int num_entries){
+    if (entries == NULL){
+        // TODO: wait for BRAM interfaces.
+        // read the entry from each node_addr in memory_rte, check the timer and send them.
+    }
+    else{
+        int start_entrie = 0;
+        while((num_entries - start_entrie) > RIPNG_MAX_RTE_NUM){
+            int size = assemble((struct packet_hdr*)DMA_BLOCK_RADDR, src_addr, dst_addr, &entries[start_entrie], RIPNG_MAX_RTE_NUM);
+            _wait_for_dma();
+            _grant_dma_access(DMA_BLOCK_RADDR, size, 0);
+            start_entrie += RIPNG_MAX_RTE_NUM;
+        }
+        int size = assemble((struct packet_hdr*)DMA_BLOCK_RADDR, src_addr, dst_addr, &entries[start_entrie], num_entries - start_entrie);
+        _wait_for_dma();
+        _grant_dma_access(DMA_BLOCK_RADDR, size, 0);
+    }
 }
 
 /**

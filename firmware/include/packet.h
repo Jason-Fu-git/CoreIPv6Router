@@ -9,7 +9,9 @@
 
 
 #define MTU 1500
-#define RIPNG_MAX_RTE_NUM 72
+#define RIPNG_MAX_RTE_NUM 71
+#define RIPNG_MAX_RTE_LEN 1420
+#define PACKET_HDR_LEN 68
 
 #define __REVS(x)                              \
     asm volatile("mv a0, %0" ::"r"(x) : "a0"); \

@@ -20,7 +20,7 @@ inline void write_vc_memory(uint32_t addr, uint32_t *data, int length)
 {
     for (int i = 0; i < length; i++)
     {
-        *((volatile uint32_t *)(addr + i * 4)) = data[i];
+        *((volatile uint32_t *)(addr + i << 2)) = data[i];
     }
     *((volatile uint32_t *)(BRAM_BUFFER_FENCE_ADDR)) = 1;
 }
