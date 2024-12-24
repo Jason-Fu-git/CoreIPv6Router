@@ -25,13 +25,17 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length);
 void send_multicast_request();
 
 /**
- * @brief Send unsolicited response.
- * @note  This function will block until the whole routing table is sent.
- * @author Jason Fu
+ * @brief Assemble a packet.
+ * @param packet_hdr Where the packet is assembled at.
+ * @param src_addr The source address of the packet.
+ * @param dst_addr The destination address of the packet.
+ * @param entries The routing table entries.
+ * @param num_entries The number of routing table entries. It shouldn't be bigger than RIPNG_MAX_RTE_NUM.
+ * @return The size of the packet.
+ * @author Eason Liu
  *
  */
-void send_unsolicited_response();
-
+int assemble(struct packet_hdr *packet_hdr, struct ip6_addr *src_addr, struct ip6_addr *dst_addr, struct ripng_rte *entries, int num_entries);
 
 /**
  * @brief Send triggered update.
@@ -44,5 +48,13 @@ void send_unsolicited_response();
  *
  */
 void send_triggered_update(struct ip6_addr *src_addr, struct ip6_addr *dst_addr, struct ripng_rte *entries, int num_entries);
+
+/**
+ * @brief Send unsolicited response.
+ * @note  This function will block until the whole routing table is sent.
+ * @author Jason Fu
+ *
+ */
+void send_unsolicited_response();
 
 #endif
