@@ -13,6 +13,7 @@ module alu_comb (
   // ALU operation
   // =====================================
   logic [63:0] temp;
+  logic [31:0] temp32;
   always_comb begin : ALU
     case (OP)
       ALU_ADD:  Y = A + B;
