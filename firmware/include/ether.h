@@ -3,7 +3,7 @@
 
 #include "stdint.h"
 
-#define PADDING 0
+#define PADDING 2
 #define ETHER_HDR_LEN 14
 
 // Ethernet address
@@ -21,7 +21,7 @@ struct ether_addr
 // Ethernet header
 struct ether_hdr
 {
-    uint16_t padding = 0;
+    uint16_t padding;
     struct ether_addr dst_addr;
     struct ether_addr src_addr;
     uint16_t ethertype;

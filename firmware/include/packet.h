@@ -18,6 +18,7 @@
     asm volatile("mv a0, %0" ::"r"(x) : "a0"); \
     asm volatile(".word 0x69855513" ::: "a0") // grevi a0, a0, 11000
 
+// Packet header
 struct packet_hdr
 {
     struct ether_hdr ether;

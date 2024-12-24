@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 `include "frame_datapath.vh"
 
-
+// todo: fill in src and dst MAC addresses, src IPv6 address, and port IDs
 module pipeline_rip (
     input wire clk,
     input wire rst_p,

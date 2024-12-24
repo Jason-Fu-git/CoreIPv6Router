@@ -4,6 +4,7 @@
 #include "packet.h"
 #include "dma.h"
 
+
 /**
  * @brief Disassemble the packet and check the correctness of the packet.
  * @param base_addr The base address of the packet.
@@ -154,24 +155,34 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length)
  */
 void send_multicast_request()
 {
-    // TODO: Write to DMA_BLOCK_RADDR
-    
-    // TODO: Set the length to DMA_OUT_LENGTH
+    // Write to DMA_BLOCK_RADDR
+    volatile struct packet_hdr *packet = (volatile struct packet_hdr *)DMA_BLOCK_RADDR;
+    // set the ether header
+    packet->ether.padding = 0;
+    packet->ether.ethertype = 0x86dd;
+    // set the ip6 header
+    packet->ip6.version = 6;
+    packet->ip6.traffic_class = 0;
+    packet->ip6.flow_label = 0;
+    packet->ip6.payload_len = htons(UDP_HDR_LEN + RIPNG_HDR_LEN);
+    packet->ip6.next_header = IPPROTO_UDP;
+    packet->ip6.hop_limit = 64;
+    packet->ip6.dst_addr.s6_addr32[0] = htonl(0xff020000);
+    packet->ip6.dst_addr.s6_addr32[1] = 0;
+    packet->ip6.dst_addr.s6_addr32[2] = 0;
+    packet->ip6.dst_addr.s6_addr32[3] = htonl(0x00000009);
+    // set the udp header
+    packet->udp.src_port = htons(UDP_PORT_RIPNG);
+    packet->udp.dst_port = htons(UDP_PORT_RIPNG);
+    packet->udp.len = htons(UDP_HDR_LEN + RIPNG_HDR_LEN);
+    packet->udp.checksum = 0;
+    // set the ripng header
+    packet->ripng.cmd = RIPNG_CMD_REQUEST;
+    packet->ripng.vers = 1;
+    packet->ripng.reserved = 0;
+    // Set the length to DMA_OUT_LENGTH
+    *(volatile uint32_t *)DMA_OUT_LENGTH = PADDING + ETHER_HDR_LEN + IP6_HDR_LEN + UDP_HDR_LEN + RIPNG_HDR_LEN;
 }
-
-/**
- * @brief Send unsolicited response.
- * @note This function will block until the whole routing table is sent.
- * @author Jason Fu
- * 
- */
-void send_unsolicited_response(struct ip6_addr *dst_addr)
-{
-    // TODO: Write to DMA_BLOCK_RADDR
-
-    // TODO: Set the length to DMA_OUT_LENGTH
-}
-
 
 /**
  * @brief Send triggered update.
@@ -183,6 +194,20 @@ void send_unsolicited_response(struct ip6_addr *dst_addr)
  * @author Eason Liu
  *
  */
-void send_triggered_update(struct ip6_addr *src_addr, struct ip6_addr *dst_addr, struct ripng_entry *entries, int num_entries){
-    
+void send_triggered_update(struct ip6_addr *src_addr, struct ip6_addr *dst_addr, struct ripng_rte *entries, int num_entries)
+{
+}
+
+/**
+ * @brief Send unsolicited response.
+ * @note This function will block until the whole routing table is sent.
+ * @author Jason Fu
+ *
+ */
+void send_unsolicited_response()
+{
+    struct ip6_addr src_addr = {0};
+    struct ip6_addr dst_addr = {
+        .s6_addr32 = {htonl(0xff020000), 0, 0, htonl(0x00000009)}};
+    send_triggered_update(&src_addr, &dst_addr, NULL, 0);
 }

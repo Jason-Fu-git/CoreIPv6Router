@@ -30,7 +30,7 @@ void send_multicast_request();
  * @author Jason Fu
  *
  */
-void send_unsolicited_response(struct ip6_addr *src_addr, struct ip6_addr *dst_addr);
+void send_unsolicited_response();
 
 
 /**
