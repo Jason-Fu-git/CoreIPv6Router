@@ -150,17 +150,19 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length)
  * @brief Send multicast request.
  * @note This function will only write the packet to the SRAM.
  *  To initiate the DMA transfer, you need to call _grant_dma_access()
+ * @author Jason Fu
  */
 void send_multicast_request()
 {
     // TODO: Write to DMA_BLOCK_RADDR
-
+    
     // TODO: Set the length to DMA_OUT_LENGTH
 }
 
 /**
  * @brief Send unsolicited response.
  * @note This function will block until the whole routing table is sent.
+ * @author Jason Fu
  * 
  */
 void send_unsolicited_response(struct ip6_addr *dst_addr)

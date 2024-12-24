@@ -43,6 +43,6 @@ void send_unsolicited_response(struct ip6_addr *src_addr, struct ip6_addr *dst_a
  * @author Eason Liu
  *
  */
-void send_triggered_update(struct ip6_addr *src_addr, struct ip6_addr *dst_addr, struct ripng_entry *entries, int num_entries);
+void send_triggered_update(struct ip6_addr *src_addr, struct ip6_addr *dst_addr, struct ripng_rte *entries, int num_entries);
 
 #endif

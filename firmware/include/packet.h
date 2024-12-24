@@ -5,9 +5,8 @@
 #include "ip6.h"
 #include "udp.h"
 #include "ripng.h"
+#include "ether.h"
 
-#define PADDING 0
-#define ETHER_HDR_LEN 14
 
 #define MTU 1500
 #define RIPNG_MAX_RTE_NUM 72
