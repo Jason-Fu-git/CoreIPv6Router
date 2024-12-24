@@ -14,6 +14,7 @@
 // UDP port numbers
 #define UDP_PORT_RIPNG 521
 
+// UDP header
 struct udp_hdr
 {
     uint16_t src_port;

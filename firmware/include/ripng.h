@@ -14,6 +14,7 @@
 #define RIPNG_CMD_REQUEST 1
 #define RIPNG_CMD_RESPONSE 2
 
+// RIPng header
 struct ripng_hdr
 {
     uint8_t cmd;
