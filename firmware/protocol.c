@@ -207,8 +207,8 @@ int assemble(struct packet_hdr *packet_hdr, struct ip6_addr *src_addr, struct ip
     packet_hdr->ip6.next_header = IPPROTO_UDP;
     packet_hdr->ip6.hop_limit = 64;
     for(int i = 0; i < 4; i++){
-        packet_hdr->ip6.src_addr.s6_addr32[i] = htonl(src_addr->s6_addr32[i]);
-        packet_hdr->ip6.dst_addr.s6_addr32[i] = htonl(dst_addr->s6_addr32[i]);
+        packet_hdr->ip6.src_addr.s6_addr32[i] = src_addr->s6_addr32[i];
+        packet_hdr->ip6.dst_addr.s6_addr32[i] = dst_addr->s6_addr32[i];
     }
     packet_hdr->udp.src_port = packet_hdr->udp.dst_port = htons(UDP_PORT_RIPNG);
     packet_hdr->udp.checksum = 0;
@@ -218,10 +218,10 @@ int assemble(struct packet_hdr *packet_hdr, struct ip6_addr *src_addr, struct ip
     struct ripng_rte *rte = (struct ripng_rte *)packet_hdr + PACKET_HDR_LEN;
     int entries_size = 0;
     for(int i = 0; i < num_entries; i++){
-        rte->ip6_addr.s6_addr32[0] = htonl(entries[i].ip6_addr.s6_addr32[0]);
-        rte->ip6_addr.s6_addr32[1] = htonl(entries[i].ip6_addr.s6_addr32[1]);
-        rte->ip6_addr.s6_addr32[2] = htonl(entries[i].ip6_addr.s6_addr32[2]);
-        rte->ip6_addr.s6_addr32[3] = htonl(entries[i].ip6_addr.s6_addr32[3]);
+        rte->ip6_addr.s6_addr32[0] = entries[i].ip6_addr.s6_addr32[0];
+        rte->ip6_addr.s6_addr32[1] = entries[i].ip6_addr.s6_addr32[1];
+        rte->ip6_addr.s6_addr32[2] = entries[i].ip6_addr.s6_addr32[2];
+        rte->ip6_addr.s6_addr32[3] = entries[i].ip6_addr.s6_addr32[3];
         rte->prefix_len = entries[i].prefix_len;
         rte->metric = entries[i].metric;
         rte->route_tag = htons(entries[i].route_tag);
