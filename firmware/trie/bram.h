@@ -17,5 +17,6 @@ const uint32_t VCTRIE_ENTRY_FIELD_LC = 8;
 const uint32_t VCTRIE_ENTRY_FIELD_RC = 12;
 
 typedef uint32_t TrieAddr;
+typedef uint32_t NodeAddr;
 
 #endif //FIRMWARE_BRAM_H

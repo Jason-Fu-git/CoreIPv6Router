@@ -17,21 +17,6 @@ module bram_data_converter_bt (
 
 endmodule : bram_data_converter_bt
 
-// We need word select to determine which field to give back
-// Address to fetch BRAM: 0010 0~15 000X 0000 0000 0000 XXXX XXXX
-// So that we have address 0x2??????? for BRAM, and 0x2X??????? for the X-th trie.
-// | 31-28 | 27-24 | 23-20 | 19-16 | 15-12 | 11--8 |  7--4 |  3--0 |
-// |-------|-------|-------|-------|-------|-------|-------|-------|
-// |     2 |  0~15 | 0 / 1 |  addr |  addr |  addr | entry | field |
-// |  BRAM |  trie | vc/bt |  addr |  addr |  addr |   sel |   sel |
-//                 | ... . |
-//                 | adr s |
-//
-// The lower part is given to the converters below.
-// Since the entry index is less than 15, we use 4 bits to represent it.
-// field: 0000 for prefix_length, 0001 for prefix, 0010 for entry_offset, 1000 for lc (no matter what entry is) and 1100 for rc.
-// // [Discarded] Especially, the highest 4 bits 0010 means read, and we will design how to write to BRAM using the highest 4 bits 0011.
-
 module bram_data_converter_1 (
 	input wire [53:0] in,
 	input wire [ 7:0] sel,
@@ -52,12 +37,12 @@ module bram_data_converter_1 (
 	end
 
 	always_comb begin
-		case (sel[3:0])
-			4'b0000: out = out_node.bin.prefix_length;
-			4'b0001: out = out_node.bin.prefix;
-			4'b0010: out = out_node.bin.entry_offset;
-			4'b1000: out = out_node.lc;
-			4'b1100: out = out_node.rc;
+		case (sel)
+			8'b00000010: out = out_node.bin.prefix_length;
+			8'b00000011: out = out_node.bin.prefix;
+			8'b00000100: out = out_node.bin.entry_offset;
+			8'b00000000: out = out_node.lc;
+			8'b00000001: out = out_node.rc;
 			default: out = 32'h114514;
 		endcase
 	end
@@ -76,20 +61,24 @@ module bram_data_converter_7 (
 	Entry_Aligned entry;
 
 	always_comb begin
-		entry.entry_offset  = {27'b0, in_node.bin[sel[7:4]].entry_offset};
-		entry.prefix        = {4'b0,  in_node.bin[sel[7:4]].prefix};
-		entry.prefix_length = {27'b0, in_node.bin[sel[7:4]].prefix_length};
+		entry.entry_offset  = {27'b0, in_node.bin[(sel - 8'd2) / 3].entry_offset};
+		entry.prefix        = {4'b0,  in_node.bin[(sel - 8'd2) / 3].prefix};
+		entry.prefix_length = {27'b0, in_node.bin[(sel - 8'd2) / 3].prefix_length};
 	end
 
 	always_comb begin
-		case (sel[3:0])
-			4'b0000: out = entry.prefix_length;
-			4'b0001: out = entry.prefix;
-			4'b0010: out = entry.entry_offset;
-			4'b1000: out = {19'b0, in_node.lc};
-			4'b1100: out = {19'b0, in_node.rc};
-			default: out = 32'h114514;
-		endcase
+		if (sel == 8'd0) begin
+			out = {19'b0, in_node.lc};
+		end else if (sel == 8'd1) begin
+			out = {19'b0, in_node.rc};
+		end else begin
+			case (sel % 3)
+				0: out = entry.prefix_length;
+				1: out = entry.prefix;
+				2: out = entry.entry_offset;
+				default: out = 32'h114514;
+			endcase
+		end
 	end
 
 endmodule : bram_data_converter_7
@@ -106,20 +95,24 @@ module bram_data_converter_15 (
 	Entry_Aligned entry;
 
 	always_comb begin
-		entry.entry_offset  = {27'b0, in_node.bin[sel[7:4]].entry_offset};
-		entry.prefix        = {4'b0,  in_node.bin[sel[7:4]].prefix};
-		entry.prefix_length = {27'b0, in_node.bin[sel[7:4]].prefix_length};
+		entry.entry_offset  = {27'b0, in_node.bin[(sel - 8'd2) / 3].entry_offset};
+		entry.prefix        = {4'b0,  in_node.bin[(sel - 8'd2) / 3].prefix};
+		entry.prefix_length = {27'b0, in_node.bin[(sel - 8'd2) / 3].prefix_length};
 	end
 
 	always_comb begin
-		case (sel[3:0])
-			4'b0000: out = entry.prefix_length;
-			4'b0001: out = entry.prefix;
-			4'b0010: out = entry.entry_offset;
-			4'b1000: out = {19'b0, in_node.lc};
-			4'b1100: out = {19'b0, in_node.rc};
-			default: out = 32'h114514;
-		endcase
+		if (sel == 8'd0) begin
+			out = {19'b0, in_node.lc};
+		end else if (sel == 8'd1) begin
+			out = {19'b0, in_node.rc};
+		end else begin
+			case (sel % 3)
+				0: out = entry.prefix_length;
+				1: out = entry.prefix;
+				2: out = entry.entry_offset;
+				default: out = 32'h114514;
+			endcase
+		end
 	end
 
 endmodule : bram_data_converter_15
@@ -136,20 +129,24 @@ module bram_data_converter_14 (
 	Entry_Aligned entry;
 
 	always_comb begin
-		entry.entry_offset  = {27'b0, in_node.bin[sel[7:4]].entry_offset};
-		entry.prefix        = {4'b0,  in_node.bin[sel[7:4]].prefix};
-		entry.prefix_length = {27'b0, in_node.bin[sel[7:4]].prefix_length};
+		entry.entry_offset  = {27'b0, in_node.bin[(sel - 8'd2) / 3].entry_offset};
+		entry.prefix        = {4'b0,  in_node.bin[(sel - 8'd2) / 3].prefix};
+		entry.prefix_length = {27'b0, in_node.bin[(sel - 8'd2) / 3].prefix_length};
 	end
 
 	always_comb begin
-		case (sel[3:0])
-			4'b0000: out = entry.prefix_length;
-			4'b0001: out = entry.prefix;
-			4'b0010: out = entry.entry_offset;
-			4'b1000: out = {19'b0, in_node.lc};
-			4'b1100: out = {19'b0, in_node.rc};
-			default: out = 32'h114514;
-		endcase
+		if (sel == 8'd0) begin
+			out = {19'b0, in_node.lc};
+		end else if (sel == 8'd1) begin
+			out = {19'b0, in_node.rc};
+		end else begin
+			case (sel % 3)
+				0: out = entry.prefix_length;
+				1: out = entry.prefix;
+				2: out = entry.entry_offset;
+				default: out = 32'h114514;
+			endcase
+		end
 	end
 
 endmodule : bram_data_converter_14
@@ -166,20 +163,24 @@ module bram_data_converter_10 (
 	Entry_Aligned entry;
 
 	always_comb begin
-		entry.entry_offset  = {27'b0, in_node.bin[sel[7:4]].entry_offset};
-		entry.prefix        = {4'b0,  in_node.bin[sel[7:4]].prefix};
-		entry.prefix_length = {27'b0, in_node.bin[sel[7:4]].prefix_length};
+		entry.entry_offset  = {27'b0, in_node.bin[(sel - 8'd2) / 3].entry_offset};
+		entry.prefix        = {4'b0,  in_node.bin[(sel - 8'd2) / 3].prefix};
+		entry.prefix_length = {27'b0, in_node.bin[(sel - 8'd2) / 3].prefix_length};
 	end
 
 	always_comb begin
-		case (sel[3:0])
-			4'b0000: out = entry.prefix_length;
-			4'b0001: out = entry.prefix;
-			4'b0010: out = entry.entry_offset;
-			4'b1000: out = {20'b0, in_node.lc};
-			4'b1100: out = {20'b0, in_node.rc};
-			default: out = 32'h114514;
-		endcase
+		if (sel == 8'd0) begin
+			out = {19'b0, in_node.lc};
+		end else if (sel == 8'd1) begin
+			out = {19'b0, in_node.rc};
+		end else begin
+			case (sel % 3)
+				0: out = entry.prefix_length;
+				1: out = entry.prefix;
+				2: out = entry.entry_offset;
+				default: out = 32'h114514;
+			endcase
+		end
 	end
 
 endmodule : bram_data_converter_10
