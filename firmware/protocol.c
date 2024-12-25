@@ -4,7 +4,6 @@
 #include "packet.h"
 #include "dma.h"
 
-
 /**
  * @brief Disassemble the packet and check the correctness of the packet.
  * @param base_addr The base address of the packet.
@@ -167,6 +166,10 @@ void send_multicast_request()
     packet->ip6.payload_len = htons(UDP_HDR_LEN + RIPNG_HDR_LEN);
     packet->ip6.next_header = IPPROTO_UDP;
     packet->ip6.hop_limit = 64;
+    packet->ip6.src_addr.s6_addr32[0] = 0;
+    packet->ip6.src_addr.s6_addr32[1] = 0;
+    packet->ip6.src_addr.s6_addr32[2] = 0;
+    packet->ip6.src_addr.s6_addr32[3] = 0;
     packet->ip6.dst_addr.s6_addr32[0] = htonl(0xff020000);
     packet->ip6.dst_addr.s6_addr32[1] = 0;
     packet->ip6.dst_addr.s6_addr32[2] = 0;
