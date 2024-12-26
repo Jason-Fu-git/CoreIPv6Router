@@ -66,9 +66,8 @@ module tanlabs #(
 );
 
   // added ip addr and valid
-  wire [127:0] ip_addrs [3:0];
-  wire [  3:0] ip_valids[3:0];
-  wire [ 47:0] mac_addrs[3:0];
+  wire [3:0][127:0] ip_addrs;
+  wire [3:0][ 47:0] mac_addrs;
 
   localparam DATA_WIDTH = 64;
   localparam ID_WIDTH = 3;
@@ -745,14 +744,10 @@ module tanlabs #(
       .m_ready(1'b1),
 
       // added ip addr and valid
-      .ip_addr_0 (ip_addrs[0]),
-      .ip_valid_0(ip_valids[0]),
-      .ip_addr_1 (ip_addrs[1]),
-      .ip_valid_1(ip_valids[1]),
-      .ip_addr_2 (ip_addrs[2]),
-      .ip_valid_2(ip_valids[2]),
-      .ip_addr_3 (ip_addrs[3]),
-      .ip_valid_3(ip_valids[3]),
+      .ip_addr_0(ip_addrs[0]),
+      .ip_addr_1(ip_addrs[1]),
+      .ip_addr_2(ip_addrs[2]),
+      .ip_addr_3(ip_addrs[3]),
 
       .mac_addr_0(mac_addrs[0]),
       .mac_addr_1(mac_addrs[1]),
@@ -915,15 +910,30 @@ module tanlabs #(
   // Wishbone
   // =======================================
 
-  logic [31:0] wbs0_adr, wbs1_adr, wbs2_adr;
-  logic [31:0] wbs0_dat_r, wbs0_dat_w, wbs1_dat_r, wbs1_dat_w, wbs2_dat_r, wbs2_dat_w;
-  logic [3:0] wbs0_sel, wbs1_sel, wbs2_sel;
-  logic wbs0_we, wbs1_we, wbs2_we;
-  logic wbs0_stb, wbs1_stb, wbs2_stb;
-  logic wbs0_ack, wbs1_ack, wbs2_ack;
-  logic wbs0_err, wbs1_err, wbs2_err;
-  logic wbs0_rty, wbs1_rty, wbs2_rty;
-  logic wbs0_cyc, wbs1_cyc, wbs2_cyc;
+  logic [31:0]
+      wbs0_adr, wbs1_adr, wbs2_adr, wbs3_adr, addr_conf_adr, nxthop_conf_adr, wb_synced_adr;
+  logic [31:0]
+      wbs0_dat_r,
+      wbs0_dat_w,
+      wbs1_dat_r,
+      wbs1_dat_w,
+      wbs2_dat_r,
+      wbs2_dat_w,
+      wbs3_dat_r,
+      wbs3_dat_w,
+      addr_conf_dat_r,
+      addr_conf_dat_w,
+      nxthop_conf_dat_r,
+      nxthop_conf_dat_w,
+      wb_synced_dat_r,
+      wb_synced_dat_w;
+  logic [3:0] wbs0_sel, wbs1_sel, wbs2_sel, wbs3_sel, addr_conf_sel, nxthop_conf_sel, wb_synced_sel;
+  logic wbs0_we, wbs1_we, wbs2_we, wbs3_we, addr_conf_we, nxthop_conf_we, wb_synced_we;
+  logic wbs0_stb, wbs1_stb, wbs2_stb, wbs3_stb, addr_conf_stb, nxthop_conf_stb, wb_synced_stb;
+  logic wbs0_ack, wbs1_ack, wbs2_ack, wbs3_ack, addr_conf_ack, nxthop_conf_ack, wb_synced_ack;
+  logic wbs0_err, wbs1_err, wbs2_err, wbs3_err, addr_conf_err, nxthop_conf_err, wb_synced_err;
+  logic wbs0_rty, wbs1_rty, wbs2_rty, wbs3_rty, addr_conf_rty, nxthop_conf_rty, wb_synced_rty;
+  logic wbs0_cyc, wbs1_cyc, wbs2_cyc, wbs3_cyc, addr_conf_cyc, nxthop_conf_cyc, wb_synced_cyc;
 
   logic [22:0] icache_sram_adr, dcache_sram_adr, dma_sram_adr;
   logic [31:0] icache_sram_dat_o, dcache_sram_dat_o, dma_sram_dat_o;
@@ -942,11 +952,11 @@ module tanlabs #(
   logic        arbiter_sram_stb;
   logic        arbiter_sram_ack;
 
-  wb_mux_3 #(
+  wb_mux_4 #(
       .DATA_WIDTH  (32),
       .ADDR_WIDTH  (32),
       .SELECT_WIDTH(4)
-  ) wb_mux_3_i (
+  ) wb_mux_4_i (
       .clk(core_clk),
       .rst(reset_core),
 
@@ -1009,7 +1019,23 @@ module tanlabs #(
       .wbs2_ack_i(wbs2_ack),
       .wbs2_err_i('0),
       .wbs2_rty_i('0),
-      .wbs2_cyc_o(wbs2_cyc)
+      .wbs2_cyc_o(wbs2_cyc),
+
+      // Slave interface 3 (to address config and nexthop table)
+      // Address range: 0x4000_0000 ~ 0x4FFF_FFFF
+      .wbs3_addr    (32'h4000_0000),
+      .wbs3_addr_msk(32'hF000_0000),
+
+      .wbs3_adr_o(wbs3_adr),
+      .wbs3_dat_i(wbs3_dat_r),
+      .wbs3_dat_o(wbs3_dat_w),
+      .wbs3_we_o (wbs3_we),
+      .wbs3_sel_o(wbs3_sel),
+      .wbs3_stb_o(wbs3_stb),
+      .wbs3_ack_i(wbs3_ack),
+      .wbs3_err_i('0),
+      .wbs3_rty_i('0),
+      .wbs3_cyc_o(wbs3_cyc)
   );
 
   cache #(
@@ -1073,7 +1099,7 @@ module tanlabs #(
   //   );
 
   dma #(
-      .IN_DATA_WIDTH (DATAW_WIDTH),  // FIXME: Attach to FIFO in the future
+      .IN_DATA_WIDTH (DATAW_WIDTH),
       .OUT_DATA_WIDTH(DATAW_WIDTH)
   ) dma_i (
       .eth_clk(eth_clk),
@@ -1236,6 +1262,121 @@ module tanlabs #(
       .uart_rxd_i(uart_rx)
   );
 
+
+  // wb async
+  wb_async wb_async_i (
+      .eth_clk(eth_clk),
+      .core_clk(core_clk),
+      .eth_reset(reset_eth),
+      .core_reset(reset_core),
+
+      // Wishbone Master (to CPU)
+      .wbm_adr_i(wbs3_adr),
+      .wbm_dat_i(wbs3_dat_w),
+      .wbm_dat_o(wbs3_dat_r),
+      .wbm_sel_i(wbs3_sel),
+      .wbm_we_i (wbs3_we),
+      .wbm_stb_i(wbs3_stb),
+      .wbm_ack_o(wbs3_ack),
+
+      // Wishbone Slave (to Address Config / Nexthop Table)
+      .wbs_adr_o(wb_synced_adr),
+      .wbs_dat_i(wb_synced_dat_r),
+      .wbs_dat_o(wb_synced_dat_w),
+      .wbs_sel_o(wb_synced_sel),
+      .wbs_we_o (wb_synced_we),
+      .wbs_stb_o(wb_synced_stb),
+      .wbs_ack_i(wb_synced_ack)
+  );
+
+
+  // wb async mux
+  wb_mux_2 #(
+      .DATA_WIDTH  (32),
+      .ADDR_WIDTH  (32),
+      .SELECT_WIDTH(4)
+  ) wb_mux_2_i (
+      .clk(eth_clk),
+      .rst(reset_eth),
+
+      // Master interface (Data Memory)
+      .wbm_adr_i(wb_synced_adr),
+      .wbm_dat_i(wb_synced_dat_w),
+      .wbm_dat_o(wb_synced_dat_r),
+      .wbm_we_i (wb_synced_we),
+      .wbm_sel_i(wb_synced_sel),
+      .wbm_stb_i(wb_synced_stb),
+      .wbm_ack_o(wb_synced_ack),
+      .wbm_err_o(),
+      .wbm_rty_o(),
+      .wbm_cyc_i(wb_synced_stb),
+
+      // Slave interface 0 (to Address Config)
+      // Address range: 0x4000_0000 ~ 0x4000_FFFF
+      .wbs0_addr    (32'h4000_0000),
+      .wbs0_addr_msk(32'hFFFF_0000),
+
+      .wbs0_adr_o(addr_conf_adr),
+      .wbs0_dat_i(addr_conf_dat_r),
+      .wbs0_dat_o(addr_conf_dat_w),
+      .wbs0_we_o (addr_conf_we),
+      .wbs0_sel_o(addr_conf_sel),
+      .wbs0_stb_o(addr_conf_stb),
+      .wbs0_ack_i(addr_conf_ack),
+      .wbs0_err_i('0),
+      .wbs0_rty_i('0),
+      .wbs0_cyc_o(addr_conf_cyc),
+
+
+      // Slave interface 1 (to Nexthop Config)
+      // Address range: 0x4100_0000 ~ 0x4100_FFFF
+      .wbs1_addr    (32'h4100_0000),
+      .wbs1_addr_msk(32'hFFFF_0000),
+
+      .wbs1_adr_o(nxthop_conf_adr),
+      .wbs1_dat_i(nxthop_conf_dat_r),
+      .wbs1_dat_o(nxthop_conf_dat_w),
+      .wbs1_we_o (nxthop_conf_we),
+      .wbs1_sel_o(nxthop_conf_sel),
+      .wbs1_stb_o(nxthop_conf_stb),
+      .wbs1_ack_i(nxthop_conf_ack),
+      .wbs1_err_i('0),
+      .wbs1_rty_i('0),
+      .wbs1_cyc_o(nxthop_conf_cyc)
+  );
+
+  address_config_adapter address_config_adapter_i (
+      .eth_clk  (eth_clk),
+      .eth_reset(reset_eth),
+
+      .wbm_adr_i(addr_conf_adr),
+      .wbm_dat_i(addr_conf_dat_w),
+      .wbm_dat_o(addr_conf_dat_r),
+      .wbm_sel_i(addr_conf_sel),
+      .wbm_we_i (addr_conf_we),
+      .wbm_stb_i(addr_conf_stb),
+      .wbm_ack_o(addr_conf_ack),
+
+      .ip_addrs (ip_addrs),
+      .mac_addrs(mac_addrs)
+  );
+
+
+  nexthop_table_adapter nexthop_table_adapter_i (
+      .eth_clk  (eth_clk),
+      .eth_reset(reset_eth),
+
+      .r_addr(5'd0),  // TODO
+      .r_nexthop(),  // TODO
+
+      .wbm_adr_i(nxthop_conf_adr),
+      .wbm_dat_i(nxthop_conf_dat_w),
+      .wbm_dat_o(nxthop_conf_dat_r),
+      .wbm_sel_i(nxthop_conf_sel),
+      .wbm_we_i (nxthop_conf_we),
+      .wbm_stb_i(nxthop_conf_stb),
+      .wbm_ack_o(nxthop_conf_ack)
+  );
 
 
   // =======================================
@@ -1439,26 +1580,4 @@ module tanlabs #(
       );
     end
   endgenerate
-  //assign led[8] = init_calib_complete;
-
-
-  address_config address_config_i (
-      .clk(eth_clk),
-      .reset(reset_eth),
-      .btn(touch_btn),
-      .dip_sw(dip_sw),
-      .ip_addr_0(ip_addrs[0]),
-      .ip_addr_1(ip_addrs[1]),
-      .ip_addr_2(ip_addrs[2]),
-      .ip_addr_3(ip_addrs[3]),
-      .ip_addr_0_valid(ip_valids[0]),
-      .ip_addr_1_valid(ip_valids[1]),
-      .ip_addr_2_valid(ip_valids[2]),
-      .ip_addr_3_valid(ip_valids[3]),
-      .mac_addr_0(mac_addrs[0]),
-      .mac_addr_1(mac_addrs[1]),
-      .mac_addr_2(mac_addrs[2]),
-      .mac_addr_3(mac_addrs[3]),
-      .led(led)
-  );
 endmodule

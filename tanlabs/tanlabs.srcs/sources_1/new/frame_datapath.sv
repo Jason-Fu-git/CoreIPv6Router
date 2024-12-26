@@ -29,13 +29,9 @@ module frame_datapath #(
 
     // added ip addrs and valids
     input wire [127:0] ip_addr_0,
-    input wire ip_valid_0,
     input wire [127:0] ip_addr_1,
-    input wire ip_valid_1,
     input wire [127:0] ip_addr_2,
-    input wire ip_valid_2,
     input wire [127:0] ip_addr_3,
-    input wire ip_valid_3,
 
     // added mac addrs
     input wire [47:0] mac_addr_0,
@@ -107,10 +103,10 @@ module frame_datapath #(
     );
     */
 
-  assign ipv6_addrs[0] = ip_valid_0 ? ip_addr_0 : 128'h0;
-  assign ipv6_addrs[1] = ip_valid_1 ? ip_addr_1 : 128'h0;
-  assign ipv6_addrs[2] = ip_valid_2 ? ip_addr_2 : 128'h0;
-  assign ipv6_addrs[3] = ip_valid_3 ? ip_addr_3 : 128'h0;
+  assign ipv6_addrs[0] = ip_addr_0;
+  assign ipv6_addrs[1] = ip_addr_1;
+  assign ipv6_addrs[2] = ip_addr_2;
+  assign ipv6_addrs[3] = ip_addr_3;
 
   // mac addresses are set when reset and then fixed
   assign mac_addrs[0]  = mac_addr_0;
@@ -308,7 +304,7 @@ module frame_datapath #(
       .cache_r_exists   (cache_exists1),
 
       .mac_addrs(mac_addrs),
-      .ip_addrs(ipv6_addrs),
+      .ip_addrs (ipv6_addrs),
 
       .checksum(dma_checksum),
       .checksum_valid(dma_checksum_valid)

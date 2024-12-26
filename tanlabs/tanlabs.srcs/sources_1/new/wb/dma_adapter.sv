@@ -1,4 +1,4 @@
-`include "csrs.vh"
+`include "wb.vh"
 module dma_adapter (
     input wire clk,
     input wire rst,

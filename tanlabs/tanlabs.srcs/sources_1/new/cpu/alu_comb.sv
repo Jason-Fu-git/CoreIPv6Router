@@ -40,6 +40,13 @@ module alu_comb (
         if (B[4]) temp32 = ((temp32 & 32'h0000_FFFF) << 16) | ((temp32 & 32'hFFFF_0000) >> 16);
         Y = temp32;
       end
+      ALU_BREV8: begin
+        for (int j = 0; j < 4; j++) begin
+          for (int i = 0; i < 8; i++) begin
+            Y[8*j+i] = A[8*j+7-i];
+          end
+        end
+      end
       default:  Y = 32'b0;
     endcase
   end

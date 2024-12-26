@@ -787,7 +787,11 @@ module cpu_controller (
             end
           end
           3'b101: begin
-            if (if_instr[31:25] == 7'b0000000) begin
+            if (if_instr[31:20] == 12'b011010000111) begin
+              id_op_next   = OP_BREV8;
+              id_rd_ea     = 1;
+              id_ex_rs1_ea = 1;
+            end else if (if_instr[31:25] == 7'b0000000) begin
               id_op_next   = OP_SRLI;
               id_rd_ea     = 1;
               id_ex_rs1_ea = 1;
@@ -1427,6 +1431,11 @@ module cpu_controller (
         alu_b  = id_imm[4:0];
         alu_op = ALU_GRV;
       end
+      OP_BREV8: begin
+        alu_a  = ex_rs1_fwd;
+        alu_b  = 0;
+        alu_op = ALU_BREV8;
+      end
       // R type
       OP_ADD: begin
         alu_a  = ex_rs1_fwd;
@@ -1561,6 +1570,7 @@ module cpu_controller (
           || (ex_op == OP_OR)
           || (ex_op == OP_AND)
           || (ex_op == OP_GREVI)
+          || (ex_op == OP_BREV8)
         )
     );
 

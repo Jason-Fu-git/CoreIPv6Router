@@ -7,7 +7,6 @@
 #include "ripng.h"
 #include "ether.h"
 
-
 #define MTU 1500
 #define RIPNG_MAX_RTE_NUM 71
 #define RIPNG_MAX_RTE_LEN 1420
@@ -19,6 +18,10 @@
 #define __REVL(x)                              \
     asm volatile("mv a0, %0" ::"r"(x) : "a0"); \
     asm volatile(".word 0x69855513" ::: "a0") // grevi a0, a0, 11000
+#define __BREV8(x)                             \
+    asm volatile("mv a0, %0" ::"r"(x) : "a0"); \
+    asm volatile(".word 0x68755513" ::: "a0") // brev8 a0, a0
+
 
 // Packet header
 struct packet_hdr
@@ -29,6 +32,13 @@ struct packet_hdr
     struct ripng_hdr ripng;
 };
 
+inline uint32_t brev8(uint32_t x)
+{
+    __BREV8(x);
+    uint32_t ret;
+    asm volatile("mv %0, a0" : "=r"(ret) : :);
+    return ret;
+}
 
 inline uint32_t htonl(uint32_t hostlong)
 {
