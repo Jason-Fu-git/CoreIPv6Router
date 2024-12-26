@@ -158,14 +158,20 @@ void send_multicast_request()
     volatile struct packet_hdr *packet = (volatile struct packet_hdr *)DMA_BLOCK_RADDR;
     // set the ether header
     packet->ether.padding = 0;
-    packet->ether.ethertype = 0x86dd;
+    packet->ether.dst_addr.ether_addr16[0] = 0;
+    packet->ether.dst_addr.ether_addr16[1] = 0;
+    packet->ether.dst_addr.ether_addr16[2] = 0;
+    packet->ether.src_addr.ether_addr16[0] = 0;
+    packet->ether.src_addr.ether_addr16[1] = 0;
+    packet->ether.src_addr.ether_addr16[2] = 0;
+    packet->ether.ethertype = 0xdd86;
     // set the ip6 header
-    packet->ip6.version = 6;
+    packet->ip6.version = 0x60;
     packet->ip6.traffic_class = 0;
     packet->ip6.flow_label = 0;
-    packet->ip6.payload_len = htons(UDP_HDR_LEN + RIPNG_HDR_LEN);
+    packet->ip6.payload_len = htons(UDP_HDR_LEN + RIPNG_HDR_LEN + RTE_LEN);
     packet->ip6.next_header = IPPROTO_UDP;
-    packet->ip6.hop_limit = 64;
+    packet->ip6.hop_limit = 255;
     packet->ip6.src_addr.s6_addr32[0] = 0;
     packet->ip6.src_addr.s6_addr32[1] = 0;
     packet->ip6.src_addr.s6_addr32[2] = 0;
@@ -177,14 +183,23 @@ void send_multicast_request()
     // set the udp header
     packet->udp.src_port = htons(UDP_PORT_RIPNG);
     packet->udp.dst_port = htons(UDP_PORT_RIPNG);
-    packet->udp.len = htons(UDP_HDR_LEN + RIPNG_HDR_LEN);
+    packet->udp.len = htons(UDP_HDR_LEN + RIPNG_HDR_LEN + RTE_LEN);
     packet->udp.checksum = 0;
     // set the ripng header
     packet->ripng.cmd = RIPNG_CMD_REQUEST;
     packet->ripng.vers = 1;
     packet->ripng.reserved = 0;
+    // append an RTE
+    struct ripng_rte *rte = (struct ripng_rte *)(DMA_BLOCK_RADDR + PADDING + ETHER_HDR_LEN + IP6_HDR_LEN + UDP_HDR_LEN + RIPNG_HDR_LEN);
+    rte->ip6_addr.s6_addr32[0] = 0;
+    rte->ip6_addr.s6_addr32[1] = 0;
+    rte->ip6_addr.s6_addr32[2] = 0;
+    rte->ip6_addr.s6_addr32[3] = 0;
+    rte->route_tag = 0;
+    rte->prefix_len = 0;
+    rte->metric = 16;
     // Set the length to DMA_OUT_LENGTH
-    *(volatile uint32_t *)DMA_OUT_LENGTH = PADDING + ETHER_HDR_LEN + IP6_HDR_LEN + UDP_HDR_LEN + RIPNG_HDR_LEN;
+    *(volatile uint32_t *)DMA_OUT_LENGTH = PADDING + ETHER_HDR_LEN + IP6_HDR_LEN + UDP_HDR_LEN + RIPNG_HDR_LEN + RTE_LEN;
 }
 
 /**

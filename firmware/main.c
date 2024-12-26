@@ -51,30 +51,29 @@ void start(void)
 
     // Configurate the MAC and IP addresses
     struct ip6_addr ip_addr0 = {
-        .s6_addr32 = {0x541069fe, 0xff641f8e, 0, 0x000080fe}};
+        .s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x541069fe}};
     struct ip6_addr ip_addr1 = {
-        .s6_addr32 = {0x551069fe, 0xff641f8e, 0, 0x000080fe}};
+        .s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x551069fe}};
     struct ip6_addr ip_addr2 = {
-        .s6_addr32 = {0x561069fe, 0xff641f8e, 0, 0x000080fe}};
+        .s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x561069fe}};
     struct ip6_addr ip_addr3 = {
-        .s6_addr32 = {0x571069fe, 0xff641f8e, 0, 0x000080fe}};
+        .s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x571069fe}};
     struct ether_addr mac_addr0 = {
-        .ether_addr16 = {0x5410, 0x6964, 0x1f8c}};
+        .ether_addr16 = {0x1f8c, 0x6964, 0x5410}};
     struct ether_addr mac_addr1 = {
-        .ether_addr16 = {0x5510, 0x6964, 0x1f8c}};
+        .ether_addr16 = {0x1f8c, 0x6964, 0x5510}};
     struct ether_addr mac_addr2 = {
-        .ether_addr16 = {0x5610, 0x6964, 0x1f8c}};
+        .ether_addr16 = {0x1f8c, 0x6964, 0x5610}};
     struct ether_addr mac_addr3 = {
-        .ether_addr16 = {0x5710, 0x6964, 0x1f8c}};
+        .ether_addr16 = {0x1f8c, 0x6964, 0x5710}};
     write_mac_addr(&mac_addr0, MAC_CONFIG_BASE_ADDR);
-    write_mac_addr(&mac_addr1, MAC_CONFIG_BASE_ADDR + 0x10);
-    write_mac_addr(&mac_addr2, MAC_CONFIG_BASE_ADDR + 0x20);
-    write_mac_addr(&mac_addr3, MAC_CONFIG_BASE_ADDR + 0x30);
+    write_mac_addr(&mac_addr1, MAC_CONFIG_BASE_ADDR + 0x100);
+    write_mac_addr(&mac_addr2, MAC_CONFIG_BASE_ADDR + 0x200);
+    write_mac_addr(&mac_addr3, MAC_CONFIG_BASE_ADDR + 0x300);
     write_ip_addr(&ip_addr0, IP_CONFIG_BASE_ADDR);
-    write_ip_addr(&ip_addr1, IP_CONFIG_BASE_ADDR + 0x10);
-    write_ip_addr(&ip_addr2, IP_CONFIG_BASE_ADDR + 0x20);
-    write_ip_addr(&ip_addr3, IP_CONFIG_BASE_ADDR + 0x30);
-
+    write_ip_addr(&ip_addr1, IP_CONFIG_BASE_ADDR + 0x100);
+    write_ip_addr(&ip_addr2, IP_CONFIG_BASE_ADDR + 0x200);
+    write_ip_addr(&ip_addr3, IP_CONFIG_BASE_ADDR + 0x300);
 
     // TODO: Configurate direct route
 

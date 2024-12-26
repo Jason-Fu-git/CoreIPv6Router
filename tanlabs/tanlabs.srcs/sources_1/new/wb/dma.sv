@@ -142,14 +142,14 @@ module dma #(
 
 
   frame_filter #(
-      .DATA_WIDTH(DATAW_WIDTH),
-      .ID_WIDTH  (ID_WIDTH)
+      .DATA_WIDTH(32),
+      .ID_WIDTH  (4)
   ) frame_filter_i (
       .eth_clk(eth_clk),
       .reset  (eth_rst),
 
-      .s_data(in_conv_o.data),
-      .s_keep(in_conv_o.keep),
+      .s_data(in_conv_o.data[31:0]),
+      .s_keep(in_conv_o.keep[3:0]),
       .s_last(in_conv_o.last),
       .s_user(in_conv_o.user),
       .s_id(),
@@ -265,7 +265,7 @@ module dma #(
     end else begin
       case (state)
         READ: begin
-          if (!(buffer_out_last) && out_dm_ready) begin
+          if (!(buffer_out_last || fifo_out_last) && out_dm_ready) begin
             dm_stb_o = 1;
           end else if (dm_stb_reg) begin
             // Guarantee that a request won't be interrupted
@@ -343,6 +343,7 @@ module dma #(
       fifo_out_keep    <= 0;
       fifo_out_last    <= 0;
       fifo_out_valid   <= 0;
+      multicast_count  <= 0;
     end else begin
       state <= next_state;
       case (state)

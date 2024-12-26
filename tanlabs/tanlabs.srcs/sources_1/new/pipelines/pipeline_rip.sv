@@ -79,14 +79,26 @@ module pipeline_rip (
     end
   end
 
-  assign multicast_checksum_0_0_comb = in_buffer_data.data.ip6.src[15:0] + in_buffer_data.data.ip6.src[31:16];
-  assign multicast_checksum_0_1_comb = in_buffer_data.data.ip6.src[47:32] + in_buffer_data.data.ip6.src[63:48];
-  assign multicast_checksum_0_2_comb = in_buffer_data.data.ip6.src[79:64] + in_buffer_data.data.ip6.src[95:80];
-  assign multicast_checksum_0_3_comb = in_buffer_data.data.ip6.src[111:96] + in_buffer_data.data.ip6.src[127:112];
-  assign multicast_checksum_1_0_comb = multicast_checksum_0_0_comb + multicast_checksum_0_1_comb;
-  assign multicast_checksum_1_1_comb = multicast_checksum_0_2_comb + multicast_checksum_0_3_comb;
-  assign multicast_checksum_2_comb   = multicast_checksum_1_0_comb + multicast_checksum_1_1_comb;
-  assign multicast_checksum_comb     = multicast_checksum_2_comb + ~checksum;
+  assign multicast_checksum_0_0_comb = {in_buffer_data.data.ip6.src[7:0]
+                                        , in_buffer_data.data.ip6.src[15:8]}
+                                        + {in_buffer_data.data.ip6.src[23:16]
+                                        ,in_buffer_data.data.ip6.src[31:24]};
+  assign multicast_checksum_0_1_comb = {in_buffer_data.data.ip6.src[39:32]
+                                        , in_buffer_data.data.ip6.src[47:40]}
+                                        + {in_buffer_data.data.ip6.src[55:48]
+                                        ,in_buffer_data.data.ip6.src[63:56]};
+  assign multicast_checksum_0_2_comb = {in_buffer_data.data.ip6.src[71:64]
+                                        , in_buffer_data.data.ip6.src[79:72]}
+                                        + {in_buffer_data.data.ip6.src[87:80]
+                                        ,in_buffer_data.data.ip6.src[95:88]};
+  assign multicast_checksum_0_3_comb = {in_buffer_data.data.ip6.src[103:96]
+                                        , in_buffer_data.data.ip6.src[111:104]}
+                                        + {in_buffer_data.data.ip6.src[119:112]
+                                        ,in_buffer_data.data.ip6.src[127:120]};
+  assign multicast_checksum_1_0_comb = multicast_checksum_0_0 + multicast_checksum_0_1;
+  assign multicast_checksum_1_1_comb = multicast_checksum_0_2 + multicast_checksum_0_3;
+  assign multicast_checksum_2_comb = multicast_checksum_1_0 + multicast_checksum_1_1;
+  assign multicast_checksum_comb = multicast_checksum_2 + ~{1'b1, checksum[15:0]};
 
 
   // =======================
@@ -111,7 +123,7 @@ module pipeline_rip (
         in_buffer_data.data[47:40] = checksum[7:0];
       end
     end
-    if (in.is_first && is_multicast) begin
+    if (in.is_first && (is_multicast || (in.data.ip6.dst[7:0] == 8'hff))) begin
       in_buffer_data.data.ip6.src = ip_addrs[multicast_dst_port];
     end
   end
@@ -124,7 +136,6 @@ module pipeline_rip (
       multicast_checksum_0_1 <= 0;
       multicast_checksum_0_2 <= 0;
       multicast_checksum_0_3 <= 0;
-      multicast_dst_port     <= 3;
     end else begin
       if (buffer_ready) begin
         in_buffer.valid <= in_valid;
@@ -138,9 +149,6 @@ module pipeline_rip (
             multicast_checksum_0_1[15:0] <= multicast_checksum_0_1_comb[15:0] + multicast_checksum_0_1_comb[16];
             multicast_checksum_0_2[15:0] <= multicast_checksum_0_2_comb[15:0] + multicast_checksum_0_2_comb[16];
             multicast_checksum_0_3[15:0] <= multicast_checksum_0_3_comb[15:0] + multicast_checksum_0_3_comb[16];
-            if(is_multicast) begin
-              multicast_dst_port         <= multicast_dst_port + 1;
-            end
           end else if (in.last) begin
             is_second <= 0;
           end else begin
@@ -190,27 +198,27 @@ module pipeline_rip (
 
             if (in_buffer.error == ERR_NONE) begin
               if (cache_r_exists || is_multicast) begin
-                cache_beat.error                <= ERR_NONE;
+                cache_beat.error <= ERR_NONE;
 
                 // frame_beat properties
-                cache_beat.data.keep            <= in_buffer.data.keep;
-                cache_beat.data.last            <= in_buffer.data.last;
-                cache_beat.data.user            <= in_buffer.data.user;
-                cache_beat.data.valid           <= in_buffer.data.valid;
-                cache_beat.data.is_first        <= in_buffer.data.is_first;
+                cache_beat.data.keep <= in_buffer.data.keep;
+                cache_beat.data.last <= in_buffer.data.last;
+                cache_beat.data.user <= in_buffer.data.user;
+                cache_beat.data.valid <= in_buffer.data.valid;
+                cache_beat.data.is_first <= in_buffer.data.is_first;
 
                 // frame_meta properties
                 cache_beat.data.meta.id         <= (is_multicast)? multicast_dst_port : in_buffer.data.meta.id;
-                cache_beat.data.meta.dest       <= (is_multicast)? multicast_dst_port : cache_r_port_id;
-                cache_beat.data.meta.drop       <= in_buffer.data.meta.drop;
+                cache_beat.data.meta.dest <= (is_multicast) ? multicast_dst_port : cache_r_port_id;
+                cache_beat.data.meta.drop <= in_buffer.data.meta.drop;
                 cache_beat.data.meta.dont_touch <= in_buffer.data.meta.dont_touch;
-                cache_beat.data.meta.drop_next  <= in_buffer.data.meta.drop_next;
+                cache_beat.data.meta.drop_next <= in_buffer.data.meta.drop_next;
 
                 // ether_hdr properties
-                cache_beat.data.data.ethertype  <= in_buffer.data.data.ethertype;
+                cache_beat.data.data.ethertype <= in_buffer.data.data.ethertype;
                 cache_beat.data.data.src        <= (is_multicast)? mac_addrs[multicast_dst_port] : in_buffer.data.data.src;
-                cache_beat.data.data.dst        <= (is_multicast)? 48'h090000003333 :   cache_r_MAC_addr;
-                cache_beat.data.data.ip6        <= in_buffer.data.data.ip6;
+                cache_beat.data.data.dst <= (is_multicast) ? 48'h090000003333 : cache_r_MAC_addr;
+                cache_beat.data.data.ip6 <= in_buffer.data.data.ip6;
               end else begin
                 cache_beat.error <= ERR_NC_MISS;
                 cache_beat.data  <= in_buffer.data;
@@ -221,24 +229,24 @@ module pipeline_rip (
             end
           end else begin
             // Not the first beat
-            cache_beat.error                <= in_buffer.error;
+            cache_beat.error <= in_buffer.error;
 
             // frame_beat properties
-            cache_beat.data.keep            <= in_buffer.data.keep;
-            cache_beat.data.last            <= in_buffer.data.last;
-            cache_beat.data.user            <= in_buffer.data.user;
-            cache_beat.data.valid           <= in_buffer.data.valid;
-            cache_beat.data.is_first        <= in_buffer.data.is_first;
+            cache_beat.data.keep <= in_buffer.data.keep;
+            cache_beat.data.last <= in_buffer.data.last;
+            cache_beat.data.user <= in_buffer.data.user;
+            cache_beat.data.valid <= in_buffer.data.valid;
+            cache_beat.data.is_first <= in_buffer.data.is_first;
 
             // frame_meta properties
-            cache_beat.data.meta.id         <= (is_multicast)? multicast_dst_port : in_buffer.data.meta.id;
-            cache_beat.data.meta.dest       <= (is_multicast)? multicast_dst_port : cache_r_port_id_reg;
-            cache_beat.data.meta.drop       <= in_buffer.data.meta.drop;
+            cache_beat.data.meta.id <= (is_multicast) ? multicast_dst_port : in_buffer.data.meta.id;
+            cache_beat.data.meta.dest <= (is_multicast) ? multicast_dst_port : cache_r_port_id_reg;
+            cache_beat.data.meta.drop <= in_buffer.data.meta.drop;
             cache_beat.data.meta.dont_touch <= in_buffer.data.meta.dont_touch;
-            cache_beat.data.meta.drop_next  <= in_buffer.data.meta.drop_next;
+            cache_beat.data.meta.drop_next <= in_buffer.data.meta.drop_next;
 
             // payload
-            cache_beat.data.data            <= in_buffer.data.data;
+            cache_beat.data.data <= in_buffer.data.data;
           end
         end
       end
@@ -275,23 +283,28 @@ module pipeline_rip (
     if (rst_p) begin
       out <= 0;
       multicast_checksum_2 <= 0;
+      multicast_dst_port <= 0;
     end else begin
       if (out_ready) begin
         if (cache_beat.valid) begin
           if (cache_beat.data.is_first) begin
 
+            if (is_multicast) begin
+              multicast_dst_port <= multicast_dst_port + 1;
+            end
+
             multicast_checksum_2[15:0] <= multicast_checksum_2_comb[15:0] + multicast_checksum_2_comb[16];
 
             // frame_beat properties
-            out.keep             <= cache_beat.data.keep;
-            out.last             <= cache_beat.data.last;
-            out.user             <= cache_beat.data.user;
-            out.valid            <= cache_beat.data.valid;
-            out.is_first         <= cache_beat.data.is_first;
+            out.keep <= cache_beat.data.keep;
+            out.last <= cache_beat.data.last;
+            out.user <= cache_beat.data.user;
+            out.valid <= cache_beat.data.valid;
+            out.is_first <= cache_beat.data.is_first;
 
             // frame_meta properties
-            out.meta.id          <= cache_beat.data.meta.id;
-            out.meta.dest        <= cache_beat.data.meta.dest;
+            out.meta.id <= cache_beat.data.meta.id;
+            out.meta.dest <= cache_beat.data.meta.dest;
             if (cache_beat.error != ERR_NONE) begin
               out.meta.drop <= 1;
             end else begin
@@ -311,7 +324,7 @@ module pipeline_rip (
             out.data.ip6.flow_lo     <= cache_beat.data.data.ip6.flow_lo;
             out.data.ip6.payload_len <= cache_beat.data.data.ip6.payload_len;
             out.data.ip6.next_hdr    <= cache_beat.data.data.ip6.next_hdr;
-            out.data.ip6.hop_limit   <= cache_beat.data.data.ip6.hop_limit - 1;
+            out.data.ip6.hop_limit   <= cache_beat.data.data.ip6.hop_limit;
             out.data.ip6.src         <= cache_beat.data.data.ip6.src;
             out.data.ip6.dst         <= cache_beat.data.data.ip6.dst;
             out.data.ip6.p           <= cache_beat.data.data.ip6.p;

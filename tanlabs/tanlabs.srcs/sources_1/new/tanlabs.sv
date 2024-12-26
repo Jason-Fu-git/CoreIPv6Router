@@ -1040,7 +1040,7 @@ module tanlabs #(
   logic icache_sram_stb, dcache_sram_stb, dma_sram_stb;
   logic icache_sram_ack, dcache_sram_ack, dma_sram_ack;
 
-  logic [21:0] arbiter_sram_addr;
+  logic [22:0] arbiter_sram_addr;
   logic [31:0] arbiter_sram_data_in;
   logic [31:0] arbiter_sram_data_out;
   logic [ 3:0] arbiter_sram_sel;
@@ -1275,7 +1275,7 @@ module tanlabs #(
 
   wb_arbiter_3 #(
       .DATA_WIDTH  (32),
-      .ADDR_WIDTH  (22),
+      .ADDR_WIDTH  (23),
       .SELECT_WIDTH(4)
   ) sram_arbiter_i (
       .clk(core_clk),

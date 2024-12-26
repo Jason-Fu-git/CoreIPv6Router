@@ -1,4 +1,6 @@
 `timescale 1ns / 1ps
+`include "frame_datapath.vh"
+
 
 module trie128(
     input wire clk,
