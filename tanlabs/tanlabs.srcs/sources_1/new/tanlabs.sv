@@ -1216,7 +1216,7 @@ module tanlabs #(
 
 
   sram_controller #(
-      .SRAM_ADDR_WIDTH(20),
+      .SRAM_ADDR_WIDTH(21),
       .SRAM_DATA_WIDTH(32)
   ) sram_controller_base (
       .clk_i(core_clk),

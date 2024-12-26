@@ -2,7 +2,7 @@ module sram_controller #(
     parameter DATA_WIDTH = 32,
     parameter ADDR_WIDTH = 32,
 
-    parameter SRAM_ADDR_WIDTH = 20,
+    parameter SRAM_ADDR_WIDTH = 21,
     parameter SRAM_DATA_WIDTH = 32,
 
     localparam SRAM_BYTES = SRAM_DATA_WIDTH / 8,
