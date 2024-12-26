@@ -2,10 +2,10 @@
 // Created by Yusaki on 24-12-24.
 //
 
-#include <cstring>
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
+#include <fstream>
 
 typedef unsigned int uint32_t;
 
@@ -169,7 +169,7 @@ uint32_t BRAM_SIZES[16] = {
 };
 
 uint32_t BIN_SIZES[16] = {
-	0, 7, 15, 15, 14, 10, 1, 1,
+	1, 7, 15, 15, 14, 10, 1, 1,
 	1, 1, 1, 1, 1, 1, 1, 1
 };
 
@@ -196,6 +196,8 @@ public:
 			++node_num[next_stage];
 			if (node_num[next_stage] >= BRAM_DEPTHS[next_stage]) {
 				// printf("[WARN] Exceeding BRAM depth\n");
+				--node_count;
+				--node_num[next_stage];
 				return -1;
 			}
 			// Since every BRAM leaves out address 0x0, the node_num is just the index of the last node.
@@ -215,6 +217,7 @@ public:
 		uint32_t stage_level = 0;
 		uint32_t freeIndex = -1;
 #define stage (stage_level >> 3)
+#define now_stage ((stage_level == 0) ? (0) : ((stage_level - 1) >> 3))
 #define level (stage_level & 0x7)
 #define lsb   (prefix & 0x1)
 #define _NEXT_LEVEL if(_create_subtree(now, stage, level, lsb) == (uint32_t)-1) { \
@@ -226,8 +229,8 @@ public:
 			_NEXT_LEVEL;
 		}
 		while (stage_level <= length) {
-			freeIndex = now->isAvailable(BIN_SIZES[stage]);
-			if (freeIndex != BIN_SIZES[stage]) {  // available
+			freeIndex = now->isAvailable(BIN_SIZES[now_stage]);
+			if (freeIndex != BIN_SIZES[now_stage]) {  // available
 				break;
 			}
 			_NEXT_LEVEL;
@@ -246,6 +249,7 @@ public:
 		++excessive_count;
 		return 1;  // needs to be handled
 #undef stage
+#undef now_stage
 #undef level
 #undef lsb
 #undef _NEXT_LEVEL
@@ -260,6 +264,7 @@ public:
 		VCNodePtr now = (VCNodePtr)&root;
 		uint32_t stage_level = 0;
 #define stage (stage_level >> 3)
+#define now_stage ((stage_level == 0) ? (0) : ((stage_level - 1) >> 3))
 #define level (stage_level & 0x7)
 #define lsb   (prefix & 0x1)
 		while (length > stage_level + MAX_PREFIX_LEN) {
@@ -271,8 +276,8 @@ public:
 			++stage_level;
 		}
 		while (stage_level <= length) {
-			uint32_t match_index = now->match(prefix.ip[0], length - stage_level, BIN_SIZES[stage]);
-			if (match_index != BIN_SIZES[stage]) {
+			uint32_t match_index = now->match(prefix.ip[0], length - stage_level, BIN_SIZES[now_stage]);
+			if (match_index != BIN_SIZES[now_stage]) {
 				return (size_t)&(now->getBin()[match_index]);
 			}
 			if (now->noChild(lsb)) {
@@ -284,6 +289,7 @@ public:
 		}
 		return 0;
 #undef stage
+#undef now_stage
 #undef level
 #undef lsb
 	}
@@ -293,21 +299,39 @@ public:
 	uint32_t get_excessive_count() const {
 		return excessive_count;
 	}
+	void print() const {
+		for (uint32_t i = 0; i < 16; ++i) {
+			printf("Stage %d: %d/%d\n", i, node_num[i], BRAM_DEPTHS[i]);
+		}
+	}
 };
 
 int main() {
+	auto fs = std::fstream("../route_for_cpp.txt", std::ios::in);
 	srand(time(nullptr));
-	printf("sizeof(VCNode<%d>) = %llu\n", 1, sizeof(VCNode<1>));
+	// printf("sizeof(VCNode<%d>) = %llu\n", 1, sizeof(VCNode<1>));
 	printf("Launching test\n");
 	VCTrie trie;
-	for (size_t _ = 0; _ < 500; _++) {
-		IP6 prefix;
-		uint32_t length = rand() % 96 + 32;
-		uint32_t next_hop = rand() % 31;
-		prefix.ip[0] = rand();
-		prefix.ip[1] = rand();
-		prefix.ip[2] = rand();
-		prefix.ip[3] = rand();
+	char buffer[64];
+	for (size_t _ = 0; _ < 223424; _++) {
+		IP6 prefix, next_hop_ip;
+		uint32_t next_hop, length;
+		fs >> prefix.ip[0];
+		fs >> prefix.ip[1];
+		fs >> prefix.ip[2];
+		fs >> prefix.ip[3];
+		fs >> length;
+		fs >> next_hop_ip.ip[0];
+		fs >> next_hop_ip.ip[1];
+		fs >> next_hop_ip.ip[2];
+		fs >> next_hop_ip.ip[3];
+		fs >> next_hop;
+		prefix.toHex(buffer);
+		// printf("Inserting %s/%u:%u\n", buffer, length, next_hop);
+		// for (uint32_t i = 0; i < 32; ++i) {
+		// 	printf("%d", (prefix.ip[0] >> i) & 1);
+		// }
+		// puts("");
 		uint32_t excessive = trie.insert(prefix, length, next_hop);
 		if (excessive) {
 			continue;
@@ -317,10 +341,11 @@ int main() {
 			printf("Error in iter: %lld\n", _);
 			return 1;
 		}
-		// puts(".");
+		// puts("Right");
 	}
 	printf("Done\n");
 	printf("Node count: %d\n", trie.get_node_count());
 	printf("Excessive count: %d\n", trie.get_excessive_count());
+	trie.print();
 	return 0;
 }

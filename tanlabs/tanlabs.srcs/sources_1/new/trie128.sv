@@ -253,7 +253,7 @@ module trie128(
     always_comb begin
         for (int i = 0; i < LEVELS; i = i + 1) begin
             cpu_bt_node_wea[i] = bt_bram_write_stb[i];
-            cpu_bt_addr[i] = {cpu_adr[23:21], cpu_adr[19:8]};
+            cpu_bt_addr[i] = cpu_adr[22:10];
         end
     end
 
@@ -295,7 +295,7 @@ module trie128(
     always_comb begin
         for (int i = 0; i < LEVELS; i = i + 1) begin
             cpu_vc_node_in[i] = cpu_vc_node_buffer[i];
-            cpu_vc_addr[i] = {cpu_adr[23:21], cpu_adr[19:8]};
+            cpu_vc_addr[i] = cpu_adr[22:10];
             cpu_vc_node_wea[i] = vc_bram_buffer_stb[i];
         end
     end
@@ -350,13 +350,13 @@ module trie128(
         .clk(clk),
         .rst_p(rst_p),
         .dat_in(cpu_dat_in),
-        .sel(cpu_adr[7:0]),
+        .sel(cpu_adr[9:2]),
         .stb(vc_bram_buffer_stb[0]),
         .buffer(cpu_vc_node_buffer[0][VC_NODE_WIDTH[0]-1:0])
     );
     bram_data_converter_1 bram_data_converter_i_0(
         .in(cpu_vc_node[0][VC_NODE_WIDTH[0]-1:0]),
-        .sel(cpu_adr[7:0]),
+        .sel(cpu_adr[9:2]),
         .out(vc_wbs_dat_out[0])
     );
 
@@ -379,13 +379,13 @@ module trie128(
         .clk(clk),
         .rst_p(rst_p),
         .dat_in(cpu_dat_in),
-        .sel(cpu_adr[7:0]),
+        .sel(cpu_adr[9:2]),
         .stb(vc_bram_buffer_stb[1]),
         .buffer(cpu_vc_node_buffer[1][VC_NODE_WIDTH[1]-1:0])
     );
     bram_data_converter_7 bram_data_converter_i_1(
         .in(cpu_vc_node[1][VC_NODE_WIDTH[1]-1:0]),
-        .sel(cpu_adr[7:0]),
+        .sel(cpu_adr[9:2]),
         .out(vc_wbs_dat_out[1])
     );
 
@@ -408,13 +408,13 @@ module trie128(
         .clk(clk),
         .rst_p(rst_p),
         .dat_in(cpu_dat_in),
-        .sel(cpu_adr[7:0]),
+        .sel(cpu_adr[9:2]),
         .stb(vc_bram_buffer_stb[2]),
         .buffer(cpu_vc_node_buffer[2][VC_NODE_WIDTH[2]-1:0])
     );
     bram_data_converter_15 bram_data_converter_i_2(
         .in(cpu_vc_node[2][VC_NODE_WIDTH[2]-1:0]),
-        .sel(cpu_adr[7:0]),
+        .sel(cpu_adr[9:2]),
         .out(vc_wbs_dat_out[2])
     );
 
@@ -436,13 +436,13 @@ module trie128(
         .clk(clk),
         .rst_p(rst_p),
         .dat_in(cpu_dat_in),
-        .sel(cpu_adr[7:0]),
+        .sel(cpu_adr[9:2]),
         .stb(vc_bram_buffer_stb[3]),
         .buffer(cpu_vc_node_buffer[3][VC_NODE_WIDTH[3]-1:0])
     );
     bram_data_converter_15 bram_data_converter_i_3(
         .in(cpu_vc_node[3][VC_NODE_WIDTH[3]-1:0]),
-        .sel(cpu_adr[7:0]),
+        .sel(cpu_adr[9:2]),
         .out(vc_wbs_dat_out[3])
     );
 
@@ -465,13 +465,13 @@ module trie128(
         .clk(clk),
         .rst_p(rst_p),
         .dat_in(cpu_dat_in),
-        .sel(cpu_adr[7:0]),
+        .sel(cpu_adr[9:2]),
         .stb(vc_bram_buffer_stb[4]),
         .buffer(cpu_vc_node_buffer[4][VC_NODE_WIDTH[4]-1:0])
     );
     bram_data_converter_14 bram_data_converter_i_4(
         .in(cpu_vc_node[4][VC_NODE_WIDTH[4]-1:0]),
-        .sel(cpu_adr[7:0]),
+        .sel(cpu_adr[9:2]),
         .out(vc_wbs_dat_out[4])
     );
 
@@ -494,13 +494,13 @@ module trie128(
         .clk(clk),
         .rst_p(rst_p),
         .dat_in(cpu_dat_in),
-        .sel(cpu_adr[7:0]),
+        .sel(cpu_adr[9:2]),
         .stb(vc_bram_buffer_stb[5]),
         .buffer(cpu_vc_node_buffer[5][VC_NODE_WIDTH[5]-1:0])
     );
     bram_data_converter_10 bram_data_converter_i_5(
         .in(cpu_vc_node[5][VC_NODE_WIDTH[5]-1:0]),
-        .sel(cpu_adr[7:0]),
+        .sel(cpu_adr[9:2]),
         .out(vc_wbs_dat_out[5])
     );
 
@@ -524,13 +524,13 @@ module trie128(
                 .clk(clk),
                 .rst_p(rst_p),
                 .dat_in(cpu_dat_in),
-                .sel(cpu_adr[7:0]),
+                .sel(cpu_adr[9:2]),
                 .stb(vc_bram_buffer_stb[i]),
                 .buffer(cpu_vc_node_buffer[i][VC_NODE_WIDTH[i]-1:0])
             );
             bram_data_converter_1 bram_data_converter_i_i(
                 .in(cpu_vc_node[i][VC_NODE_WIDTH[i]-1:0]),
-                .sel(cpu_adr[7:0]),
+                .sel(cpu_adr[9:2]),
                 .out(vc_wbs_dat_out[i])
             );
         end
@@ -602,69 +602,69 @@ module trie128(
         .wbm_rty_o(),
         .wbm_cyc_i(cpu_stb),
         .wbs0_addr(32'h20000000),
-        .wbs0_addr_msk(32'hfff00000),
-        .wbs1_addr(32'h21000000),
-        .wbs1_addr_msk(32'hfff00000),
-        .wbs2_addr(32'h22000000),
-        .wbs2_addr_msk(32'hfff00000),
-        .wbs3_addr(32'h23000000),
-        .wbs3_addr_msk(32'hfff00000),
-        .wbs4_addr(32'h24000000),
-        .wbs4_addr_msk(32'hfff00000),
-        .wbs5_addr(32'h25000000),
-        .wbs5_addr_msk(32'hfff00000),
-        .wbs6_addr(32'h26000000),
-        .wbs6_addr_msk(32'hfff00000),
-        .wbs7_addr(32'h27000000),
-        .wbs7_addr_msk(32'hfff00000),
-        .wbs8_addr(32'h28000000),
-        .wbs8_addr_msk(32'hfff00000),
-        .wbs9_addr(32'h29000000),
-        .wbs9_addr_msk(32'hfff00000),
-        .wbs10_addr(32'h2a000000),
-        .wbs10_addr_msk(32'hfff00000),
-        .wbs11_addr(32'h2b000000),
-        .wbs11_addr_msk(32'hfff00000),
-        .wbs12_addr(32'h2c000000),
-        .wbs12_addr_msk(32'hfff00000),
-        .wbs13_addr(32'h2d000000),
-        .wbs13_addr_msk(32'hfff00000),
-        .wbs14_addr(32'h2e000000),
-        .wbs14_addr_msk(32'hfff00000),
-        .wbs15_addr(32'h2f000000),
-        .wbs15_addr_msk(32'hfff00000),
-        .wbs16_addr(32'h20100000),
-        .wbs16_addr_msk(32'hfff00000),
-        .wbs17_addr(32'h21100000),
-        .wbs17_addr_msk(32'hfff00000),
-        .wbs18_addr(32'h22100000),
-        .wbs18_addr_msk(32'hfff00000),
-        .wbs19_addr(32'h23100000),
-        .wbs19_addr_msk(32'hfff00000),
-        .wbs20_addr(32'h24100000),
-        .wbs20_addr_msk(32'hfff00000),
-        .wbs21_addr(32'h25100000),
-        .wbs21_addr_msk(32'hfff00000),
-        .wbs22_addr(32'h26100000),
-        .wbs22_addr_msk(32'hfff00000),
-        .wbs23_addr(32'h27100000),
-        .wbs23_addr_msk(32'hfff00000),
-        .wbs24_addr(32'h28100000),
-        .wbs24_addr_msk(32'hfff00000),
-        .wbs25_addr(32'h29100000),
-        .wbs25_addr_msk(32'hfff00000),
-        .wbs26_addr(32'h2a100000),
-        .wbs26_addr_msk(32'hfff00000),
-        .wbs27_addr(32'h2b100000),
-        .wbs27_addr_msk(32'hfff00000),
-        .wbs28_addr(32'h2c100000),
-        .wbs28_addr_msk(32'hfff00000),
-        .wbs29_addr(32'h2d100000),
-        .wbs29_addr_msk(32'hfff00000),
-        .wbs30_addr(32'h2e100000),
-        .wbs30_addr_msk(32'hfff00000),
-        .wbs31_addr(32'h2f100000),
-        .wbs31_addr_msk(32'hfff00000),
+        .wbs0_addr_msk(32'hff800000),
+        .wbs1_addr(32'h20800000),
+        .wbs1_addr_msk(32'hff800000),
+        .wbs2_addr(32'h21000000),
+        .wbs2_addr_msk(32'hff800000),
+        .wbs3_addr(32'h21800000),
+        .wbs3_addr_msk(32'hff800000),
+        .wbs4_addr(32'h22000000),
+        .wbs4_addr_msk(32'hff800000),
+        .wbs5_addr(32'h22800000),
+        .wbs5_addr_msk(32'hff800000),
+        .wbs6_addr(32'h23000000),
+        .wbs6_addr_msk(32'hff800000),
+        .wbs7_addr(32'h23800000),
+        .wbs7_addr_msk(32'hff800000),
+        .wbs8_addr(32'h24000000),
+        .wbs8_addr_msk(32'hff800000),
+        .wbs9_addr(32'h24800000),
+        .wbs9_addr_msk(32'hff800000),
+        .wbs10_addr(32'h25000000),
+        .wbs10_addr_msk(32'hff800000),
+        .wbs11_addr(32'h25800000),
+        .wbs11_addr_msk(32'hff800000),
+        .wbs12_addr(32'h26000000),
+        .wbs12_addr_msk(32'hff800000),
+        .wbs13_addr(32'h26800000),
+        .wbs13_addr_msk(32'hff800000),
+        .wbs14_addr(32'h27000000),
+        .wbs14_addr_msk(32'hff800000),
+        .wbs15_addr(32'h27800000),
+        .wbs15_addr_msk(32'hff800000),
+        .wbs16_addr(32'h28000000),
+        .wbs16_addr_msk(32'hff800000),
+        .wbs17_addr(32'h28800000),
+        .wbs17_addr_msk(32'hff800000),
+        .wbs18_addr(32'h29000000),
+        .wbs18_addr_msk(32'hff800000),
+        .wbs19_addr(32'h29800000),
+        .wbs19_addr_msk(32'hff800000),
+        .wbs20_addr(32'h2a000000),
+        .wbs20_addr_msk(32'hff800000),
+        .wbs21_addr(32'h2a800000),
+        .wbs21_addr_msk(32'hff800000),
+        .wbs22_addr(32'h2b000000),
+        .wbs22_addr_msk(32'hff800000),
+        .wbs23_addr(32'h2b800000),
+        .wbs23_addr_msk(32'hff800000),
+        .wbs24_addr(32'h2c000000),
+        .wbs24_addr_msk(32'hff800000),
+        .wbs25_addr(32'h2c800000),
+        .wbs25_addr_msk(32'hff800000),
+        .wbs26_addr(32'h2d000000),
+        .wbs26_addr_msk(32'hff800000),
+        .wbs27_addr(32'h2d800000),
+        .wbs27_addr_msk(32'hff800000),
+        .wbs28_addr(32'h2e000000),
+        .wbs28_addr_msk(32'hff800000),
+        .wbs29_addr(32'h2e800000),
+        .wbs29_addr_msk(32'hff800000),
+        .wbs30_addr(32'h2f000000),
+        .wbs30_addr_msk(32'hff800000),
+        .wbs31_addr(32'h2f800000),
+        .wbs31_addr_msk(32'hff800000),
         .wbs0_stb_o(bt_bram_write_stb[0]),
         .wbs1_stb_o(bt_bram_write_stb[1]),
         .wbs2_stb_o(bt_bram_write_stb[2]),

@@ -6,7 +6,12 @@
 #include <stdio.h>
 #include <packet.h>
 
-static const void* BRAM_BASE = (void*)0x20800000;
+/*
+ * | 31     28 | 27    | 26 23 | 22      10 | 9          0 |
+ * | BRAM 0010 | VC/BT | Stage | Node Index | Field Offset |
+ * */
+
+static const void* BRAM_BASE = (void*)0x28000000;
 
 static const uint32_t MAX_PREFIX_LEN = 28;
 
@@ -16,8 +21,8 @@ static const uint32_t BRAM_DEPTHS[16] = {
 };
 
 static const uint32_t BIN_SIZES[16] = {
-		0, 7, 15, 15, 14, 10, 1, 1,
-		1, 1, 1, 1, 1, 1, 1, 1
+	0, 7, 15, 15, 14, 10, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1
 };
 
 struct IP6 {
@@ -49,7 +54,7 @@ struct IP6 {
 		converted[1] = htonl(ip[1]);
 		converted[2] = htonl(ip[2]);
 		converted[3] = htonl(ip[3]);
-		sprintf(buffer, "%08x%08x%08x%08x", converted[0], converted[1], converted[2], converted[3]);
+		sprintf(buffer, "%08x%08x%08x%08x", converted[3], converted[2], converted[1], converted[0]);
 	}
 };
 
@@ -145,7 +150,7 @@ public:
 	VCTrie() : node_count(0), excessive_count(0) {}
 	VCTrie(const VCTrie&) = delete;
 	VCNodePtr _childAddrInStage(VCNodePtr outer, uint32_t stage, uint32_t lsb) const {
-		return (VCNodePtr)((uint32_t)BRAM_BASE + (stage << 24) + (outer->getChild(lsb) << 8));
+		return (VCNodePtr)((uint32_t)BRAM_BASE | (stage << 23) | (outer->getChild(lsb) << 10));
 	}
 	uint32_t _create_subtree(VCNodePtr node, uint32_t stage, uint32_t lsb) {
 		if (node->noChild(lsb)) {
@@ -153,6 +158,8 @@ public:
 			++node_num[stage];
 			if (node_num[stage] >= BRAM_DEPTHS[stage]) {
 				// printf("[WARN]BRAM ran out\n");
+				--node_count;
+				--node_num[next_stage];
 				return -1;
 			}
 			// Since every BRAM leaves out address 0x0, the node_num is just the index of the last node.
@@ -172,6 +179,7 @@ public:
 		uint32_t stage_level = 0;
 		uint32_t freeIndex = -1;
 #define stage (stage_level >> 3)
+#define now_stage ((stage_level == 0) ? (0) : ((stage_level - 1) >> 3))
 #define level (stage_level & 0x7)
 #define lsb   (prefix & 0x1)
 #define _NEXT_LEVEL \
@@ -185,8 +193,8 @@ public:
 			_NEXT_LEVEL;
 		}
 		while (stage_level <= length) {
-			freeIndex = now->isAvailable(BIN_SIZES[stage]);
-			if (freeIndex != BIN_SIZES[stage]) {  // available
+			freeIndex = now->isAvailable(BIN_SIZES[now_stage]);
+			if (freeIndex != BIN_SIZES[now_stage]) {  // available
 				break;
 			}
 			_NEXT_LEVEL;
@@ -204,6 +212,7 @@ END: // excessive
 		++excessive_count;
 		return 1;  // needs to be handled
 #undef stage
+#undef now_stage
 #undef level
 #undef lsb
 #undef _NEXT_LEVEL
@@ -218,6 +227,7 @@ END: // excessive
 		VCNodePtr now = (VCNodePtr)&root;
 		uint32_t stage_level = 0;
 #define stage (stage_level >> 3)
+#define now_stage ((stage_level == 0) ? (0) : ((stage_level - 1) >> 3))
 #define level (stage_level & 0x7)
 #define lsb   (prefix & 0x1)
 		while (length > stage_level + MAX_PREFIX_LEN) {
@@ -229,8 +239,8 @@ END: // excessive
 			++stage_level;
 		}
 		while (stage_level <= length) {
-			uint32_t match_index = now->match(prefix.ip[0], length - stage_level, BIN_SIZES[stage]);
-			if (match_index != BIN_SIZES[stage]) {
+			uint32_t match_index = now->match(prefix.ip[0], length - stage_level, BIN_SIZES[now_stage]);
+			if (match_index != BIN_SIZES[now_stage]) {
 				return &(now->getBin()[match_index]);
 			}
 			if (now->noChild(lsb)) {
@@ -242,6 +252,7 @@ END: // excessive
 		}
 		return 0;
 #undef stage
+#undef now_stage
 #undef level
 #undef lsb
 	}
