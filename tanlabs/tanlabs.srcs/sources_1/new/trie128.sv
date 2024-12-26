@@ -352,6 +352,7 @@ module trie128(
         .dat_in(cpu_dat_in),
         .sel(cpu_adr[9:2]),
         .stb(vc_bram_buffer_stb[0]),
+        .node_in(cpu_vc_node[0][VC_NODE_WIDTH[0]-1:0]),
         .buffer(cpu_vc_node_buffer[0][VC_NODE_WIDTH[0]-1:0])
     );
     bram_data_converter_1 bram_data_converter_i_0(
@@ -381,6 +382,7 @@ module trie128(
         .dat_in(cpu_dat_in),
         .sel(cpu_adr[9:2]),
         .stb(vc_bram_buffer_stb[1]),
+        .node_in(cpu_vc_node[1][VC_NODE_WIDTH[1]-1:0]),
         .buffer(cpu_vc_node_buffer[1][VC_NODE_WIDTH[1]-1:0])
     );
     bram_data_converter_7 bram_data_converter_i_1(
@@ -410,6 +412,7 @@ module trie128(
         .dat_in(cpu_dat_in),
         .sel(cpu_adr[9:2]),
         .stb(vc_bram_buffer_stb[2]),
+        .node_in(cpu_vc_node[2][VC_NODE_WIDTH[2]-1:0]),
         .buffer(cpu_vc_node_buffer[2][VC_NODE_WIDTH[2]-1:0])
     );
     bram_data_converter_15 bram_data_converter_i_2(
@@ -438,6 +441,7 @@ module trie128(
         .dat_in(cpu_dat_in),
         .sel(cpu_adr[9:2]),
         .stb(vc_bram_buffer_stb[3]),
+        .node_in(cpu_vc_node[3][VC_NODE_WIDTH[3]-1:0]),
         .buffer(cpu_vc_node_buffer[3][VC_NODE_WIDTH[3]-1:0])
     );
     bram_data_converter_15 bram_data_converter_i_3(
@@ -467,6 +471,7 @@ module trie128(
         .dat_in(cpu_dat_in),
         .sel(cpu_adr[9:2]),
         .stb(vc_bram_buffer_stb[4]),
+        .node_in(cpu_vc_node[4][VC_NODE_WIDTH[4]-1:0]),
         .buffer(cpu_vc_node_buffer[4][VC_NODE_WIDTH[4]-1:0])
     );
     bram_data_converter_14 bram_data_converter_i_4(
@@ -496,6 +501,7 @@ module trie128(
         .dat_in(cpu_dat_in),
         .sel(cpu_adr[9:2]),
         .stb(vc_bram_buffer_stb[5]),
+        .node_in(cpu_vc_node[5][VC_NODE_WIDTH[5]-1:0]),
         .buffer(cpu_vc_node_buffer[5][VC_NODE_WIDTH[5]-1:0])
     );
     bram_data_converter_10 bram_data_converter_i_5(
@@ -526,6 +532,7 @@ module trie128(
                 .dat_in(cpu_dat_in),
                 .sel(cpu_adr[9:2]),
                 .stb(vc_bram_buffer_stb[i]),
+                .node_in(cpu_vc_node[i][VC_NODE_WIDTH[i]-1:0]),
                 .buffer(cpu_vc_node_buffer[i][VC_NODE_WIDTH[i]-1:0])
             );
             bram_data_converter_1 bram_data_converter_i_i(
@@ -562,12 +569,35 @@ module trie128(
     assign bram_ack_trigger = cpu_ack && !bram_ack_lock;
     assign bram_read_valid = bram_ack_trigger;
 
+    logic cpu_ack_delay;
+    logic [31:0] cpu_dat_out_delay;
+    logic cpu_stb_delay, cpu_wea_delay;
+    logic [31:0] cpu_adr_delay, cpu_dat_in_delay;
+
+    always_ff @(posedge clk) begin
+        if (rst_p) begin
+            cpu_ack_delay <= 0;
+            cpu_dat_out_delay <= 0;
+            cpu_stb <= 0;
+            cpu_wea <= 0;
+            cpu_adr <= 0;
+            cpu_dat_in <= 0;
+        end else begin
+            cpu_ack_delay <= cpu_ack;
+            cpu_dat_out_delay <= cpu_dat_out;
+            cpu_stb <= cpu_stb_delay;
+            cpu_wea <= cpu_wea_delay;
+            cpu_adr <= cpu_adr_delay;
+            cpu_dat_in <= cpu_dat_in_delay;
+        end
+    end
+
     axis_data_fifo_bram axis_data_fifo_bram_read_i(
         .s_axis_aclk(clk),
         .m_axis_aclk(cpu_clk),
         .s_axis_aresetn(~rst_p),
 
-        .s_axis_tdata({cpu_ack, cpu_dat_out}),
+        .s_axis_tdata({cpu_ack_delay, cpu_dat_out_delay}),
         .s_axis_tready(), // NULL
         .s_axis_tvalid(bram_read_valid),
         .m_axis_tdata({cpu_ack_raw, cpu_dat_out_raw}),
@@ -583,7 +613,7 @@ module trie128(
         .s_axis_tdata({cpu_stb_raw, cpu_wea_raw, cpu_adr_raw, cpu_dat_in_raw}),
         .s_axis_tready(), // NULL
         .s_axis_tvalid(cpu_write_valid),
-        .m_axis_tdata({cpu_stb, cpu_wea, cpu_adr, cpu_dat_in}),
+        .m_axis_tdata({cpu_stb_delay, cpu_wea_delay, cpu_adr_delay, cpu_dat_in_delay}),
         .m_axis_tready(1'b1),
         .m_axis_tvalid(bram_write_valid)
     );
