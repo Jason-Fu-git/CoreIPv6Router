@@ -696,6 +696,17 @@ module tanlabs #(
   wire [ID_WIDTH - 1:0] dp_tx_dest;
   wire dp_tx_valid;
 
+  reg bram_cpu_clk;
+  reg bram_cpu_rst_p;
+  assign bram_cpu_clk   = core_clk;
+  assign bram_cpu_rst_p = reset_core;
+  reg [31:0] bram_cpu_adr;
+  reg [31:0] bram_cpu_dat_in;
+  reg [31:0] bram_cpu_dat_out;
+  reg bram_cpu_wea;
+  reg bram_cpu_stb;
+  reg bram_cpu_ack;
+
   logic dma_in_ready, dma_out_ready;
   frame_beat dma_in, dma_out;
 
@@ -753,6 +764,18 @@ module tanlabs #(
       .mac_addr_1(mac_addrs[1]),
       .mac_addr_2(mac_addrs[2]),
       .mac_addr_3(mac_addrs[3]),
+
+      // README: You will need to add some signals for your CPU to control the datapath,
+      // or access the forwarding table or the address resolution cache.
+
+      .cpu_clk(bram_cpu_clk),
+      .cpu_rst_p(bram_cpu_rst_p),
+      .cpu_adr(bram_cpu_adr),
+      .cpu_dat_in(bram_cpu_dat_in),
+      .cpu_dat_out(bram_cpu_dat_out),
+      .cpu_wea(bram_cpu_wea),
+      .cpu_stb(bram_cpu_stb),
+      .cpu_ack(bram_cpu_ack),
 
       // dma interface
       .dma_in(dma_in),
@@ -911,7 +934,14 @@ module tanlabs #(
   // =======================================
 
   logic [31:0]
-      wbs0_adr, wbs1_adr, wbs2_adr, wbs3_adr, addr_conf_adr, nxthop_conf_adr, wb_synced_adr;
+      wbs0_adr,
+      wbs1_adr,
+      wbs2_adr,
+      wbs3_adr,
+      wbs4_adr,
+      addr_conf_adr,
+      nxthop_conf_adr,
+      wb_synced_adr;
   logic [31:0]
       wbs0_dat_r,
       wbs0_dat_w,
@@ -921,19 +951,86 @@ module tanlabs #(
       wbs2_dat_w,
       wbs3_dat_r,
       wbs3_dat_w,
+      wbs4_dat_r,
+      wbs4_dat_w,
       addr_conf_dat_r,
       addr_conf_dat_w,
       nxthop_conf_dat_r,
       nxthop_conf_dat_w,
       wb_synced_dat_r,
       wb_synced_dat_w;
-  logic [3:0] wbs0_sel, wbs1_sel, wbs2_sel, wbs3_sel, addr_conf_sel, nxthop_conf_sel, wb_synced_sel;
-  logic wbs0_we, wbs1_we, wbs2_we, wbs3_we, addr_conf_we, nxthop_conf_we, wb_synced_we;
-  logic wbs0_stb, wbs1_stb, wbs2_stb, wbs3_stb, addr_conf_stb, nxthop_conf_stb, wb_synced_stb;
-  logic wbs0_ack, wbs1_ack, wbs2_ack, wbs3_ack, addr_conf_ack, nxthop_conf_ack, wb_synced_ack;
-  logic wbs0_err, wbs1_err, wbs2_err, wbs3_err, addr_conf_err, nxthop_conf_err, wb_synced_err;
-  logic wbs0_rty, wbs1_rty, wbs2_rty, wbs3_rty, addr_conf_rty, nxthop_conf_rty, wb_synced_rty;
-  logic wbs0_cyc, wbs1_cyc, wbs2_cyc, wbs3_cyc, addr_conf_cyc, nxthop_conf_cyc, wb_synced_cyc;
+  logic [3:0]
+      wbs0_sel,
+      wbs1_sel,
+      wbs2_sel,
+      wbs3_sel,
+      wbs4_sel,
+      addr_conf_sel,
+      nxthop_conf_sel,
+      wb_synced_sel;
+  logic wbs0_we, wbs1_we, wbs2_we, wbs3_we, wbs4_we, addr_conf_we, nxthop_conf_we, wb_synced_we;
+  logic
+      wbs0_stb,
+      wbs1_stb,
+      wbs2_stb,
+      wbs3_stb,
+      wbs4_stb,
+      addr_conf_stb,
+      nxthop_conf_stb,
+      wb_synced_stb;
+  logic
+      wbs0_ack,
+      wbs1_ack,
+      wbs2_ack,
+      wbs3_ack,
+      wbs4_ack,
+      addr_conf_ack,
+      nxthop_conf_ack,
+      wb_synced_ack;
+  logic
+      wbs0_err,
+      wbs1_err,
+      wbs2_err,
+      wbs3_err,
+      wbs4_err,
+      addr_conf_err,
+      nxthop_conf_err,
+      wb_synced_err;
+  logic
+      wbs0_rty,
+      wbs1_rty,
+      wbs2_rty,
+      wbs3_rty,
+      wbs4_rty,
+      addr_conf_rty,
+      nxthop_conf_rty,
+      wb_synced_rty;
+  logic
+      wbs0_cyc,
+      wbs1_cyc,
+      wbs2_cyc,
+      wbs3_cyc,
+      wbs4_cyc,
+      addr_conf_cyc,
+      nxthop_conf_cyc,
+      wb_synced_cyc;
+
+  assign bram_cpu_adr = wbs3_adr;
+  assign bram_cpu_dat_in = wbs3_dat_w;
+  assign wbs3_dat_r = bram_cpu_dat_out;
+  assign bram_cpu_wea = wbs3_we;
+  assign wbs3_ack = bram_cpu_ack;
+  assign bram_cpu_stb = wbs3_stb;
+
+  reg wbs3_ack_wait;
+
+  always_ff @(posedge core_clk) begin
+    if (reset_core) begin
+      wbs3_ack_wait <= 0;
+    end else begin
+      wbs3_ack_wait <= wbs3_ack;
+    end
+  end
 
   logic [22:0] icache_sram_adr, dcache_sram_adr, dma_sram_adr;
   logic [31:0] icache_sram_dat_o, dcache_sram_dat_o, dma_sram_dat_o;
@@ -952,11 +1049,11 @@ module tanlabs #(
   logic        arbiter_sram_stb;
   logic        arbiter_sram_ack;
 
-  wb_mux_4 #(
+  wb_mux_5 #(
       .DATA_WIDTH  (32),
       .ADDR_WIDTH  (32),
       .SELECT_WIDTH(4)
-  ) wb_mux_4_i (
+  ) wb_mux_5_i (
       .clk(core_clk),
       .rst(reset_core),
 
@@ -1021,9 +1118,9 @@ module tanlabs #(
       .wbs2_rty_i('0),
       .wbs2_cyc_o(wbs2_cyc),
 
-      // Slave interface 3 (to address config and nexthop table)
-      // Address range: 0x4000_0000 ~ 0x4FFF_FFFF
-      .wbs3_addr    (32'h4000_0000),
+      // Slave interface 3 (to BRAMs)
+      // Address range: 0x2000_0000 ~ 0x2FFF_FFFF
+      .wbs3_addr    (32'h2000_0000),
       .wbs3_addr_msk(32'hF000_0000),
 
       .wbs3_adr_o(wbs3_adr),
@@ -1032,10 +1129,26 @@ module tanlabs #(
       .wbs3_we_o (wbs3_we),
       .wbs3_sel_o(wbs3_sel),
       .wbs3_stb_o(wbs3_stb),
-      .wbs3_ack_i(wbs3_ack),
+      .wbs3_ack_i(wbs3_ack_wait),
       .wbs3_err_i('0),
       .wbs3_rty_i('0),
-      .wbs3_cyc_o(wbs3_cyc)
+      .wbs3_cyc_o(wbs3_cyc),
+
+      // Slave interface 4 (to Address config and Next-hop config)
+      // Address range: 0x4000_0000 ~ 0x4FFF_FFFF
+      .wbs4_addr    (32'h4000_0000),
+      .wbs4_addr_msk(32'hF000_0000),
+
+      .wbs4_adr_o(wbs4_adr),
+      .wbs4_dat_i(wbs4_dat_r),
+      .wbs4_dat_o(wbs4_dat_w),
+      .wbs4_we_o (wbs4_we),
+      .wbs4_sel_o(wbs4_sel),
+      .wbs4_stb_o(wbs4_stb),
+      .wbs4_ack_i(wbs4_ack),
+      .wbs4_err_i('0),
+      .wbs4_rty_i('0),
+      .wbs4_cyc_o(wbs4_cyc)
   );
 
   cache #(
@@ -1271,13 +1384,13 @@ module tanlabs #(
       .core_reset(reset_core),
 
       // Wishbone Master (to CPU)
-      .wbm_adr_i(wbs3_adr),
-      .wbm_dat_i(wbs3_dat_w),
-      .wbm_dat_o(wbs3_dat_r),
-      .wbm_sel_i(wbs3_sel),
-      .wbm_we_i (wbs3_we),
-      .wbm_stb_i(wbs3_stb),
-      .wbm_ack_o(wbs3_ack),
+      .wbm_adr_i(wbs4_adr),
+      .wbm_dat_i(wbs4_dat_w),
+      .wbm_dat_o(wbs4_dat_r),
+      .wbm_sel_i(wbs4_sel),
+      .wbm_we_i (wbs4_we),
+      .wbm_stb_i(wbs4_stb),
+      .wbm_ack_o(wbs4_ack),
 
       // Wishbone Slave (to Address Config / Nexthop Table)
       .wbs_adr_o(wb_synced_adr),

@@ -29,10 +29,12 @@ void start(void)
     init_uart();
 
     // Initialize RTEs
-    for (int i = 0; i < NUM_MEMORY_RTE; i++)
-    {
-        memory_rte[i].node_addr = 0;
-    }
+
+    // TODO: Dis-comment this part
+    // for (int i = 0; i < NUM_MEMORY_RTE; i++)
+    // {
+    //     memory_rte[i].node_addr = 0;
+    // }
 
     // Initialize timers
     *((volatile uint32_t *)MTIMECMP_HADDR) = 0xFFFFFFFF;
@@ -87,6 +89,8 @@ void start(void)
     *(volatile uint32_t *)DMA_OUT_LENGTH = 0;
     // Grant DMA access (Write) to the memory
     _grant_dma_access(DMA_BLOCK_WADDR, MTU, 1);
+
+    printf("Initialization complete\n");
 
     // Main loop
     while (true)

@@ -179,7 +179,7 @@ module pipeline_ns (
     na_packet.ether.ip6.next_hdr    = IP6_HDR_TYPE_ICMPv6;  // 8'd58
     na_packet.ether.ip6.hop_limit   = IP6_HDR_HOP_LIMIT_DEFAULT;  // 8'd255
     na_packet.ether.ip6.payload_len = {
-      32, 8'd0
+      8'd32, 8'd0
     };  // 24 bytes for ICMPv6 header, 8 bytes for option
     na_packet.ether.ip6.flow_lo     = 24'b0;
     na_packet.ether.ip6.flow_hi     = 4'b0;
