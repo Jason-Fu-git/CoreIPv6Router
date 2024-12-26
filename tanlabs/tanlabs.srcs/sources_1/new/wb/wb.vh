@@ -9,6 +9,7 @@ parameter DMA_CPU_DATA_WIDTH = 32'h0100000C;
 parameter DMA_ACK            = 32'h01000010;
 parameter DMA_DATA_WIDTH     = 32'h01000014;
 parameter DMA_CHECKSUM       = 32'h01000018;
+parameter DMA_PORT_ID        = 32'h0100001C;
 
 // IP Config
 // Format: [9:8] - index, [3:0] - offset

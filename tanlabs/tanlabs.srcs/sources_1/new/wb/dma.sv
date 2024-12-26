@@ -38,7 +38,8 @@ module dma #(
     output reg dma_ack_o,  // DMA Acknowledge, will be held until STB is de-asserted
     output reg [31:0] dma_dat_width_o,  // Data Width (in bytes)
     output reg [15:0] dma_checksum_o,  // Checksum
-    output reg dma_checksum_valid_o  // Checksum Valid
+    output reg dma_checksum_valid_o,  // Checksum Valid
+    output reg [1:0] dma_port_id_o  // Port ID
 );
 
   // Considering that we only have one SRAM, DMA cannot execute multiple transactions at the same time
@@ -65,11 +66,13 @@ module dma #(
 
   reg [31:0] filtered_in_data;
   reg [3:0] filtered_in_keep;
+  reg [1:0] filtered_in_id;
   reg filtered_in_last;
   reg filtered_in_valid;
 
   reg [31:0] fifo_in_data;
   reg [3:0] fifo_in_keep;
+  reg [1:0] fifo_in_id;
   reg fifo_in_last;
   reg fifo_in_valid;
   reg fifo_in_prog_full;
@@ -143,7 +146,7 @@ module dma #(
 
   frame_filter #(
       .DATA_WIDTH(32),
-      .ID_WIDTH  (4)
+      .ID_WIDTH  (2)
   ) frame_filter_i (
       .eth_clk(eth_clk),
       .reset  (eth_rst),
@@ -151,8 +154,8 @@ module dma #(
       .s_data(in_conv_o.data[31:0]),
       .s_keep(in_conv_o.keep[3:0]),
       .s_last(in_conv_o.last),
-      .s_user(in_conv_o.user),
-      .s_id(),
+      .s_user(in_conv_o.user[3:0]),
+      .s_id(in_conv_o.meta.id[1:0]),
       .s_valid(in_conv_o.valid),
       .s_ready(),
 
@@ -162,7 +165,7 @@ module dma #(
       .m_keep(filtered_in_keep),
       .m_last(filtered_in_last),
       .m_user(),
-      .m_id(),
+      .m_id(filtered_in_id),
       .m_valid(filtered_in_valid),
       .m_ready(in_fifo_ready)
   );
@@ -175,6 +178,7 @@ module dma #(
       .s_axis_tdata  (filtered_in_data),   // input wire [31 : 0] s_axis_tdata
       .s_axis_tkeep  (filtered_in_keep),   // input wire [3 : 0] s_axis_tkeep
       .s_axis_tlast  (filtered_in_last),   // input wire s_axis_tlast
+      .s_axis_tid    (filtered_in_id),     // input wire [1 : 0] s_axis_tid
 
       .m_axis_aclk  (core_clk),       // input wire m_axis_aclk
       .m_axis_tvalid(fifo_in_valid),  // output wire m_axis_tvalid
@@ -182,9 +186,18 @@ module dma #(
       .m_axis_tdata (fifo_in_data),   // output wire [31 : 0] m_axis_tdata
       .m_axis_tkeep (fifo_in_keep),   // output wire [3 : 0] m_axis_tkeep
       .m_axis_tlast (fifo_in_last),   // output wire m_axis_tlast
+      .m_axis_tid   (fifo_in_id),     // output wire [1 : 0] m_axis_tid
 
       .prog_full(fifo_in_prog_full)  // output wire prog_full
   );
+
+  always_ff @(posedge core_clk) begin : PORTID
+    if (core_rst) begin
+      dma_port_id_o <= 0;
+    end else if (fifo_in_valid) begin
+      dma_port_id_o <= filtered_in_id;
+    end
+  end
 
   reg fifo_in_is_first;
   always @(posedge core_clk) begin
@@ -525,7 +538,7 @@ module dma #(
   // Output Data Width Converter and FIFO
   // ================================
 
-  axis_data_async_fifo_dma axis_data_async_fifo_dma_out_i (
+  axis_data_async_fifo_dma_out axis_data_async_fifo_dma_out_i (
       .s_axis_aresetn(~core_rst),       // input wire s_axis_aresetn
       .s_axis_aclk   (core_clk),        // input wire s_axis_aclk
       .s_axis_tvalid (fifo_out_valid),  // input wire s_axis_tvalid
@@ -534,14 +547,12 @@ module dma #(
       .s_axis_tkeep  (fifo_out_keep),   // input wire [3 : 0] s_axis_tkeep
       .s_axis_tlast  (fifo_out_last),   // input wire s_axis_tlast
 
-      .m_axis_aclk  (eth_clk),           // input wire m_axis_aclk
-      .m_axis_tvalid(out_conv_i.valid),  // output wire m_axis_tvalid
-      .m_axis_tready(out_conv_ready),    // input wire m_axis_tready
-      .m_axis_tdata (out_conv_i.data),   // output wire [31 : 0] m_axis_tdata
-      .m_axis_tkeep (out_conv_i.keep),   // output wire [3 : 0] m_axis_tkeep
-      .m_axis_tlast (out_conv_i.last),   // output wire m_axis_tlast
-
-      .prog_full()  // output wire prog_full
+      .m_axis_aclk  (eth_clk),                 // input wire m_axis_aclk
+      .m_axis_tvalid(out_conv_i.valid),        // output wire m_axis_tvalid
+      .m_axis_tready(out_conv_ready),          // input wire m_axis_tready
+      .m_axis_tdata (out_conv_i.data[31:0]),   // output wire [31 : 0] m_axis_tdata
+      .m_axis_tkeep (out_conv_i.keep[3:0]),    // output wire [3 : 0] m_axis_tkeep
+      .m_axis_tlast (out_conv_i.last)          // output wire m_axis_tlast
   );
 
   always @(posedge eth_clk) begin
