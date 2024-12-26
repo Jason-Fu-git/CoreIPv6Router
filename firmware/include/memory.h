@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <packet.h>
+#include <ip6.h>
 
 #define BRAM_BUFFER_FENCE_ADDR 0x30000000 // TODO: Replace with the actual address
 
@@ -14,10 +15,11 @@
 
 struct memory_rte
 {
-    uint32_t node_addr; // = 0 - invalid
-    uint32_t metric;    // == 16 ? timer = GC timer :a Timeout timer
-    uint32_t lower_timer;
-    uint32_t upper_timer;
+    struct ip6_addr ip6_addr; // TODO: Replace this with node_addr
+    uint8_t prefix_len;
+    uint8_t metric; // == 16 ? timer = GC timer :a Timeout timer
+    uint8_t nexthop_port; // upper 4 bits: message port, lower 4 bits: nexthop port
+    uint8_t upper_timer;
 };
 
 /**

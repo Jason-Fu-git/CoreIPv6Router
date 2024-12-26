@@ -130,7 +130,7 @@ void start(void)
                 *(volatile uint32_t *)DMA_OUT_LENGTH = 0;
 
                 // Process the packet
-                RipngErrorCode error = disassemble(DMA_BLOCK_WADDR, data_width);
+                RipngErrorCode error = disassemble(DMA_BLOCK_WADDR, data_width, *(volatile uint8_t *)DMA_PORT_ID);
                 if (error != SUCCESS)
                 {
                     printf("Error: %d\n", error);
@@ -142,9 +142,8 @@ void start(void)
             }
         }
 
-        // check multicast timer (should be less than 80s)
-        if (check_timeout(MULTICAST_TIME_LIMIT, 0,
-                          multicast_timer_ldata, multicast_timer_hdata))
+        // check multicast timer (86s)
+        if (check_timeout(1, multicast_timer_hdata))
         {
             // Send multicast request.
             send_unsolicited_response();

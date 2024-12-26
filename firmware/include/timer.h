@@ -29,6 +29,6 @@
  * @return 1 if the timer has expired, 0 otherwise
  * @author Jason Fu * 
  */
-int check_timeout(uint32_t time_llimit, uint32_t time_hlimit, uint32_t timer_laddr, uint32_t timer_haddr);
+int check_timeout(uint32_t time_hlimit, uint32_t timer_haddr);
 
 #endif // _TIMER_H_

@@ -5,15 +5,25 @@
 #include "stdint.h"
 #include "packet.h"
 
+#define MULTICAST_ADDR {htonl(0xff020000), 0, 0, htonl(0x00000009)}
+
+/**
+ * @brief Update one memory_rte by checking its timers.
+ * @param memory_rte The address of the rte.
+ * @return 0 if the rte is NULL, 1 otherwise.
+ * @author Eason Liu
+ */
+int update_memory_rte(struct memory_rte *memory_rte);
 /**
  * @brief Disassemble the packet and check the correctness of the packet.
+ * @param 
  * @param base_addr The base address of the packet.
  * @param length The length of the packet.
  * @return RipngErrorCode The error code of the packet.
  * @author Jason Fu, Eason Liu
  *
  */
-RipngErrorCode disassemble(uint32_t base_addr, uint32_t length);
+RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port);
 
 /**
  * @brief Send multicast request.
