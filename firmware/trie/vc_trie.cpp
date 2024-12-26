@@ -2,7 +2,6 @@
 // Created by Yusaki on 24-12-21.
 //
 
-#include <stdint.h>
 #include <stdio.h>
 #include <packet.h>
 
@@ -21,7 +20,7 @@ static const uint32_t BRAM_DEPTHS[16] = {
 };
 
 static const uint32_t BIN_SIZES[16] = {
-	0, 7, 15, 15, 14, 10, 1, 1,
+	1, 7, 15, 15, 14, 10, 1, 1,
 	1, 1, 1, 1, 1, 1, 1, 1
 };
 
@@ -70,6 +69,7 @@ struct VCEntry {
 	uint32_t length;  // prefix length, 0~28, using 31 (5'b11111) to mark as invalid
 	uint32_t prefix;  // prefix, 0~28 bits in lower part
 	uint32_t next_hop;  // index of next hop table, 0~30, using 31 (5'b11111) to mark as invalid
+	uint32_t padding;
 	VCEntry() : length(31), prefix(0), next_hop(31) {}
 	bool isValid() const {
 		return (length < 31) && (next_hop < 31);
@@ -92,6 +92,8 @@ protected:
 	// lc & rc are the index of left child and right child in the BRAM, 0 is always empty, not allowed to read/write
 	uint32_t lc;
 	uint32_t rc;
+	uint32_t padding0;
+	uint32_t padding1;
 	VCEntry bin[BIN_SIZE];
 public:
 	VCNode() : lc(0), rc(0) {}
@@ -159,7 +161,7 @@ public:
 			if (node_num[stage] >= BRAM_DEPTHS[stage]) {
 				// printf("[WARN]BRAM ran out\n");
 				--node_count;
-				--node_num[next_stage];
+				--node_num[stage];
 				return -1;
 			}
 			// Since every BRAM leaves out address 0x0, the node_num is just the index of the last node.

@@ -38,9 +38,9 @@ module bram_data_converter_1 (
 
 	always_comb begin
 		case (sel)
-			8'b00000010: out = out_node.bin.prefix_length;
-			8'b00000011: out = out_node.bin.prefix;
-			8'b00000100: out = out_node.bin.entry_offset;
+			8'b00000100: out = out_node.bin.prefix_length;
+			8'b00000101: out = out_node.bin.prefix;
+			8'b00000110: out = out_node.bin.entry_offset;
 			8'b00000000: out = out_node.lc;
 			8'b00000001: out = out_node.rc;
 			default: out = 32'h114514;
@@ -61,9 +61,9 @@ module bram_data_converter_7 (
 	Entry_Aligned entry;
 
 	always_comb begin
-		entry.entry_offset  = {27'b0, in_node.bin[(sel - 8'd2) / 3].entry_offset};
-		entry.prefix        = {4'b0,  in_node.bin[(sel - 8'd2) / 3].prefix};
-		entry.prefix_length = {27'b0, in_node.bin[(sel - 8'd2) / 3].prefix_length};
+		entry.entry_offset  = {27'b0, in_node.bin[sel[7:2] - 1].entry_offset};
+		entry.prefix        = {4'b0,  in_node.bin[sel[7:2] - 1].prefix};
+		entry.prefix_length = {27'b0, in_node.bin[sel[7:2] - 1].prefix_length};
 	end
 
 	always_comb begin
@@ -72,10 +72,10 @@ module bram_data_converter_7 (
 		end else if (sel == 8'd1) begin
 			out = {19'b0, in_node.rc};
 		end else begin
-			case (sel % 3)
-				0: out = entry.prefix_length;
-				1: out = entry.prefix;
-				2: out = entry.entry_offset;
+			case (sel[1:0])
+				2'd0: out = entry.prefix_length;
+				2'd1: out = entry.prefix;
+				2'd2: out = entry.entry_offset;
 				default: out = 32'h114514;
 			endcase
 		end
@@ -95,9 +95,9 @@ module bram_data_converter_15 (
 	Entry_Aligned entry;
 
 	always_comb begin
-		entry.entry_offset  = {27'b0, in_node.bin[(sel - 8'd2) / 3].entry_offset};
-		entry.prefix        = {4'b0,  in_node.bin[(sel - 8'd2) / 3].prefix};
-		entry.prefix_length = {27'b0, in_node.bin[(sel - 8'd2) / 3].prefix_length};
+		entry.entry_offset  = {27'b0, in_node.bin[sel[7:2] - 1].entry_offset};
+		entry.prefix        = {4'b0,  in_node.bin[sel[7:2] - 1].prefix};
+		entry.prefix_length = {27'b0, in_node.bin[sel[7:2] - 1].prefix_length};
 	end
 
 	always_comb begin
@@ -106,10 +106,10 @@ module bram_data_converter_15 (
 		end else if (sel == 8'd1) begin
 			out = {19'b0, in_node.rc};
 		end else begin
-			case (sel % 3)
-				0: out = entry.prefix_length;
-				1: out = entry.prefix;
-				2: out = entry.entry_offset;
+			case (sel[1:0])
+				2'd0: out = entry.prefix_length;
+				2'd1: out = entry.prefix;
+				2'd2: out = entry.entry_offset;
 				default: out = 32'h114514;
 			endcase
 		end
@@ -129,9 +129,9 @@ module bram_data_converter_14 (
 	Entry_Aligned entry;
 
 	always_comb begin
-		entry.entry_offset  = {27'b0, in_node.bin[(sel - 8'd2) / 3].entry_offset};
-		entry.prefix        = {4'b0,  in_node.bin[(sel - 8'd2) / 3].prefix};
-		entry.prefix_length = {27'b0, in_node.bin[(sel - 8'd2) / 3].prefix_length};
+		entry.entry_offset  = {27'b0, in_node.bin[sel[7:2] - 1].entry_offset};
+		entry.prefix        = {4'b0,  in_node.bin[sel[7:2] - 1].prefix};
+		entry.prefix_length = {27'b0, in_node.bin[sel[7:2] - 1].prefix_length};
 	end
 
 	always_comb begin
@@ -140,10 +140,10 @@ module bram_data_converter_14 (
 		end else if (sel == 8'd1) begin
 			out = {19'b0, in_node.rc};
 		end else begin
-			case (sel % 3)
-				0: out = entry.prefix_length;
-				1: out = entry.prefix;
-				2: out = entry.entry_offset;
+			case (sel[1:0])
+				2'd0: out = entry.prefix_length;
+				2'd1: out = entry.prefix;
+				2'd2: out = entry.entry_offset;
 				default: out = 32'h114514;
 			endcase
 		end
@@ -163,9 +163,9 @@ module bram_data_converter_10 (
 	Entry_Aligned entry;
 
 	always_comb begin
-		entry.entry_offset  = {27'b0, in_node.bin[(sel - 8'd2) / 3].entry_offset};
-		entry.prefix        = {4'b0,  in_node.bin[(sel - 8'd2) / 3].prefix};
-		entry.prefix_length = {27'b0, in_node.bin[(sel - 8'd2) / 3].prefix_length};
+		entry.entry_offset  = {27'b0, in_node.bin[sel[7:2] - 1].entry_offset};
+		entry.prefix        = {4'b0,  in_node.bin[sel[7:2] - 1].prefix};
+		entry.prefix_length = {27'b0, in_node.bin[sel[7:2] - 1].prefix_length};
 	end
 
 	always_comb begin
@@ -174,10 +174,10 @@ module bram_data_converter_10 (
 		end else if (sel == 8'd1) begin
 			out = {19'b0, in_node.rc};
 		end else begin
-			case (sel % 3)
-				0: out = entry.prefix_length;
-				1: out = entry.prefix;
-				2: out = entry.entry_offset;
+			case (sel[1:0])
+				2'd0: out = entry.prefix_length;
+				2'd1: out = entry.prefix;
+				2'd2: out = entry.entry_offset;
 				default: out = 32'h114514;
 			endcase
 		end
