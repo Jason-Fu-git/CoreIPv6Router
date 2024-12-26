@@ -89,6 +89,9 @@ module dma #(
   reg fifo_out_last;
   reg fifo_out_valid;
 
+  logic is_multicast;
+  logic [2:0] multicast_count;
+
   always_ff @(posedge core_clk) begin : STB_REG
     if (core_rst) begin
       dm_stb_reg <= 0;
@@ -316,7 +319,7 @@ module dma #(
         end
       end
       DONE: begin
-        if (!cpu_stb_i) begin
+        if (!cpu_stb_i || (multicast_count > 1)) begin
           next_state = IDLE;
         end
       end
@@ -410,6 +413,10 @@ module dma #(
               fifo_out_valid <= 0;
             end
           end
+          // Multicast
+          if (is_multicast && (multicast_count == 0)) begin
+            multicast_count <= 4;
+          end
         end
         WRITE: begin
           if (dm_ack_i && dm_stb_reg) begin
@@ -425,6 +432,10 @@ module dma #(
         end
         DONE: begin
           // Do nothing
+          if (multicast_count > 0) begin
+            multicast_count <= multicast_count - 1;
+            data_width      <= 0;
+          end
         end
         default: begin
           // Do nothing
@@ -433,7 +444,7 @@ module dma #(
     end
   end
 
-  assign dma_ack_o = (state == DONE);
+  assign dma_ack_o = (state == DONE) && (multicast_count <= 1);
   assign dma_dat_width_o = data_width;
   assign in_dm_ready     = (state == WRITE)
                               && (!dm_stb_o)
@@ -497,6 +508,17 @@ module dma #(
     end
   end
 
+
+  // ================================
+  // Multicast
+  // ================================
+  always_ff @(posedge core_clk) begin : MULTICAST
+    if (core_rst || (state == IDLE)) begin
+      is_multicast <= 1'b0;
+    end else if (data_width == IP6_DST_OFFSET) begin
+      is_multicast <= (dm_dat_o[7:0] == 8'hFF);
+    end
+  end
 
   // ================================
   // Output Data Width Converter and FIFO

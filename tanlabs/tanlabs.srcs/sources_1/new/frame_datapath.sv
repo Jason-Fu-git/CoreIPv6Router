@@ -250,6 +250,7 @@ module frame_datapath #(
       .cache_r_exists   (cache_exists1),
 
       .mac_addrs(mac_addrs),
+      .ip_addrs(ipv6_addrs),
 
       .checksum(dma_checksum),
       .checksum_valid(dma_checksum_valid)
@@ -325,11 +326,11 @@ module frame_datapath #(
       .ns_ready(ns_in_ready),
       .na_ready(na_in_ready),
       .fw_ready(fw_in_ready),
-      .rip_ready(dma_in_ready),  // FIXME: Attach to FIFO Later
+      .rip_ready(dma_in_ready),
       .out_ns(ns_in),
       .out_na(na_in),
       .out_fw(fw_in),
-      .out_rip(dma_in),  // FIXME: Attach to FIFO Later
+      .out_rip(dma_in),
       .ns_valid(ns_in_valid),
       .na_valid(na_in_valid),
       .fw_valid(fw_in_valid),

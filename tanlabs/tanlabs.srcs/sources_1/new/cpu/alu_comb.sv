@@ -13,6 +13,7 @@ module alu_comb (
   // ALU operation
   // =====================================
   logic [63:0] temp;
+  logic [31:0] temp32;
   always_comb begin : ALU
     case (OP)
       ALU_ADD:  Y = A + B;
@@ -30,6 +31,15 @@ module alu_comb (
       end
       ALU_SLT:  Y = $signed(A) < $signed(B);
       ALU_SLTU: Y = A < B;
+      ALU_GRV: begin
+        temp32 = A;
+        if (B[0]) temp32 = ((temp32 & 32'h5555_5555) << 1) | ((temp32 & 32'hAAAA_AAAA) >> 1);
+        if (B[1]) temp32 = ((temp32 & 32'h3333_3333) << 2) | ((temp32 & 32'hCCCC_CCCC) >> 2);
+        if (B[2]) temp32 = ((temp32 & 32'h0F0F_0F0F) << 4) | ((temp32 & 32'hF0F0_F0F0) >> 4);
+        if (B[3]) temp32 = ((temp32 & 32'h00FF_00FF) << 8) | ((temp32 & 32'hFF00_FF00) >> 8);
+        if (B[4]) temp32 = ((temp32 & 32'h0000_FFFF) << 16) | ((temp32 & 32'hFFFF_0000) >> 16);
+        Y = temp32;
+      end
       default:  Y = 32'b0;
     endcase
   end

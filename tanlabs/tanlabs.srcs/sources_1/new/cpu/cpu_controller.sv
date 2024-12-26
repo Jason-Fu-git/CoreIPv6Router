@@ -795,6 +795,10 @@ module cpu_controller (
               id_op_next   = OP_SRAI;
               id_rd_ea     = 1;
               id_ex_rs1_ea = 1;
+            end else if (if_instr[31:27] == 5'b01101) begin
+              id_op_next   = OP_GREVI;
+              id_rd_ea     = 1;
+              id_ex_rs1_ea = 1;
             end else begin
               id_op_next   = OP_NOP;
               id_err_instr = 1;
@@ -1059,6 +1063,8 @@ module cpu_controller (
       || (id_op_next == OP_CSRRCI)
     ) begin
       id_imm_next = {27'd0, if_instr[19:15]};
+    end else if (id_op_next == OP_GREVI) begin
+      id_imm_next = {27'd0, if_instr[24:20]};
     end else begin
       id_imm_next = 0;
     end
@@ -1416,6 +1422,11 @@ module cpu_controller (
         alu_b  = id_imm[4:0];
         alu_op = ALU_SRA;
       end
+      OP_GREVI: begin
+        alu_a  = ex_rs1_fwd;
+        alu_b  = id_imm[4:0];
+        alu_op = ALU_GRV;
+      end
       // R type
       OP_ADD: begin
         alu_a  = ex_rs1_fwd;
@@ -1549,6 +1560,7 @@ module cpu_controller (
           || (ex_op == OP_SRA)
           || (ex_op == OP_OR)
           || (ex_op == OP_AND)
+          || (ex_op == OP_GREVI)
         )
     );
 
