@@ -7,7 +7,7 @@
 #include <ctime>
 #include <fstream>
 
-typedef unsigned int uint32_t;
+// typedef unsigned int uint32_t;
 
 const uint32_t BRAM_BASE = 0x20800000;
 
@@ -18,6 +18,17 @@ uint32_t htonl(uint32_t x) {
 	| ((x & 0xff00) << 8)
 	| ((x & 0xff0000) >> 8)
 	| ((x & 0xff000000) >> 24);
+}
+
+uint32_t brev8(uint32_t x) {
+	uint32_t ret = 0;
+	for (int i = 0; i < 8; ++i) {
+		ret |= ((x >> i) & 1) << (7 - i);
+		ret |= ((x >> (8 + i)) & 1) << (15 - i);
+		ret |= ((x >> (16 + i)) & 1) << (23 - i);
+		ret |= ((x >> (24 + i)) & 1) << (31 - i);
+	}
+	return ret;
 }
 
 struct IP6 {
@@ -49,7 +60,12 @@ struct IP6 {
 		converted[1] = htonl(ip[1]);
 		converted[2] = htonl(ip[2]);
 		converted[3] = htonl(ip[3]);
-		sprintf(buffer, "%08x%08x%08x%08x", converted[0], converted[1], converted[2], converted[3]);
+		sprintf(buffer, "%04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x",
+			converted[0] >> 16, converted[0] & 0xffff,
+			converted[1] >> 16, converted[1] & 0xffff,
+			converted[2] >> 16, converted[2] & 0xffff,
+			converted[3] >> 16, converted[3] & 0xffff
+		);
 	}
 };
 
@@ -220,7 +236,7 @@ public:
 #define now_stage ((stage_level == 0) ? (0) : ((stage_level - 1) >> 3))
 #define level (stage_level & 0x7)
 #define lsb   (prefix & 0x1)
-#define _NEXT_LEVEL if(_create_subtree(now, stage, level, lsb) == (uint32_t)-1) { \
+#define _NEXT_LEVEL if(_create_subtree(static_cast<VCNodePtr>(now), stage, level, lsb) == (uint32_t)-1) { \
                 goto END;                                                         \
 			} \
             now = _childAddrInStage(now, stage, lsb); \
@@ -245,7 +261,7 @@ public:
 		// excessive
 		END:
 		prefix_raw.toHex(error_buffer);
-		// printf("[WARN] Ex:%s/%d\n", error_buffer, length);
+		printf("[WARN] Ex: %s/%d\n", error_buffer, length);
 		++excessive_count;
 		return 1;  // needs to be handled
 #undef stage
@@ -261,7 +277,7 @@ public:
 	 * */
 	size_t lookup_entry(const IP6& prefix_raw, uint32_t length) {
 		IP6 prefix = prefix_raw;
-		VCNodePtr now = (VCNodePtr)&root;
+		VCNodePtr now = (VCNodePtr)(&root);
 		uint32_t stage_level = 0;
 #define stage (stage_level >> 3)
 #define now_stage ((stage_level == 0) ? (0) : ((stage_level - 1) >> 3))
@@ -302,6 +318,11 @@ public:
 	void print() const {
 		for (uint32_t i = 0; i < 16; ++i) {
 			printf("Stage %d: %d/%d\n", i, node_num[i], BRAM_DEPTHS[i]);
+		}
+		for (uint32_t i = 0; i < 16; ++i) {
+			for (uint32_t j = 1; j < 4; ++j) {
+				printf("Stage %d-%d node: lc=%d, rc=%d\n", i, j, ((VCNodePtr)((size_t)BRAM_BASES[i] + j * BRAM_SIZES[i]))->getLc(), ((VCNodePtr)((size_t)BRAM_BASES[i] + j * BRAM_SIZES[i]))->getRc());
+			}
 		}
 	}
 };
