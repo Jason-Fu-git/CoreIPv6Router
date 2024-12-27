@@ -34,12 +34,13 @@ module dma #(
     input wire        cpu_we_i,        // Write Enable
     input wire [31:0] cpu_adr_i,       // Address
     input wire [31:0] cpu_dat_width_i, // Data Width (in bytes)
+    input wire [ 1:0] cpu_port_id_i,   // Out Port ID
 
-    output reg dma_ack_o,  // DMA Acknowledge, will be held until STB is de-asserted
+    output reg        dma_ack_o,  // DMA Acknowledge, will be held until STB is de-asserted
     output reg [31:0] dma_dat_width_o,  // Data Width (in bytes)
     output reg [15:0] dma_checksum_o,  // Checksum
-    output reg dma_checksum_valid_o,  // Checksum Valid
-    output reg [1:0] dma_port_id_o  // Port ID
+    output reg        dma_checksum_valid_o,  // Checksum Valid
+    output reg [ 1:0] dma_port_id_o  // In Port ID
 );
 
   // Considering that we only have one SRAM, DMA cannot execute multiple transactions at the same time
@@ -91,9 +92,6 @@ module dma #(
   reg [3:0] fifo_out_keep;
   reg fifo_out_last;
   reg fifo_out_valid;
-
-  logic is_multicast;
-  logic [2:0] multicast_count;
 
   always_ff @(posedge core_clk) begin : STB_REG
     if (core_rst) begin
@@ -332,7 +330,7 @@ module dma #(
         end
       end
       DONE: begin
-        if (!cpu_stb_i || (multicast_count > 1)) begin
+        if (!cpu_stb_i) begin
           next_state = IDLE;
         end
       end
@@ -356,7 +354,6 @@ module dma #(
       fifo_out_keep    <= 0;
       fifo_out_last    <= 0;
       fifo_out_valid   <= 0;
-      multicast_count  <= 0;
     end else begin
       state <= next_state;
       case (state)
@@ -427,10 +424,6 @@ module dma #(
               fifo_out_valid <= 0;
             end
           end
-          // Multicast
-          if (is_multicast && (multicast_count == 0)) begin
-            multicast_count <= 4;
-          end
         end
         WRITE: begin
           if (dm_ack_i && dm_stb_reg) begin
@@ -446,10 +439,6 @@ module dma #(
         end
         DONE: begin
           // Do nothing
-          if (multicast_count > 0) begin
-            multicast_count <= multicast_count - 1;
-            data_width      <= 0;
-          end
         end
         default: begin
           // Do nothing
@@ -458,7 +447,7 @@ module dma #(
     end
   end
 
-  assign dma_ack_o = (state == DONE) && (multicast_count <= 1);
+  assign dma_ack_o = (state == DONE);
   assign dma_dat_width_o = data_width;
   assign in_dm_ready     = (state == WRITE)
                               && (!dm_stb_o)
@@ -524,17 +513,6 @@ module dma #(
 
 
   // ================================
-  // Multicast
-  // ================================
-  always_ff @(posedge core_clk) begin : MULTICAST
-    if (core_rst || (state == IDLE)) begin
-      is_multicast <= 1'b0;
-    end else if (data_width == IP6_DST_OFFSET) begin
-      is_multicast <= (dm_dat_o[7:0] == 8'hFF);
-    end
-  end
-
-  // ================================
   // Output Data Width Converter and FIFO
   // ================================
 
@@ -546,25 +524,31 @@ module dma #(
       .s_axis_tdata  (fifo_out_data),   // input wire [31 : 0] s_axis_tdata
       .s_axis_tkeep  (fifo_out_keep),   // input wire [3 : 0] s_axis_tkeep
       .s_axis_tlast  (fifo_out_last),   // input wire s_axis_tlast
+      .s_axis_tid    (cpu_port_id_i),   // input wire [1 : 0] s_axis_tid
 
       .m_axis_aclk  (eth_clk),                 // input wire m_axis_aclk
       .m_axis_tvalid(out_conv_i.valid),        // output wire m_axis_tvalid
       .m_axis_tready(out_conv_ready),          // input wire m_axis_tready
       .m_axis_tdata (out_conv_i.data[31:0]),   // output wire [31 : 0] m_axis_tdata
       .m_axis_tkeep (out_conv_i.keep[3:0]),    // output wire [3 : 0] m_axis_tkeep
-      .m_axis_tlast (out_conv_i.last)          // output wire m_axis_tlast
+      .m_axis_tlast (out_conv_i.last),         // output wire m_axis_tlast
+      .m_axis_tid   (out_conv_i.meta.dest[1:0])  // output wire [1 : 0] m_axis_tid
   );
+
+  assign out_conv_i.meta.id         = 3'b100;
+  assign out_conv_i.meta.dest[2]    = 1'b0;
+  assign out_conv_i.meta.drop       = 1'b0;
+  assign out_conv_i.meta.drop_next  = 1'b0;
+  assign out_conv_i.meta.dont_touch = 1'b0;
 
   always @(posedge eth_clk) begin
     if (eth_rst) begin
       out_conv_i.is_first <= 1'b1;
       out_conv_i.user     <= 0;
-      out_conv_i.meta     <= 0;
     end else begin
       if (out_conv_i.valid && out_conv_ready) begin
         out_conv_i.is_first <= out_conv_i.last;
         out_conv_i.user     <= 0;
-        out_conv_i.meta     <= 0;
       end
     end
   end

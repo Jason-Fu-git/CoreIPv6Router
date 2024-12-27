@@ -245,9 +245,6 @@ module frame_datapath #(
       .cache_r_port_id  (cache_iface1_o),
       .cache_r_exists   (cache_exists1),
 
-      .mac_addrs(mac_addrs),
-      .ip_addrs (ipv6_addrs),
-
       .checksum(dma_checksum),
       .checksum_valid(dma_checksum_valid)
   );

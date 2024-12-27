@@ -1,7 +1,6 @@
 `timescale 1ns / 1ps
 `include "frame_datapath.vh"
 
-// todo: fill in src and dst MAC addresses, src IPv6 address, and port IDs
 module pipeline_rip (
     input wire clk,
     input wire rst_p,
@@ -19,10 +18,6 @@ module pipeline_rip (
     input  wire [ 47:0] cache_r_MAC_addr,
     input  wire [  1:0] cache_r_port_id,
     input  wire         cache_r_exists,
-
-    // Address config
-    input wire [3:0][ 47:0] mac_addrs,  // router MAC address
-    input wire [3:0][127:0] ip_addrs,   // router IPv6 address
 
     // Checksum
     input wire [15:0] checksum,
@@ -46,61 +41,6 @@ module pipeline_rip (
     end
   end
 
-
-  // =======================
-  // Multicast Handling
-  // =======================
-  logic is_multicast;
-  logic [1:0] multicast_dst_port;
-
-  logic [16:0] multicast_checksum_0_0;
-  logic [16:0] multicast_checksum_0_1;
-  logic [16:0] multicast_checksum_0_2;
-  logic [16:0] multicast_checksum_0_3;
-  logic [16:0] multicast_checksum_1_0;
-  logic [16:0] multicast_checksum_1_1;
-  logic [16:0] multicast_checksum_2;
-  logic [16:0] multicast_checksum;
-
-  logic [16:0] multicast_checksum_0_0_comb;
-  logic [16:0] multicast_checksum_0_1_comb;
-  logic [16:0] multicast_checksum_0_2_comb;
-  logic [16:0] multicast_checksum_0_3_comb;
-  logic [16:0] multicast_checksum_1_0_comb;
-  logic [16:0] multicast_checksum_1_1_comb;
-  logic [16:0] multicast_checksum_2_comb;
-  logic [16:0] multicast_checksum_comb;
-
-  always_ff @(posedge clk) begin : IS_MULTICAST
-    if (rst_p) begin
-      is_multicast <= 0;
-    end else if (in_valid && in.is_first) begin
-      is_multicast <= in.data.ip6.dst[7:0] == 8'hff;
-    end
-  end
-
-  assign multicast_checksum_0_0_comb = {in_buffer_data.data.ip6.src[7:0]
-                                        , in_buffer_data.data.ip6.src[15:8]}
-                                        + {in_buffer_data.data.ip6.src[23:16]
-                                        ,in_buffer_data.data.ip6.src[31:24]};
-  assign multicast_checksum_0_1_comb = {in_buffer_data.data.ip6.src[39:32]
-                                        , in_buffer_data.data.ip6.src[47:40]}
-                                        + {in_buffer_data.data.ip6.src[55:48]
-                                        ,in_buffer_data.data.ip6.src[63:56]};
-  assign multicast_checksum_0_2_comb = {in_buffer_data.data.ip6.src[71:64]
-                                        , in_buffer_data.data.ip6.src[79:72]}
-                                        + {in_buffer_data.data.ip6.src[87:80]
-                                        ,in_buffer_data.data.ip6.src[95:88]};
-  assign multicast_checksum_0_3_comb = {in_buffer_data.data.ip6.src[103:96]
-                                        , in_buffer_data.data.ip6.src[111:104]}
-                                        + {in_buffer_data.data.ip6.src[119:112]
-                                        ,in_buffer_data.data.ip6.src[127:120]};
-  assign multicast_checksum_1_0_comb = multicast_checksum_0_0 + multicast_checksum_0_1;
-  assign multicast_checksum_1_1_comb = multicast_checksum_0_2 + multicast_checksum_0_3;
-  assign multicast_checksum_2_comb = multicast_checksum_1_0 + multicast_checksum_1_1;
-  assign multicast_checksum_comb = multicast_checksum_2 + ~{1'b1, checksum[15:0]};
-
-
   // =======================
   // Input Buffer
   // =======================
@@ -111,31 +51,17 @@ module pipeline_rip (
 
   frame_beat in_buffer_data;
   always_comb begin : FW_IN_BUFFER_DATA
-    in_buffer_data     = in;
-    multicast_checksum = 0;
+    in_buffer_data = in;
     if (is_second) begin
-      if (is_multicast) begin
-        multicast_checksum = multicast_checksum_comb[15:0] + multicast_checksum_comb[16];
-        in_buffer_data.data[39:32] = ~multicast_checksum[15:8];
-        in_buffer_data.data[47:40] = ~multicast_checksum[7:0];
-      end else begin
-        in_buffer_data.data[39:32] = checksum[15:8];
-        in_buffer_data.data[47:40] = checksum[7:0];
-      end
-    end
-    if (in.is_first && (is_multicast || (in.data.ip6.dst[7:0] == 8'hff))) begin
-      in_buffer_data.data.ip6.src = ip_addrs[multicast_dst_port];
+      in_buffer_data.data[39:32] = checksum[15:8];
+      in_buffer_data.data[47:40] = checksum[7:0];
     end
   end
 
   always_ff @(posedge clk) begin : FW_IN_REG
     if (rst_p) begin
-      in_buffer              <= 0;
-      is_second              <= 0;
-      multicast_checksum_0_0 <= 0;
-      multicast_checksum_0_1 <= 0;
-      multicast_checksum_0_2 <= 0;
-      multicast_checksum_0_3 <= 0;
+      in_buffer <= 0;
+      is_second <= 0;
     end else begin
       if (buffer_ready) begin
         in_buffer.valid <= in_valid;
@@ -145,10 +71,6 @@ module pipeline_rip (
           // Set is_second
           if (in.is_first) begin
             is_second <= 1;
-            multicast_checksum_0_0[15:0] <= multicast_checksum_0_0_comb[15:0] + multicast_checksum_0_0_comb[16];
-            multicast_checksum_0_1[15:0] <= multicast_checksum_0_1_comb[15:0] + multicast_checksum_0_1_comb[16];
-            multicast_checksum_0_2[15:0] <= multicast_checksum_0_2_comb[15:0] + multicast_checksum_0_2_comb[16];
-            multicast_checksum_0_3[15:0] <= multicast_checksum_0_3_comb[15:0] + multicast_checksum_0_3_comb[16];
           end else if (in.last) begin
             is_second <= 0;
           end else begin
@@ -185,40 +107,34 @@ module pipeline_rip (
   always_ff @(posedge clk) begin : FW_CACHE_REG
     if (rst_p) begin
       cache_beat <= 0;
-      multicast_checksum_1_0 <= 0;
-      multicast_checksum_1_1 <= 0;
     end else begin
       if (cache_ready) begin
         cache_beat.valid <= in_buffer.valid;
         if (in_buffer.valid) begin
           if (in_buffer.data.is_first) begin
-
-            multicast_checksum_1_0[15:0] <= multicast_checksum_1_0_comb[15:0] + multicast_checksum_1_0_comb[16];
-            multicast_checksum_1_1[15:0] <= multicast_checksum_1_1_comb[15:0] + multicast_checksum_1_1_comb[16];
-
             if (in_buffer.error == ERR_NONE) begin
-              if (cache_r_exists || is_multicast) begin
-                cache_beat.error <= ERR_NONE;
+              if (cache_r_exists) begin
+                cache_beat.error                <= ERR_NONE;
 
                 // frame_beat properties
-                cache_beat.data.keep <= in_buffer.data.keep;
-                cache_beat.data.last <= in_buffer.data.last;
-                cache_beat.data.user <= in_buffer.data.user;
-                cache_beat.data.valid <= in_buffer.data.valid;
-                cache_beat.data.is_first <= in_buffer.data.is_first;
+                cache_beat.data.keep            <= in_buffer.data.keep;
+                cache_beat.data.last            <= in_buffer.data.last;
+                cache_beat.data.user            <= in_buffer.data.user;
+                cache_beat.data.valid           <= in_buffer.data.valid;
+                cache_beat.data.is_first        <= in_buffer.data.is_first;
 
                 // frame_meta properties
-                cache_beat.data.meta.id         <= (is_multicast)? multicast_dst_port : in_buffer.data.meta.id;
-                cache_beat.data.meta.dest <= (is_multicast) ? multicast_dst_port : cache_r_port_id;
-                cache_beat.data.meta.drop <= in_buffer.data.meta.drop;
+                cache_beat.data.meta.id         <= in_buffer.data.meta.id;
+                cache_beat.data.meta.dest       <= cache_r_port_id;
+                cache_beat.data.meta.drop       <= in_buffer.data.meta.drop;
                 cache_beat.data.meta.dont_touch <= in_buffer.data.meta.dont_touch;
-                cache_beat.data.meta.drop_next <= in_buffer.data.meta.drop_next;
+                cache_beat.data.meta.drop_next  <= in_buffer.data.meta.drop_next;
 
                 // ether_hdr properties
-                cache_beat.data.data.ethertype <= in_buffer.data.data.ethertype;
-                cache_beat.data.data.src        <= (is_multicast)? mac_addrs[multicast_dst_port] : in_buffer.data.data.src;
-                cache_beat.data.data.dst <= (is_multicast) ? 48'h090000003333 : cache_r_MAC_addr;
-                cache_beat.data.data.ip6 <= in_buffer.data.data.ip6;
+                cache_beat.data.data.ethertype  <= in_buffer.data.data.ethertype;
+                cache_beat.data.data.src        <= in_buffer.data.data.src;
+                cache_beat.data.data.dst        <= cache_r_MAC_addr;
+                cache_beat.data.data.ip6        <= in_buffer.data.data.ip6;
               end else begin
                 cache_beat.error <= ERR_NC_MISS;
                 cache_beat.data  <= in_buffer.data;
@@ -229,24 +145,24 @@ module pipeline_rip (
             end
           end else begin
             // Not the first beat
-            cache_beat.error <= in_buffer.error;
+            cache_beat.error                <= in_buffer.error;
 
             // frame_beat properties
-            cache_beat.data.keep <= in_buffer.data.keep;
-            cache_beat.data.last <= in_buffer.data.last;
-            cache_beat.data.user <= in_buffer.data.user;
-            cache_beat.data.valid <= in_buffer.data.valid;
-            cache_beat.data.is_first <= in_buffer.data.is_first;
+            cache_beat.data.keep            <= in_buffer.data.keep;
+            cache_beat.data.last            <= in_buffer.data.last;
+            cache_beat.data.user            <= in_buffer.data.user;
+            cache_beat.data.valid           <= in_buffer.data.valid;
+            cache_beat.data.is_first        <= in_buffer.data.is_first;
 
             // frame_meta properties
-            cache_beat.data.meta.id <= (is_multicast) ? multicast_dst_port : in_buffer.data.meta.id;
-            cache_beat.data.meta.dest <= (is_multicast) ? multicast_dst_port : cache_r_port_id_reg;
-            cache_beat.data.meta.drop <= in_buffer.data.meta.drop;
+            cache_beat.data.meta.id         <= in_buffer.data.meta.id;
+            cache_beat.data.meta.dest       <= cache_r_port_id_reg;
+            cache_beat.data.meta.drop       <= in_buffer.data.meta.drop;
             cache_beat.data.meta.dont_touch <= in_buffer.data.meta.dont_touch;
-            cache_beat.data.meta.drop_next <= in_buffer.data.meta.drop_next;
+            cache_beat.data.meta.drop_next  <= in_buffer.data.meta.drop_next;
 
             // payload
-            cache_beat.data.data <= in_buffer.data.data;
+            cache_beat.data.data            <= in_buffer.data.data;
           end
         end
       end
@@ -258,52 +174,23 @@ module pipeline_rip (
   // =======================
   assign cache_ready = out_ready || (!cache_beat.valid);
 
-  logic [47:0] src_MAC_addr;
-  always_comb begin : FW_OUT_SRC
-    case (cache_beat.data.meta.id)
-      2'd0: begin
-        src_MAC_addr = mac_addrs[0];
-      end
-      2'd1: begin
-        src_MAC_addr = mac_addrs[1];
-      end
-      2'd2: begin
-        src_MAC_addr = mac_addrs[2];
-      end
-      2'd3: begin
-        src_MAC_addr = mac_addrs[3];
-      end
-      default: begin
-        src_MAC_addr = 48'h0;
-      end
-    endcase
-  end
 
   always_ff @(posedge clk) begin : FW_OUT_REG
     if (rst_p) begin
       out <= 0;
-      multicast_checksum_2 <= 0;
-      multicast_dst_port <= 0;
     end else begin
       if (out_ready) begin
         if (cache_beat.valid) begin
           if (cache_beat.data.is_first) begin
-
-            if (is_multicast) begin
-              multicast_dst_port <= multicast_dst_port + 1;
-            end
-
-            multicast_checksum_2[15:0] <= multicast_checksum_2_comb[15:0] + multicast_checksum_2_comb[16];
-
             // frame_beat properties
-            out.keep <= cache_beat.data.keep;
-            out.last <= cache_beat.data.last;
-            out.user <= cache_beat.data.user;
-            out.valid <= cache_beat.data.valid;
-            out.is_first <= cache_beat.data.is_first;
+            out.keep      <= cache_beat.data.keep;
+            out.last      <= cache_beat.data.last;
+            out.user      <= cache_beat.data.user;
+            out.valid     <= cache_beat.data.valid;
+            out.is_first  <= cache_beat.data.is_first;
 
             // frame_meta properties
-            out.meta.id <= cache_beat.data.meta.id;
+            out.meta.id   <= cache_beat.data.meta.id;
             out.meta.dest <= cache_beat.data.meta.dest;
             if (cache_beat.error != ERR_NONE) begin
               out.meta.drop <= 1;
@@ -315,7 +202,7 @@ module pipeline_rip (
 
             // ether_hdr properties
             out.data.ethertype       <= cache_beat.data.data.ethertype;
-            out.data.src             <= src_MAC_addr;
+            out.data.src             <= cache_beat.data.data.src;
             out.data.dst             <= cache_beat.data.data.dst;
 
             // IPv6 header properties

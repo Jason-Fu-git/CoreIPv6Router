@@ -70,6 +70,8 @@ module cpu_controller (
     input  wire        btb_pred_bc
 );
 
+  parameter TIME_1S = 32'd50000000; // 50MHz
+
   // =====================================
   // Naming
   // if_ready: means if.out_ready, also means IF/ID Reg is ready to accept new data
@@ -2227,6 +2229,21 @@ module cpu_controller (
   // =====================================
   // Timer
   // =====================================
+
+  reg [31:0] timer_1s;
+  always_ff @( posedge clk ) begin : TIMER_1S
+    if (rst_p) begin
+      timer_1s <= 0;
+    end else begin
+      if (timer_1s >= TIME_1S) begin
+        timer_1s <= 0;
+      end else begin
+        timer_1s <= timer_1s + 1;
+      end
+    end
+  end
+
+
   always_ff @(posedge clk) begin : TIMER
     if (rst_p) begin
       mtime    <= 0;
@@ -2247,7 +2264,7 @@ module cpu_controller (
           mtimecmp[63:32] <= mem_data_o;
         end
       end else begin
-        if ((privilege == PRIVILEGE_U) && (mtime < mtimecmp)) mtime <= mtime + 1;
+        if (timer_1s >= TIME_1S) mtime <= mtime + 1;
       end
     end
   end
