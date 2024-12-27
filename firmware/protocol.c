@@ -432,7 +432,7 @@ void send_multicast_request(int port)
  * @brief Assemble a packet.
  * @param src_addr_v The source address of the packet.
  * @param dst_addr_v The destination address of the packet.
- * @param entries The routing table entries.
+ * @param entries_v The routing table entries.
  * @param num_entries The number of routing table entries. It shouldn't be bigger than RIPNG_MAX_RTE_NUM.
  * @param port The port to send the packet to.
  * @return The size of the packet.
@@ -542,7 +542,8 @@ void send_triggered_update(void *src_addr_v, void *dst_addr_v, void *entries_v, 
 /**
  * @brief Send unsolicited response.
  * @note This function will block until the whole routing table is sent.
- * @author Jason Fu
+ * @param port The port to send the packet to.
+ * @author Jason Fu, Eason Liu
  */
 void send_unsolicited_response()
 {

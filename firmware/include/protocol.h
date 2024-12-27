@@ -32,7 +32,8 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port);
  * @brief Send multicast request.
  * @note This function will only write the packet to the SRAM.
  *  To initiate the DMA transfer, you need to call _grant_dma_access()
- * @author Jason Fu
+ * @param port The port to send the packet to.
+ * @author Jason Fu, Eason Liu
  */
 void send_multicast_request(int port);
 
@@ -40,7 +41,7 @@ void send_multicast_request(int port);
  * @brief Assemble a packet.
  * @param src_addr_v The source address of the packet.
  * @param dst_addr_v The destination address of the packet.
- * @param entries The routing table entries.
+ * @param entries_v The routing table entries.
  * @param num_entries The number of routing table entries. It shouldn't be bigger than RIPNG_MAX_RTE_NUM.
  * @param port The port to send the packet to.
  * @return The size of the packet.
