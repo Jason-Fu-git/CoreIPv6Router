@@ -715,7 +715,7 @@ module tanlabs #(
   logic dma_ack;
   logic [31:0] dma_dat_width;
   logic [15:0] dma_checksum, dma_checksum_synced;
-  logic [1:0] dma_port_id;
+  logic [1:0] dma_in_port_id, dma_out_port_id;
   logic dma_checksum_valid, dma_checksum_valid_synced;
 
   logic checksum_fifo_in_ready;
@@ -1246,12 +1246,13 @@ module tanlabs #(
       .cpu_we_i(dma_cpu_we),
       .cpu_adr_i(dma_cpu_adr),
       .cpu_dat_width_i(dma_cpu_dat_width),
+      .cpu_port_id_i(dma_out_port_id),
 
       .dma_ack_o(dma_ack),
       .dma_dat_width_o(dma_dat_width),
       .dma_checksum_o(dma_checksum),
       .dma_checksum_valid_o(dma_checksum_valid),
-      .dma_port_id_o(dma_port_id)
+      .dma_port_id_o(dma_in_port_id)
   );
 
   dma_adapter dma_adapter_i (
@@ -1269,12 +1270,14 @@ module tanlabs #(
       .dma_ack_i(dma_ack),
       .dma_dat_width_i(dma_dat_width),
       .dma_checksum_i(dma_checksum),
-      .dma_port_id_i(dma_port_id),
+      .dma_port_id_i(dma_in_port_id),
 
+      .dma_port_id_o(dma_out_port_id),
       .dma_cpu_stb_o(dma_cpu_stb),
       .dma_cpu_we_o(dma_cpu_we),
       .dma_cpu_addr_o(dma_cpu_adr),
       .dma_cpu_dat_width_o(dma_cpu_dat_width)
+
   );
 
 

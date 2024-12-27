@@ -13,14 +13,16 @@ module dma_adapter (
     output reg         wbm_ack_o,
 
     // DMA Register interface
-    input  wire        dma_ack_i,
-    input  wire [31:0] dma_dat_width_i,
-    input  wire [15:0] dma_checksum_i,
-    input  wire [ 1:0] dma_port_id_i,
-    output reg  [31:0] dma_cpu_addr_o,
-    output reg  [31:0] dma_cpu_dat_width_o,
-    output reg         dma_cpu_stb_o,
-    output reg         dma_cpu_we_o
+    input wire        dma_ack_i,
+    input wire [31:0] dma_dat_width_i,
+    input wire [15:0] dma_checksum_i,
+    input wire [ 1:0] dma_port_id_i,
+
+    output reg [ 1:0] dma_port_id_o,
+    output reg [31:0] dma_cpu_addr_o,
+    output reg [31:0] dma_cpu_dat_width_o,
+    output reg        dma_cpu_stb_o,
+    output reg        dma_cpu_we_o
 );
 
   always_comb begin : READ
@@ -33,7 +35,7 @@ module dma_adapter (
       DMA_ACK:            wbm_dat_o = dma_ack_i;
       DMA_DATA_WIDTH:     wbm_dat_o = dma_dat_width_i;
       DMA_CHECKSUM:       wbm_dat_o = {16'd0, dma_checksum_i};
-      DMA_PORT_ID:        wbm_dat_o = {30'd0, dma_port_id_i};
+      DMA_IN_PORT_ID:     wbm_dat_o = {30'd0, dma_port_id_i};
       default:            wbm_dat_o = 32'h0;
     endcase
   end
@@ -56,10 +58,11 @@ module dma_adapter (
       dma_cpu_we_o        <= 1'b0;
     end else if (wbm_stb_i) begin
       case (wbm_adr_i)
-        DMA_CPU_STB:        dma_cpu_stb_o <= wbm_dat_i;
-        DMA_CPU_WE:         dma_cpu_we_o <= wbm_dat_i;
-        DMA_CPU_ADDR:       dma_cpu_addr_o <= wbm_dat_i;
+        DMA_CPU_STB:        dma_cpu_stb_o       <= wbm_dat_i;
+        DMA_CPU_WE:         dma_cpu_we_o        <= wbm_dat_i;
+        DMA_CPU_ADDR:       dma_cpu_addr_o      <= wbm_dat_i;
         DMA_CPU_DATA_WIDTH: dma_cpu_dat_width_o <= wbm_dat_i;
+        DMA_OUT_PORT_ID:    dma_port_id_o       <= wbm_dat_i[1:0];
         default:            ;
       endcase
     end
