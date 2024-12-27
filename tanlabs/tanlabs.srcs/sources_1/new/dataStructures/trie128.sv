@@ -14,6 +14,8 @@ module trie128(
     input wire [  4:0] default_next_hop,
     input wire [127:0] addr,
     output reg [  4:0] next_hop,
+    input wire [127:0] next_hop_ip6,
+    input wire [  1:0] next_hop_iface,
 
     // Wishbone signals
     input wire cpu_clk,
@@ -53,15 +55,6 @@ module trie128(
     end
 
     assign frame_beat_in[0] = in.data;
-
-    reg [127:0] next_hop_ip6;
-    reg [  1:0] next_hop_iface;
-
-    fwt_lookup fwt_lookup_i (
-        .in(next_hop),
-        .out(next_hop_ip6),
-        .out_iface(next_hop_iface)
-    );
 
     always_comb begin
         out.data = frame_beat_out[LEVELS-1];

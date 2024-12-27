@@ -16,8 +16,8 @@ module pipeline_forward (
 
     // neighbor cache
     output reg  [127:0] cache_r_IPv6_addr,
+    output reg  [  1:0] cache_r_port_id,
     input  wire [ 47:0] cache_r_MAC_addr,
-    input  wire [  1:0] cache_r_port_id,
     input  wire         cache_r_exists,
 
     // forward table
@@ -25,7 +25,6 @@ module pipeline_forward (
     input  fw_frame_beat_t fwt_out,
     input  wire            fwt_in_ready,
     output reg             fwt_out_ready,
-    input  wire [127:0]    fwt_next_hop,
 
     // Address config
     input wire [3:0][47:0] mac_addrs  // router MAC address
@@ -89,22 +88,11 @@ module pipeline_forward (
   // =======================
   logic cache_ready;
   fw_frame_beat_t cache_beat;
-  reg [1:0] cache_r_port_id_reg;
   assign fwt_out_ready = cache_ready;
 
   always_comb begin : FW_CACHE_SIGNALS
-    // cache_r_IPv6_addr = fwt_out.data.data.ip6.dst;
-    cache_r_IPv6_addr = fwt_next_hop;
-  end
-
-  always_ff @(posedge clk) begin : FW_CACHE_R_PORT_REG
-    if (rst_p) begin
-      cache_r_port_id_reg <= 0;
-    end else begin
-      if (fwt_out.data.is_first) begin
-        cache_r_port_id_reg <= cache_r_port_id;
-      end
-    end
+    cache_r_IPv6_addr = fwt_out.data.data.ip6.dst;
+    cache_r_port_id   = fwt_out.data.meta.dest[1:0];
   end
 
   always_ff @(posedge clk) begin : FW_CACHE_REG
@@ -128,7 +116,7 @@ module pipeline_forward (
 
                 // frame_meta properties
                 cache_beat.data.meta.id         <= fwt_out.data.meta.id;
-                cache_beat.data.meta.dest       <= cache_r_port_id;
+                cache_beat.data.meta.dest       <= fwt_out.data.meta.dest;
                 cache_beat.data.meta.drop       <= fwt_out.data.meta.drop;
                 cache_beat.data.meta.dont_touch <= fwt_out.data.meta.dont_touch;
                 cache_beat.data.meta.drop_next  <= fwt_out.data.meta.drop_next;
@@ -138,7 +126,6 @@ module pipeline_forward (
                 cache_beat.data.data.src        <= fwt_out.data.data.src;
                 cache_beat.data.data.dst        <= cache_r_MAC_addr;
                 cache_beat.data.data.ip6        <= fwt_out.data.data.ip6;
-                cache_beat.data.data.ip6.dst    <= fwt_next_hop;
               end else begin
                 cache_beat.error <= ERR_NC_MISS;
                 cache_beat.data  <= fwt_out.data;
@@ -160,7 +147,7 @@ module pipeline_forward (
 
             // frame_meta properties
             cache_beat.data.meta.id         <= fwt_out.data.meta.id;
-            cache_beat.data.meta.dest       <= cache_r_port_id_reg;
+            cache_beat.data.meta.dest       <= fwt_out.data.meta.dest;
             cache_beat.data.meta.drop       <= fwt_out.data.meta.drop;
             cache_beat.data.meta.dont_touch <= fwt_out.data.meta.dont_touch;
             cache_beat.data.meta.drop_next  <= fwt_out.data.meta.drop_next;

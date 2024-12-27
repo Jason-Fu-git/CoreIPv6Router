@@ -18,7 +18,8 @@ parameter IP_CONFIG_ADDR     = 32'h40000000;
 parameter MAC_CONFIG_ADDR    = 32'h40001000;
 
 // Next Hop Table
-// Format: [12:8] - index, [3:0] - offset
-parameter NEXTHOP_TABLE_ADDR  = 32'h41000000;
+// Format: [8:4] - index, [3:0] - offset
+parameter NEXTHOP_ADDR  = 32'h41000000;
+parameter PORT_ID_ADDR  = 32'h41001000;
 
 `endif // _WB_VH_
