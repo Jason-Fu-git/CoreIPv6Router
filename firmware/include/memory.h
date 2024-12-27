@@ -15,11 +15,11 @@
 
 struct memory_rte
 {
-    struct ip6_addr ip6_addr; // TODO: Replace this with node_addr
+    struct ip6_addr ip6_addr;
     uint8_t prefix_len;
-    uint8_t metric; // == 16 ? timer = GC timer :a Timeout timer
-    uint8_t nexthop_port; // upper 4 bits: message port, lower 4 bits: nexthop port
-    uint8_t upper_timer;
+    uint8_t metric; // == 16 ? timer = GC timer : Timeout timer
+    uint8_t nexthop_port; // Upper 1 bit: valid; Lower 5 bits: port number
+    uint8_t lower_timer;
 };
 
 /**

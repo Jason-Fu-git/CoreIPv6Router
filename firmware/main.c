@@ -14,7 +14,6 @@
 extern uint32_t _bss_begin[];
 extern uint32_t _bss_end[];
 extern uint32_t multicast_timer_ldata;
-extern uint32_t multicast_timer_hdata;
 extern volatile struct memory_rte memory_rte[NUM_MEMORY_RTE];
 
 void start(void)
@@ -29,12 +28,14 @@ void start(void)
     init_uart();
 
     // Initialize RTEs
-
-    // TODO: Dis-comment this part
-    // for (int i = 0; i < NUM_MEMORY_RTE; i++)
-    // {
-    //     memory_rte[i].node_addr = 0;
-    // }
+    for (int i = 0; i < NUM_MEMORY_RTE; i++)
+    {
+        memory_rte[i].ip6_addr.s6_addr32[0] = 0;
+        memory_rte[i].ip6_addr.s6_addr32[1] = 0;
+        memory_rte[i].ip6_addr.s6_addr32[2] = 0;
+        memory_rte[i].ip6_addr.s6_addr32[3] = 0;
+        memory_rte[i].nexthop_port = 0;
+    }
 
     // Initialize timers
     *((volatile uint32_t *)MTIMECMP_HADDR) = 0xFFFFFFFF;
@@ -45,7 +46,6 @@ void start(void)
 
     // Initialize multicast timer
     multicast_timer_ldata = *((volatile uint32_t *)MTIME_LADDR);
-    multicast_timer_hdata = *((volatile uint32_t *)MTIME_HADDR);
 
     *(volatile uint32_t *)DMA_OUT_LENGTH = 0;
 
@@ -130,7 +130,7 @@ void start(void)
                 *(volatile uint32_t *)DMA_OUT_LENGTH = 0;
 
                 // Process the packet
-                RipngErrorCode error = disassemble(DMA_BLOCK_WADDR, data_width, *(volatile uint8_t *)DMA_PORT_ID);
+                RipngErrorCode error = disassemble(DMA_BLOCK_WADDR, data_width, *(volatile uint8_t *)DMA_IN_PORT_ID);
                 if (error != SUCCESS)
                 {
                     printf("Error: %d\n", error);
@@ -142,14 +142,13 @@ void start(void)
             }
         }
 
-        // check multicast timer (86s)
-        if (check_timeout(1, multicast_timer_hdata))
+        // check multicast timer (30s)
+        if (check_timeout(MULTICAST_TIME_LIMIT, multicast_timer_ldata))
         {
             // Send multicast request.
             send_unsolicited_response();
             // Reset the multicast timer
             multicast_timer_ldata = *((volatile uint32_t *)MTIME_LADDR);
-            multicast_timer_hdata = *((volatile uint32_t *)MTIME_HADDR);
         }
     }
 }

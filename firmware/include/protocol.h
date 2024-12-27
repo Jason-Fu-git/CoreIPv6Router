@@ -6,19 +6,23 @@
 #include "packet.h"
 
 #define MULTICAST_ADDR {htonl(0xff020000), 0, 0, htonl(0x00000009)}
+#define PORT_NUM 4
 
 /**
- * @brief Update one memory_rte by checking its timers.
+ * @brief Update one memory_rte's validation by checking its timers.
  * @param memory_rte The address of the rte.
  * @return 0 if the rte is NULL, 1 otherwise.
  * @author Eason Liu
+ * 
  */
 int update_memory_rte(struct memory_rte *memory_rte);
+
 /**
  * @brief Disassemble the packet and check the correctness of the packet.
  * @param 
  * @param base_addr The base address of the packet.
  * @param length The length of the packet.
+ * @param port The port the packet is sent from.
  * @return RipngErrorCode The error code of the packet.
  * @author Jason Fu, Eason Liu
  *
@@ -36,7 +40,6 @@ void send_multicast_request();
 
 /**
  * @brief Assemble a packet.
- * @param packet_hdr Where the packet is assembled at.
  * @param src_addr The source address of the packet.
  * @param dst_addr The destination address of the packet.
  * @param entries The routing table entries.
@@ -45,7 +48,7 @@ void send_multicast_request();
  * @author Eason Liu
  *
  */
-int assemble(struct packet_hdr *packet_hdr, struct ip6_addr *src_addr, struct ip6_addr *dst_addr, struct ripng_rte *entries, int num_entries);
+int assemble(struct ip6_addr *src_addr, struct ip6_addr *dst_addr, struct ripng_rte *entries, int num_entries);
 
 /**
  * @brief Send triggered update.
@@ -54,10 +57,11 @@ int assemble(struct packet_hdr *packet_hdr, struct ip6_addr *src_addr, struct ip
  * @param dst_addr The destination address of the packet.
  * @param entries The routing table entries.
  * @param num_entries The number of routing table entries. If num_entries > RIPNG_MAX_RTE_NUM, split the entries into multiple packets.
+ * @param port The port to send the packet to.
  * @author Eason Liu
  *
  */
-void send_triggered_update(struct ip6_addr *src_addr, struct ip6_addr *dst_addr, struct ripng_rte *entries, int num_entries);
+void send_triggered_update(struct ip6_addr *src_addr, struct ip6_addr *dst_addr, struct ripng_rte *entries, int num_entries, uint8_t port);
 
 /**
  * @brief Send unsolicited response.
