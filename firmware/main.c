@@ -50,35 +50,33 @@ void start(void)
     *(volatile uint32_t *)DMA_OUT_LENGTH = 0;
 
     // Configurate the MAC and IP addresses
-    struct ip6_addr ip_addr0 = {
-        .s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x541069fe}};
-    struct ip6_addr ip_addr1 = {
-        .s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x551069fe}};
-    struct ip6_addr ip_addr2 = {
-        .s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x561069fe}};
-    struct ip6_addr ip_addr3 = {
-        .s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x571069fe}};
-    struct ether_addr mac_addr0 = {
-        .ether_addr16 = {0x1f8c, 0x6964, 0x5410}};
-    struct ether_addr mac_addr1 = {
-        .ether_addr16 = {0x1f8c, 0x6964, 0x5510}};
-    struct ether_addr mac_addr2 = {
-        .ether_addr16 = {0x1f8c, 0x6964, 0x5610}};
-    struct ether_addr mac_addr3 = {
-        .ether_addr16 = {0x1f8c, 0x6964, 0x5710}};
-    write_mac_addr(&mac_addr0, MAC_CONFIG_BASE_ADDR);
-    write_mac_addr(&mac_addr1, MAC_CONFIG_BASE_ADDR + 0x100);
-    write_mac_addr(&mac_addr2, MAC_CONFIG_BASE_ADDR + 0x200);
-    write_mac_addr(&mac_addr3, MAC_CONFIG_BASE_ADDR + 0x300);
-    write_ip_addr(&ip_addr0, IP_CONFIG_BASE_ADDR);
-    write_ip_addr(&ip_addr1, IP_CONFIG_BASE_ADDR + 0x100);
-    write_ip_addr(&ip_addr2, IP_CONFIG_BASE_ADDR + 0x200);
-    write_ip_addr(&ip_addr3, IP_CONFIG_BASE_ADDR + 0x300);
+    struct ip6_addr ip_addrs[PORT_NUM] = {
+        {.s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x541069fe}},
+        {.s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x551069fe}},
+        {.s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x561069fe}},
+        {.s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x571069fe}}
+    };
+    struct ether_addr mac_addrs[PORT_NUM] = {
+        {.ether_addr16 = {0x1f8c, 0x6964, 0x5410}},
+        {.ether_addr16 = {0x1f8c, 0x6964, 0x5510}},
+        {.ether_addr16 = {0x1f8c, 0x6964, 0x5610}},
+        {.ether_addr16 = {0x1f8c, 0x6964, 0x5710}}
+    };
+    write_mac_addr(mac_addrs + 0, MAC_CONFIG_BASE_ADDR);
+    write_mac_addr(mac_addrs + 1, MAC_CONFIG_BASE_ADDR + 0x100);
+    write_mac_addr(mac_addrs + 2, MAC_CONFIG_BASE_ADDR + 0x200);
+    write_mac_addr(mac_addrs + 3, MAC_CONFIG_BASE_ADDR + 0x300);
+    write_ip_addr(ip_addrs + 0, IP_CONFIG_BASE_ADDR);
+    write_ip_addr(ip_addrs + 1, IP_CONFIG_BASE_ADDR + 0x100);
+    write_ip_addr(ip_addrs + 2, IP_CONFIG_BASE_ADDR + 0x200);
+    write_ip_addr(ip_addrs + 3, IP_CONFIG_BASE_ADDR + 0x300);
 
     // TODO: Configurate direct route
 
     // Send multicast request.
-    send_multicast_request();
+    for(int p = 0; p < PORT_NUM; p++){
+        send_multicast_request(p);
+    }
     // Grant DMA access (Read) to the memory
     _grant_dma_access(DMA_BLOCK_RADDR, *(volatile uint32_t *)DMA_OUT_LENGTH, 0);
     // Wait for the DMA to finish
