@@ -71,7 +71,8 @@ module trie8 #(
     L5,
     L6,
     L7,
-    DONE
+    DONE,
+    WAIT
   } state_t;
 
   // Lk means this period we are trying to read a node from level k.
@@ -128,7 +129,8 @@ module trie8 #(
       L5:      next_state = L6;
       L6:      next_state = L7;
       L7:      next_state = DONE;
-      DONE:    next_state = IDLE;
+      DONE:    next_state = WAIT;
+      WAIT:    next_state = IDLE;
       default: next_state = IDLE;
     endcase
   end
@@ -237,23 +239,11 @@ module trie8 #(
     end
   end
 
-
-  // always_comb begin
-  //   vc_now_max_match       = 0;
-  //   vc_now_next_hop_offset = 0;
-  //   for (int i = 0; i < VC_BIN_SIZE; i = i + 1) begin
-  //     if (vc_valids[i] && (vc_max_matches[i] > vc_now_max_match)) begin
-  //       vc_now_max_match = vc_max_matches[i];
-  //       vc_now_next_hop_offset = vc_next_hop_offsets[i];
-  //     end
-  //   end
-  // end
-
   always_comb begin
     bt_now_max_match       = 0;
     bt_now_next_hop_offset = 0;
-    if (bt_node.valid && (BEGIN_LEVEL + (state - L0) > bt_now_max_match)) begin
-      bt_now_max_match       = BEGIN_LEVEL + (state - L0);
+    if (bt_node.valid && (BEGIN_LEVEL + state_level > bt_now_max_match)) begin
+      bt_now_max_match       = BEGIN_LEVEL + state_level;
       bt_now_next_hop_offset = bt_node.next_hop_addr;
     end
   end
@@ -363,6 +353,11 @@ module trie8 #(
           bt_max_match_o       <= bt_now_max_match;
           bt_next_hop_offset_o <= bt_now_next_hop_offset;
         end
+      end else if (state == WAIT) begin
+        if (vc_now_max_match > vc_max_match_o) begin
+          vc_max_match_o       <= vc_now_max_match;
+          vc_next_hop_offset_o <= vc_now_next_hop_offset;
+        end
         vc_init_addr_o <= vc_remaining_prefix_o[0] ? vc_node_i[2*VC_ADDR_WIDTH-1:VC_ADDR_WIDTH] : vc_node_i[VC_ADDR_WIDTH-1:0];
         bt_init_addr_o <= bt_remaining_prefix_o[0] ? bt_node_i[2*BT_ADDR_WIDTH-1:BT_ADDR_WIDTH] : bt_node_i[BT_ADDR_WIDTH-1:0];
         frame_beat_o.valid <= 1;
@@ -372,17 +367,3 @@ module trie8 #(
   end
 
 endmodule : trie8
-
-module trie8_test (
-    input wire gtclk_125_p
-);
-
-  trie8 #(
-      .VC_ADDR_WIDTH(8),
-      .VC_BIN_SIZE  (5),
-      .BEGIN_LEVEL  (0)
-  ) trie8_i (
-      .clk(gtclk_125_p)
-  );
-
-endmodule
