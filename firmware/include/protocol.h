@@ -10,12 +10,11 @@
 
 /**
  * @brief Update one memory_rte's validation by checking its timers.
- * @param memory_rte The address of the rte.
+ * @param memory_rte_v The address of the rte.
  * @return 0 if the rte is NULL, 1 otherwise.
  * @author Eason Liu
- * 
  */
-int update_memory_rte(struct memory_rte *memory_rte);
+int update_memory_rte(void *memory_rte_v);
 
 /**
  * @brief Disassemble the packet and check the correctness of the packet.
@@ -33,35 +32,34 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port);
  * @brief Send multicast request.
  * @note This function will only write the packet to the SRAM.
  *  To initiate the DMA transfer, you need to call _grant_dma_access()
- * @author Jason Fu
- *
+ * @param port The port to send the packet to.
+ * @author Jason Fu, Eason Liu
  */
-void send_multicast_request();
+void send_multicast_request(int port);
 
 /**
  * @brief Assemble a packet.
- * @param src_addr The source address of the packet.
- * @param dst_addr The destination address of the packet.
- * @param entries The routing table entries.
+ * @param src_addr_v The source address of the packet.
+ * @param dst_addr_v The destination address of the packet.
+ * @param entries_v The routing table entries.
  * @param num_entries The number of routing table entries. It shouldn't be bigger than RIPNG_MAX_RTE_NUM.
+ * @param port The port to send the packet to.
  * @return The size of the packet.
  * @author Eason Liu
- *
  */
-int assemble(struct ip6_addr *src_addr, struct ip6_addr *dst_addr, struct ripng_rte *entries, int num_entries);
+int assemble(void *src_addr_v, void *dst_addr_v, void *entries_v, int num_entries, uint8_t port);
 
 /**
  * @brief Send triggered update.
  * @note  This function will block until the whole routing table is sent.
- * @param src_addr The source address of the packet.
- * @param dst_addr The destination address of the packet.
- * @param entries The routing table entries.
+ * @param src_addr_v The source address of the packet.
+ * @param dst_addr_v The destination address of the packet.
+ * @param entries_v The routing table entries.
  * @param num_entries The number of routing table entries. If num_entries > RIPNG_MAX_RTE_NUM, split the entries into multiple packets.
  * @param port The port to send the packet to.
  * @author Eason Liu
- *
  */
-void send_triggered_update(struct ip6_addr *src_addr, struct ip6_addr *dst_addr, struct ripng_rte *entries, int num_entries, uint8_t port);
+void send_triggered_update(void *src_addr_v, void *dst_addr_v, void *entries_v, int num_entries, uint8_t port);
 
 /**
  * @brief Send unsolicited response.

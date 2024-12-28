@@ -66,19 +66,21 @@ void start(void)
         .ether_addr16 = {0x1f8c, 0x6964, 0x5610}};
     struct ether_addr mac_addr3 = {
         .ether_addr16 = {0x1f8c, 0x6964, 0x5710}};
-    write_mac_addr(&mac_addr0, MAC_CONFIG_BASE_ADDR);
-    write_mac_addr(&mac_addr1, MAC_CONFIG_BASE_ADDR + 0x100);
-    write_mac_addr(&mac_addr2, MAC_CONFIG_BASE_ADDR + 0x200);
-    write_mac_addr(&mac_addr3, MAC_CONFIG_BASE_ADDR + 0x300);
-    write_ip_addr(&ip_addr0, IP_CONFIG_BASE_ADDR);
-    write_ip_addr(&ip_addr1, IP_CONFIG_BASE_ADDR + 0x100);
-    write_ip_addr(&ip_addr2, IP_CONFIG_BASE_ADDR + 0x200);
-    write_ip_addr(&ip_addr3, IP_CONFIG_BASE_ADDR + 0x300);
+    write_mac_addr(&mac_addr0, MAC_CONFIG_ADDR(0));
+    write_mac_addr(&mac_addr1, MAC_CONFIG_ADDR(1));
+    write_mac_addr(&mac_addr2, MAC_CONFIG_ADDR(2));
+    write_mac_addr(&mac_addr3, MAC_CONFIG_ADDR(3));
+    write_ip_addr(&ip_addr0, IP_CONFIG_ADDR(0));
+    write_ip_addr(&ip_addr1, IP_CONFIG_ADDR(1));
+    write_ip_addr(&ip_addr2, IP_CONFIG_ADDR(2));
+    write_ip_addr(&ip_addr3, IP_CONFIG_ADDR(3));
 
     // TODO: Configurate direct route
 
     // Send multicast request.
-    send_multicast_request();
+    for(int p = 0; p < PORT_NUM; p++){
+        send_multicast_request(p);
+    }
     // Grant DMA access (Read) to the memory
     _grant_dma_access(DMA_BLOCK_RADDR, *(volatile uint32_t *)DMA_OUT_LENGTH, 0);
     // Wait for the DMA to finish

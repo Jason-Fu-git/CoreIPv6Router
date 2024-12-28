@@ -7,13 +7,17 @@
 #include "protocol.h"
 #include "memory.c"
 
+extern struct ip6_addr ip_addrs[PORT_NUM];
+extern struct ether_addr mac_addrs[PORT_NUM];
+
 /**
  * @brief Update one memory_rte's validation by checking its timers.
- * @param memory_rte The address of the rte.
+ * @param memory_rte_v The address of the rte.
  * @return 0 if the rte is NULL, 1 otherwise.
  * @author Eason Liu
  */
-int update_memory_rte(struct memory_rte *memory_rte){
+int update_memory_rte(void *memory_rte_v){
+    struct memory_rte* memory_rte = (struct memory_rte*) memory_rte_v;
     if(memory_rte->lower_timer == 0) return 0;
     if(memory_rte->metric != 16){
         if(check_timeout(TIMEOUT_TIME_LIMIT, memory_rte->lower_timer)){
@@ -378,7 +382,7 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
  *  To initiate the DMA transfer, you need to call _grant_dma_access()
  * @author Jason Fu
  */
-void send_multicast_request()
+void send_multicast_request(int port)
 {
     printf("SNQM\n");
     // Write to DMA_BLOCK_RADDR
@@ -388,9 +392,7 @@ void send_multicast_request()
     packet->ether.dst_addr.ether_addr16[0] = 0;
     packet->ether.dst_addr.ether_addr16[1] = 0;
     packet->ether.dst_addr.ether_addr16[2] = 0;
-    packet->ether.src_addr.ether_addr16[0] = 0;
-    packet->ether.src_addr.ether_addr16[1] = 0;
-    packet->ether.src_addr.ether_addr16[2] = 0;
+    packet->ether.src_addr = mac_addrs[port];
     packet->ether.ethertype = 0xdd86;
     // set the ip6 header
     packet->ip6.version = 0x60;
@@ -399,10 +401,7 @@ void send_multicast_request()
     packet->ip6.payload_len = htons(UDP_HDR_LEN + RIPNG_HDR_LEN + RTE_LEN);
     packet->ip6.next_header = IPPROTO_UDP;
     packet->ip6.hop_limit = 255;
-    packet->ip6.src_addr.s6_addr32[0] = 0;
-    packet->ip6.src_addr.s6_addr32[1] = 0;
-    packet->ip6.src_addr.s6_addr32[2] = 0;
-    packet->ip6.src_addr.s6_addr32[3] = 0;
+    packet->ip6.src_addr = ip_addrs[port];
     packet->ip6.dst_addr.s6_addr32[0] = htonl(0xff020000);
     packet->ip6.dst_addr.s6_addr32[1] = 0;
     packet->ip6.dst_addr.s6_addr32[2] = 0;
@@ -431,22 +430,26 @@ void send_multicast_request()
 
 /**
  * @brief Assemble a packet.
- * @param src_addr The source address of the packet.
- * @param dst_addr The destination address of the packet.
- * @param entries The routing table entries.
+ * @param src_addr_v The source address of the packet.
+ * @param dst_addr_v The destination address of the packet.
+ * @param entries_v The routing table entries.
  * @param num_entries The number of routing table entries. It shouldn't be bigger than RIPNG_MAX_RTE_NUM.
+ * @param port The port to send the packet to.
  * @return The size of the packet.
  * @author Eason Liu
  */
-int assemble(struct ip6_addr *src_addr, struct ip6_addr *dst_addr, struct ripng_rte *entries, int num_entries){
+int assemble(void *src_addr_v, void *dst_addr_v, void *entries_v, int num_entries, uint8_t port){
+    struct ripng_rte *entries = (struct ripng_rte *)entries_v;
+    struct ip6_addr *src_addr = (struct ip6_addr *)src_addr_v;
+    struct ip6_addr *dst_addr = (struct ip6_addr *)dst_addr_v;
     struct packet_hdr *packet_hdr = (volatile struct packet_hdr*)DMA_BLOCK_RADDR;
     // set the ether header
     packet_hdr->ether.padding = 0;
     packet_hdr->ether.ethertype = 0x86dd;
     for(int i = 0; i < 3; i++){
-        packet_hdr->ether.src_addr.ether_addr16[i] = 0;
         packet_hdr->ether.dst_addr.ether_addr16[i] = 0;
     }
+    packet_hdr->ether.src_addr = mac_addrs[port];
     // set the ip6 header
     packet_hdr->ip6.version = 0x60;
     packet_hdr->ip6.traffic_class = 0;
@@ -487,15 +490,17 @@ int assemble(struct ip6_addr *src_addr, struct ip6_addr *dst_addr, struct ripng_
 /**
  * @brief Send triggered update.
  * @note  This function will block until the whole routing table is sent.
- * @param src_addr The source address of the packet.
- * @param dst_addr The destination address of the packet.
- * @param entries The routing table entries.
+ * @param src_addr_v The source address of the packet.
+ * @param dst_addr_v The destination address of the packet.
+ * @param entries_v The routing table entries.
  * @param num_entries The number of routing table entries. If num_entries > RIPNG_MAX_RTE_NUM, split the entries into multiple packets.
  * @param port The port to send the packet to.
  * @author Eason Liu
  */
-void send_triggered_update(struct ip6_addr *src_addr, struct ip6_addr *dst_addr, struct ripng_rte *entries, int num_entries, uint8_t port){
-    // TODO: PORT
+void send_triggered_update(void *src_addr_v, void *dst_addr_v, void *entries_v, int num_entries, uint8_t port){
+    struct ripng_rte *entries = (struct ripng_rte *)entries_v;
+    struct ip6_addr *src_addr = (struct ip6_addr *)src_addr_v;
+    struct ip6_addr *dst_addr = (struct ip6_addr *)dst_addr_v;
     if (entries == NULL){
         int send_entry_num = 0;
         struct ripng_rte send_entries[PORT_NUM][RIPNG_MAX_RTE_NUM];
@@ -509,7 +514,7 @@ void send_triggered_update(struct ip6_addr *src_addr, struct ip6_addr *dst_addr,
                 }
                 send_entry_num++;
                 if(send_entry_num == RIPNG_MAX_RTE_NUM){
-                    int size = assemble(src_addr, dst_addr, send_entries, send_entry_num);
+                    int size = assemble(ip_addrs + port, dst_addr, send_entries, send_entry_num, port);
                     _wait_for_dma();
                     *(volatile uint8_t*)DMA_OUT_PORT_ID = port;
                     _grant_dma_access(DMA_BLOCK_RADDR, size, 0);
@@ -521,13 +526,13 @@ void send_triggered_update(struct ip6_addr *src_addr, struct ip6_addr *dst_addr,
     else{
         int start_entrie = 0;
         while((num_entries - start_entrie) > RIPNG_MAX_RTE_NUM){
-            int size = assemble(src_addr, dst_addr, &entries[start_entrie], RIPNG_MAX_RTE_NUM);
+            int size = assemble(src_addr, dst_addr, &entries[start_entrie], RIPNG_MAX_RTE_NUM, port);
             _wait_for_dma();
             *(volatile uint8_t*)DMA_OUT_PORT_ID = port;
             _grant_dma_access(DMA_BLOCK_RADDR, size, 0);
             start_entrie += RIPNG_MAX_RTE_NUM;
         }
-        int size = assemble(src_addr, dst_addr, &entries[start_entrie], num_entries - start_entrie);
+        int size = assemble(src_addr, dst_addr, &entries[start_entrie], num_entries - start_entrie, port);
         _wait_for_dma();
         *(volatile uint8_t*)DMA_OUT_PORT_ID = port;
         _grant_dma_access(DMA_BLOCK_RADDR, size, 0);
@@ -537,7 +542,8 @@ void send_triggered_update(struct ip6_addr *src_addr, struct ip6_addr *dst_addr,
 /**
  * @brief Send unsolicited response.
  * @note This function will block until the whole routing table is sent.
- * @author Jason Fu
+ * @param port The port to send the packet to.
+ * @author Jason Fu, Eason Liu
  */
 void send_unsolicited_response()
 {

@@ -718,6 +718,10 @@ module tanlabs #(
   logic [1:0] dma_in_port_id, dma_out_port_id;
   logic dma_checksum_valid, dma_checksum_valid_synced;
 
+  logic [127:0] nexthop_ip6_addr;
+  logic [4:0] nexthop_addr;
+  logic [1:0] nexthop_port_id;
+
   logic checksum_fifo_in_ready;
   axis_data_async_fifo_checksum axis_data_async_fifo_checksum_i (
       .s_axis_aresetn(~reset_core),                // input wire s_axis_aresetn
@@ -786,7 +790,11 @@ module tanlabs #(
 
       // rip checksum
       .dma_checksum(dma_checksum_synced),
-      .dma_checksum_valid(dma_checksum_valid_synced)
+      .dma_checksum_valid(dma_checksum_valid_synced),
+
+      .nexthop_ip6_addr(nexthop_ip6_addr),
+      .nexthop_port_id(nexthop_port_id),
+      .nexthop_addr(nexthop_addr)
   );
 
 
@@ -1237,8 +1245,8 @@ module tanlabs #(
       .dm_we_o (dma_sram_we),
       .dm_stb_o(dma_sram_stb),
       .dm_ack_i(dma_sram_ack),
-      .dm_err_i(0),
-      .dm_rty_i(0),
+      .dm_err_i(1'b0),
+      .dm_rty_i(1'b0),
       .dm_cyc_o(),
 
       // Status Registers
@@ -1487,8 +1495,9 @@ module tanlabs #(
       .eth_clk  (eth_clk),
       .eth_reset(reset_eth),
 
-      .r_addr(5'd0),  // TODO
-      .r_nexthop(),  // TODO
+      .r_addr(nexthop_addr),
+      .r_nexthop(nexthop_ip6_addr),
+      .r_port_id(nexthop_port_id),
 
       .wbm_adr_i(nxthop_conf_adr),
       .wbm_dat_i(nxthop_conf_dat_w),
