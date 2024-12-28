@@ -24,6 +24,28 @@ static const uint32_t BIN_SIZES[16] = {
 	1, 1, 1, 1, 1, 1, 1, 1
 };
 
+static const uint32_t NODE_SIZE_PREFIX_SUMS[16] = {
+	0, 64, 1856, 94016,
+	201536, 273216, 303936, 304192,
+	304448, 304704, 304960, 305216,
+	305472, 305728, 305984, 306240
+};
+
+extern "C" void* VCTrieIndexToAddress(uint32_t index) {
+	uint32_t stage = 0;
+	while (index >= NODE_SIZE_PREFIX_SUMS[stage]) {
+		++stage;
+	}
+	uint32_t offset = index - NODE_SIZE_PREFIX_SUMS[stage - 1];
+	return (void*)((uint32_t)BRAM_BASE | (stage << 23) | (offset << 10));
+}
+
+extern "C" uint32_t VCTrieAddressToIndex(void* address) {
+	uint32_t stage = ((uint32_t)address >> 23) & 0xF;
+	uint32_t offset = ((uint32_t)address >> 10) & 0x1FFF;
+	return NODE_SIZE_PREFIX_SUMS[stage - 1] + offset;
+}
+
 struct IP6 {
 	uint32_t ip[4];
 	IP6() : ip{0, 0, 0, 0} {}
@@ -49,11 +71,16 @@ struct IP6 {
 	}
 	void toHex(char* buffer) const {
 		uint32_t converted[4];
-		converted[0] = htonl(ip[0]);
-		converted[1] = htonl(ip[1]);
-		converted[2] = htonl(ip[2]);
-		converted[3] = htonl(ip[3]);
-		sprintf(buffer, "%08x%08x%08x%08x", converted[3], converted[2], converted[1], converted[0]);
+		converted[0] = brev8(htonl(ip[0]));
+		converted[1] = brev8(htonl(ip[1]));
+		converted[2] = brev8(htonl(ip[2]));
+		converted[3] = brev8(htonl(ip[3]));
+		sprintf(buffer, "%04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x",
+	        converted[0] >> 16, converted[0] & 0xffff,
+	        converted[1] >> 16, converted[1] & 0xffff,
+	        converted[2] >> 16, converted[2] & 0xffff,
+	        converted[3] >> 16, converted[3] & 0xffff
+		);
 	}
 };
 
@@ -121,15 +148,19 @@ public:
 		rc = _rc;
 	}
 	void setChild(uint32_t lsb, uint32_t child) {
-		(lsb ? rc: lc) = child;
+		if (lsb) {
+			rc = child;
+		} else {
+			lc = child;
+		}
 	}
-	bool noChild(uint32_t lsb) {
-		return (lsb ? rc: lc) == 0;
+	bool noChild(uint32_t lsb) const {
+		return ((lsb != 1) ? rc == 0: lc == 0);
 	}
 	VCEntry* getBin() {
 		return bin;
 	}
-	uint32_t match(uint32_t prefix, uint32_t length, uint32_t bin_size) {
+	uint32_t match(uint32_t prefix, uint32_t length, uint32_t bin_size) const {
 		for (int index = 0; index < bin_size; ++index) {
 			if (bin[index].match(prefix, length)) {
 				return index;
@@ -159,7 +190,7 @@ public:
 			++node_count;
 			++node_num[stage];
 			if (node_num[stage] >= BRAM_DEPTHS[stage]) {
-				// printf("[WARN]BRAM ran out\n");
+				// printf("[WARN]BRAM run out\n");
 				--node_count;
 				--node_num[stage];
 				return -1;
@@ -177,7 +208,7 @@ public:
 	 * */
 	uint32_t insert(IP6* prefix_raw, uint32_t length, uint32_t next_hop) {
 		IP6 prefix = *prefix_raw;
-		VCNodePtr now = (VCNodePtr)&root;
+		VCNodePtr now = (VCNodePtr)(&root);
 		uint32_t stage_level = 0;
 		uint32_t freeIndex = -1;
 #define stage (stage_level >> 3)
@@ -185,7 +216,7 @@ public:
 #define level (stage_level & 0x7)
 #define lsb   (prefix & 0x1)
 #define _NEXT_LEVEL \
-			if(_create_subtree(now, stage, lsb) == -1) { \
+			if (_create_subtree(now, stage, lsb) == -1) { \
 				goto END;                                \
 			}                                            \
             now = _childAddrInStage(now, stage, lsb);    \
@@ -206,13 +237,13 @@ public:
 			bin[freeIndex].length = length - stage_level;
 			bin[freeIndex].prefix = prefix.ip[0];
 			bin[freeIndex].next_hop = next_hop;
-			return 0;
+			return VCTrieAddressToIndex(now);
 		}
 END: // excessive
 		prefix_raw->toHex(error_buffer);
 		printf("[WARN]Ex:%s/%d\n", error_buffer, length);
 		++excessive_count;
-		return 1;  // needs to be handled
+		return 0xffffffff;
 #undef stage
 #undef now_stage
 #undef level
@@ -224,9 +255,9 @@ END: // excessive
 	 * *Not to lookup max prefix match*
 	 * Return the address of the entry if found, else return 0.
 	 * */
-	void* lookup_entry(IP6* prefix_raw, uint32_t length) {
+	uint32_t lookup_entry(IP6* prefix_raw, uint32_t length) {
 		IP6 prefix = *prefix_raw;
-		VCNodePtr now = (VCNodePtr)&root;
+		VCNodePtr now = (VCNodePtr)(&root);
 		uint32_t stage_level = 0;
 #define stage (stage_level >> 3)
 #define now_stage ((stage_level == 0) ? (0) : ((stage_level - 1) >> 3))
@@ -234,7 +265,7 @@ END: // excessive
 #define lsb   (prefix & 0x1)
 		while (length > stage_level + MAX_PREFIX_LEN) {
 			if (now->noChild(lsb)) {
-				return 0;
+				return 0xffffffff;
 			}
 			now = _childAddrInStage(now, stage, lsb);
 			prefix >>= 1;
@@ -243,16 +274,16 @@ END: // excessive
 		while (stage_level <= length) {
 			uint32_t match_index = now->match(prefix.ip[0], length - stage_level, BIN_SIZES[now_stage]);
 			if (match_index != BIN_SIZES[now_stage]) {
-				return &(now->getBin()[match_index]);
+				return VCTrieAddressToIndex((uint32_t)(&(now->getBin()[match_index])));
 			}
 			if (now->noChild(lsb)) {
-				return 0;
+				return 0xffffffff;
 			}
 			now = _childAddrInStage(now, stage, lsb);
 			prefix >>= 1;
 			++stage_level;
 		}
-		return 0;
+		return 0xffffffff;
 #undef stage
 #undef now_stage
 #undef level
@@ -272,7 +303,7 @@ extern "C" uint32_t VCTrieInsert(void* prefix, uint32_t length, uint32_t next_ho
 	return trie.insert((IP6*)prefix, length, next_hop);
 }
 
-extern "C" void* VCTrieLookup(void* prefix, uint32_t length) {
+extern "C" uint32_t VCTrieLookup(void* prefix, uint32_t length) {
 	return trie.lookup_entry((IP6*)prefix, length);
 }
 

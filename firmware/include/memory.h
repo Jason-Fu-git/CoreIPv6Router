@@ -23,23 +23,6 @@ struct memory_rte
 };
 
 /**
- * @brief Write data to the VC memory
- * @param addr Base address of the memory
- * @param data Data to be written
- * @param length Length of the data
- * @note when writing to the VC memory, write a fence at the end of the data
- *
- */
-inline void write_vc_memory(uint32_t addr, uint32_t *data, int length)
-{
-    for (int i = 0; i < length; i++)
-    {
-        *((volatile uint32_t *)(addr + (i << 2))) = data[i];
-    }
-    *((volatile uint32_t *)(BRAM_BUFFER_FENCE_ADDR)) = 1;
-}
-
-/**
  * @brief Write data to the IP configuration memory
  * @param ip_addr IP address to be written
  * @param base_addr Base address of the memory
@@ -125,8 +108,5 @@ inline struct ip6_addr read_nexthop_table(uint32_t base_addr){
     }
     return ip_addr;
 }
-
-
-
 
 #endif // _MEMORY_H_

@@ -1,5 +1,6 @@
 TRIPLE = riscv64-unknown-elf-
 GCC = $(TRIPLE)gcc
+GPP = $(TRIPLE)g++
 OBJCOPY = $(TRIPLE)objcopy
 OBJDUMP = $(TRIPLE)objdump
 QEMU = qemu-system-riscv32
@@ -41,6 +42,9 @@ inst: $(TARGET)
 
 %.o: %.c $(HEADERS)
 	$(GCC) $(CFLAGS) -c $< -o $@
+
+%.o: %.cpp $(HEADERS)
+	$(GPP) $(CFLAGS) -c $< -o $@
 
 %.o: %.S $(HEADERS)
 	$(GCC) $(CFLAGS) -c $< -o $@
