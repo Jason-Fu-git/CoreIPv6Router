@@ -56,7 +56,12 @@ module frame_datapath #(
     output reg dma_out_ready,
 
     input wire [15:0] dma_checksum,
-    input wire dma_checksum_valid
+    input wire dma_checksum_valid,
+
+    // next hop table
+    input wire [127:0] nexthop_ip6_addr,
+    input wire [  1:0] nexthop_port_id,
+    output reg [  4:0] nexthop_addr
 );
 
   frame_beat in8, in;
@@ -138,12 +143,13 @@ module frame_datapath #(
   cache_entry ns_cache_entry, na_cache_entry, cache_w;
   logic cache_wea_p, cache_exists0, cache_exists1;
   logic nud_we_p;
-  
-  logic [127:0] trie128_next_hop;
-  logic [127:0] nud_exp_addr, cache_ip6_addr0_o, cache_ip6_addr1_o;
+
+  logic [4:0] trie128_next_hop;
+
+  logic [127:0] nud_exp_addr, cache_ip6_addr0_i, cache_ip6_addr1_i;
   logic [1:0] nud_iface;
   logic [47:0] cache_mac_addr0_o, cache_mac_addr1_o;
-  logic [1:0] cache_iface0_o, cache_iface1_o;
+  logic [1:0] cache_iface0_i, cache_iface1_i;
 
   fw_frame_beat_t fwt_in, fwt_out;
   logic fwt_in_ready, fwt_out_ready;
@@ -163,19 +169,19 @@ module frame_datapath #(
       .clk  (eth_clk),
       .rst_p(reset),
 
-      .r_IPv6_addr_0(cache_ip6_addr0_o),
+      .r_IPv6_addr_0(cache_ip6_addr0_i),
+      .r_port_id_0  (cache_iface0_i),
       .r_MAC_addr_0 (cache_mac_addr0_o),
-      .r_port_id_0  (cache_iface0_o),
       .r_exists_0   (cache_exists0),
 
-      .r_IPv6_addr_1(cache_ip6_addr1_o),
+      .r_IPv6_addr_1(cache_ip6_addr1_i),
+      .r_port_id_1  (cache_iface1_i),
       .r_MAC_addr_1 (cache_mac_addr1_o),
-      .r_port_id_1  (cache_iface1_o),
       .r_exists_1   (cache_exists1),
 
       .w_IPv6_addr(cache_w.ip6_addr),
-      .w_MAC_addr (cache_w.mac_addr),
       .w_port_id  (cache_w.iface),
+      .w_MAC_addr (cache_w.mac_addr),
       .wea_p      (cache_wea_p),
 
       .nud_probe      (nud_we_p),
@@ -200,6 +206,8 @@ module frame_datapath #(
 
       .addr(fwt_in.data.data.ip6.dst),
       .next_hop(trie128_next_hop),
+      // .next_hop_ip6(trie128_ip6_addr),
+      // .next_hop_iface(trie128_port_id),
       .default_next_hop(0),
 
       .cpu_clk(cpu_clk),
@@ -240,9 +248,9 @@ module frame_datapath #(
       .in (rip_in),
       .out(rip_out),
 
-      .cache_r_IPv6_addr(cache_ip6_addr1_o),
+      .cache_r_IPv6_addr(cache_ip6_addr1_i),
+      .cache_r_port_id  (cache_iface1_i),
       .cache_r_MAC_addr (cache_mac_addr1_o),
-      .cache_r_port_id  (cache_iface1_o),
       .cache_r_exists   (cache_exists1),
 
       .checksum(dma_checksum),
@@ -260,16 +268,20 @@ module frame_datapath #(
       .in (fw_in),
       .out(fw_out),
 
-      .cache_r_IPv6_addr(cache_ip6_addr0_o),
+      .cache_r_IPv6_addr(cache_ip6_addr0_i),
+      .cache_r_port_id  (cache_iface0_i),
       .cache_r_MAC_addr (cache_mac_addr0_o),
-      .cache_r_port_id  (cache_iface0_o),
       .cache_r_exists   (cache_exists0),
 
-      .fwt_in       (fwt_in),
-      .fwt_out      (fwt_out),
-      .fwt_in_ready (fwt_in_ready),
-      .fwt_out_ready(fwt_out_ready),
-      .fwt_next_hop(trie128_next_hop),
+      .fwt_in          (fwt_in),
+      .fwt_out         (fwt_out),
+      .fwt_nexthop_addr(trie128_next_hop),
+      .fwt_in_ready    (fwt_in_ready),
+      .fwt_out_ready   (fwt_out_ready),
+
+      .nexthop_addr     (nexthop_addr),
+      .nexthop_IPv6_addr(nexthop_ip6_addr),
+      .nexthop_port_id  (nexthop_port_id),
 
       .mac_addrs(mac_addrs)
   );

@@ -15,8 +15,8 @@ module pipeline_rip (
 
     // neighbor cache
     output reg  [127:0] cache_r_IPv6_addr,
+    output reg  [  1:0] cache_r_port_id,
     input  wire [ 47:0] cache_r_MAC_addr,
-    input  wire [  1:0] cache_r_port_id,
     input  wire         cache_r_exists,
 
     // Checksum
@@ -88,20 +88,10 @@ module pipeline_rip (
   // =======================
   logic cache_ready;
   fw_frame_beat_t cache_beat;
-  reg [1:0] cache_r_port_id_reg;
 
   always_comb begin : FW_CACHE_SIGNALS
     cache_r_IPv6_addr = in_buffer.data.data.ip6.dst;
-  end
-
-  always_ff @(posedge clk) begin : FW_CACHE_R_PORT_REG
-    if (rst_p) begin
-      cache_r_port_id_reg <= 0;
-    end else begin
-      if (in_buffer.data.is_first) begin
-        cache_r_port_id_reg <= cache_r_port_id;
-      end
-    end
+    cache_r_port_id   = in_buffer.data.meta.dest[1:0];
   end
 
   always_ff @(posedge clk) begin : FW_CACHE_REG
@@ -125,7 +115,7 @@ module pipeline_rip (
 
                 // frame_meta properties
                 cache_beat.data.meta.id         <= in_buffer.data.meta.id;
-                cache_beat.data.meta.dest       <= cache_r_port_id;
+                cache_beat.data.meta.dest       <= in_buffer.data.meta.dest;
                 cache_beat.data.meta.drop       <= in_buffer.data.meta.drop;
                 cache_beat.data.meta.dont_touch <= in_buffer.data.meta.dont_touch;
                 cache_beat.data.meta.drop_next  <= in_buffer.data.meta.drop_next;
@@ -156,7 +146,7 @@ module pipeline_rip (
 
             // frame_meta properties
             cache_beat.data.meta.id         <= in_buffer.data.meta.id;
-            cache_beat.data.meta.dest       <= cache_r_port_id_reg;
+            cache_beat.data.meta.dest       <= cache_beat.data.meta.dest;
             cache_beat.data.meta.drop       <= in_buffer.data.meta.drop;
             cache_beat.data.meta.dont_touch <= in_buffer.data.meta.dont_touch;
             cache_beat.data.meta.drop_next  <= in_buffer.data.meta.drop_next;
