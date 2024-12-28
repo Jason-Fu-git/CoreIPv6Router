@@ -134,7 +134,7 @@ def send_ripng_response(iface=""):
 
 def send_udp(iface=""):
     payload = b"114514ACCEED1919810"
-    packet = Ether(src="8c:1f:64:69:10:77", dst=dst_mac) / IPv6(src="fe80::1145", dst=src_address) / udp_normal_packet / payload
+    packet = Ether(src="8c:1f:64:69:10:77", dst=dst_mac) / IPv6(src="fe80::1145", dst="2a02:26f7:da80::1145") / udp_normal_packet / payload
     sendp(packet, iface=iface)
 
 
