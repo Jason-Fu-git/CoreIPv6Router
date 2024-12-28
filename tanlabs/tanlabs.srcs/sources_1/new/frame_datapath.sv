@@ -145,12 +145,6 @@ module frame_datapath #(
   logic nud_we_p;
 
   logic [4:0] trie128_next_hop;
-  logic [1:0] trie128_port_id;
-  logic [127:0] trie128_ip6_addr;
-
-  assign nexthop_addr = trie128_next_hop;
-  assign trie128_port_id = nexthop_port_id;
-  assign trie128_ip6_addr = nexthop_ip6_addr;
 
   logic [127:0] nud_exp_addr, cache_ip6_addr0_i, cache_ip6_addr1_i;
   logic [1:0] nud_iface;
@@ -212,8 +206,8 @@ module frame_datapath #(
 
       .addr(fwt_in.data.data.ip6.dst),
       .next_hop(trie128_next_hop),
-      .next_hop_ip6(trie128_ip6_addr),
-      .next_hop_iface(trie128_port_id),
+      // .next_hop_ip6(trie128_ip6_addr),
+      // .next_hop_iface(trie128_port_id),
       .default_next_hop(0),
 
       .cpu_clk(cpu_clk),
@@ -242,7 +236,6 @@ module frame_datapath #(
     end
   end
 
-  // TODO: MODIFY NEIGHBOR CACHE
   pipeline_rip pipeline_rip_i (
       .clk  (eth_clk),
       .rst_p(reset),
@@ -280,10 +273,15 @@ module frame_datapath #(
       .cache_r_MAC_addr (cache_mac_addr0_o),
       .cache_r_exists   (cache_exists0),
 
-      .fwt_in       (fwt_in),
-      .fwt_out      (fwt_out),
-      .fwt_in_ready (fwt_in_ready),
-      .fwt_out_ready(fwt_out_ready),
+      .fwt_in          (fwt_in),
+      .fwt_out         (fwt_out),
+      .fwt_nexthop_addr(trie128_next_hop),
+      .fwt_in_ready    (fwt_in_ready),
+      .fwt_out_ready   (fwt_out_ready),
+
+      .nexthop_addr     (nexthop_addr),
+      .nexthop_IPv6_addr(nexthop_ip6_addr),
+      .nexthop_port_id  (nexthop_port_id),
 
       .mac_addrs(mac_addrs)
   );

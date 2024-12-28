@@ -14,8 +14,8 @@ module trie128(
     input wire [  4:0] default_next_hop,
     input wire [127:0] addr,
     output reg [  4:0] next_hop,
-    input wire [127:0] next_hop_ip6,
-    input wire [  1:0] next_hop_iface,
+    // input wire [127:0] next_hop_ip6,
+    // input wire [  1:0] next_hop_iface,
 
     // Wishbone signals
     input wire cpu_clk,
@@ -56,11 +56,11 @@ module trie128(
 
     assign frame_beat_in[0] = in.data;
 
-    always_comb begin
-        out.data = frame_beat_out[LEVELS-1];
-        out.data.data.ip6.dst = next_hop_ip6;
-        out.data.meta.dest = next_hop_iface;
-    end
+    assign out.data  = frame_beat_out[LEVELS-1];
+    assign out.error = ERR_NONE;
+    assign out.valid = out_valid;
+        // out.data.data.ip6.dst = next_hop_ip6;
+        // out.data.meta.dest = next_hop_iface;
 
     // valid, ready
     logic [LEVELS-1:0] trie_in_valid;
@@ -147,7 +147,7 @@ module trie128(
             bt_init_addr_in[i+1] = bt_init_addr_out[i];
         end
     end
-    
+
     assign bt_init_addr_in[0] = addr[0] ? 2 : 1;
 
     // max_match
