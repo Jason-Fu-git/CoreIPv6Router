@@ -20,26 +20,29 @@ void TrieInit() {
 	BTrieInitBram();
 }
 
-int TrieInsert(struct ip6_addr* prefix, unsigned int length, uint32_t next_hop) {
-	int result = VCTrieInsert(prefix, length, next_hop);
+int TrieInsert(void* prefix, unsigned int length, uint32_t next_hop) {
+    struct ip6_addr* ip6_prefix = (struct ip6_addr*)prefix;
+	int result = VCTrieInsert(ip6_prefix, length, next_hop);
 	if (result < 0) {
-		return BTrieInsert(prefix, length, next_hop);
+		return BTrieInsert(ip6_prefix, length, next_hop);
 	}
 	return result;
 }
 
-int TrieLookup(struct ip6_addr* prefix, unsigned int length) {
-	int result = VCTrieLookup(prefix, length);
+int TrieLookup(void* prefix, unsigned int length) {
+    struct ip6_addr* ip6_prefix = (struct ip6_addr*)prefix;
+	int result = VCTrieLookup(ip6_prefix, length);
 	if (result < 0) {
-		return BTrieLookup(prefix, length);
+		return BTrieLookup(ip6_prefix, length);
 	}
 	return (int)result;
 }
 
-int TrieDelete(struct ip6_addr* prefix, unsigned int length) {
-	int result = VCTrieLookup(prefix, length);
+int TrieDelete(void* prefix, unsigned int length) {
+    struct ip6_addr* ip6_prefix = (struct ip6_addr*)prefix;
+	int result = VCTrieLookup(ip6_prefix, length);
 	if (result < 0) {
-		return BTrieDelete(prefix, length);
+		return BTrieDelete(ip6_prefix, length);
 	}
 	VCEntryInvalidate(VCTrieIndexToAddress(result));
 	return result;

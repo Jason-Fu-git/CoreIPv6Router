@@ -119,7 +119,7 @@ VCWriteNode1ToBRAM,
 VCWriteNode1ToBRAM,
 VCWriteNode1ToBRAM,
 VCWriteNode1ToBRAM,
-}
+};
 
 typedef struct {
 	uint32_t node_count;

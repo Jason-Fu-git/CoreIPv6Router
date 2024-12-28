@@ -32,7 +32,7 @@ static const void* BRAM_BASE = (void*)0x20000000;
 //   logic [ 3:0] level;
 //   logic [12:0] index;
 // } bram_address_t;
-#define CONSTRUCT_BRAM_ADDRESS(level, index) (BRAM_BASE | (level << 23) | (index << 10))
+#define CONSTRUCT_BRAM_ADDRESS(level, index) ((uint32_t)BRAM_BASE | (level << 23) | (index << 10))
 #define LEVEL(address) ((address >> 23) & 0xF)
 #define INDEX(address) ((address >> 10) & 0x1FFF)
 
@@ -42,7 +42,7 @@ static const void* BRAM_BASE = (void*)0x20000000;
 static const unsigned int INDEX_BASE = 306496;
 
 unsigned int BTrieAddressToIndex(void* address) {
-	return (LEVEL(address) << 11) + INDEX(address) + INDEX_BASE;
+	return (LEVEL((uint32_t)address) << 11) + INDEX((uint32_t)address) + INDEX_BASE;
 }
 
 int bram_tops[16];
@@ -76,7 +76,7 @@ int _BTrieLookup(void* prefix_ptr, int prefix_length, int *current_prefix_length
 	int address = 0;
     if (prefix_length > 0 && prefix_length <= 128) {
         for (int i = 0; i < prefix_length; i++) {
-            int lsb = LSB(prefix, i);
+            int lsb = LSB(prefix.s6_addr32, i);
             int level = (i >> 3) & 0xF;
 
             // extract the entry
@@ -130,7 +130,7 @@ int BTrieInsert(void* prefix_ptr, int prefix_length, unsigned int next_hop_addr)
     if (current_prefix_length < prefix_length) {
         // the prefix does not exist
         for (int i = current_prefix_length; i < prefix_length; i++) {
-            int lsb = LSB(prefix, i);
+            int lsb = LSB(prefix.s6_addr32, i);
             int level = (i >> 3) & 0xF;
 
             // extract the entry
@@ -174,19 +174,18 @@ int BTrieInsert(void* prefix_ptr, int prefix_length, unsigned int next_hop_addr)
     }
 
     // write the entry
-    {
-        // the prefix already exists
-        int entry_level = LEVEL(address_to_write);
-        int entry_index = INDEX(address_to_write);
 
-        // extract the entry
-        unsigned int entry = *(volatile unsigned int*)CONSTRUCT_BRAM_ADDRESS(entry_level, entry_index);
-        unsigned int lc = LC(entry);
-        unsigned int rc = RC(entry);
+    // the prefix already exists
+    int entry_level = LEVEL(address_to_write);
+    int entry_index = INDEX(address_to_write);
 
-        // update the entry
-	    *(volatile unsigned int*)CONSTRUCT_BRAM_ADDRESS(entry_level, entry_index) = CONSTRUCT_BRAM_ENTRY(1, next_hop_addr, rc, lc);
-    }
+    // extract the entry
+    unsigned int entry = *(volatile unsigned int*)CONSTRUCT_BRAM_ADDRESS(entry_level, entry_index);
+    unsigned int lc = LC(entry);
+    unsigned int rc = RC(entry);
+
+    // update the entry
+    *(volatile unsigned int*)CONSTRUCT_BRAM_ADDRESS(entry_level, entry_index) = CONSTRUCT_BRAM_ENTRY(1, next_hop_addr, rc, lc);
 
     return BTrieAddressToIndex(CONSTRUCT_BRAM_ADDRESS(entry_level, entry_index));
 }
@@ -200,7 +199,7 @@ int BTrieDelete(void* prefix_ptr, int prefix_length) {
     // lookup the prefix
 	struct ip6_addr prefix = *(struct ip6_addr*)prefix_ptr;
     int current_prefix_length = 0;
-    int address = lookup(prefix, prefix_length, &current_prefix_length);
+    int address = _BTrieLookup(prefix_ptr, prefix_length, &current_prefix_length);
 
     // the prefix exists
     int entry_level = LEVEL(address);
@@ -241,7 +240,7 @@ int BTrieDelete(void* prefix_ptr, int prefix_length) {
             prev_prefix_length--;
 
             int parent_current_prefix_length = 0;
-            int parent_address = lookup(prefix, prev_prefix_length, &parent_current_prefix_length);
+            int parent_address = _BTrieLookup(prefix_ptr, prev_prefix_length, &parent_current_prefix_length);
             int parent_level = LEVEL(parent_address);
             int parent_index = INDEX(parent_address);
             if (parent_current_prefix_length != prev_prefix_length) {
@@ -256,7 +255,7 @@ int BTrieDelete(void* prefix_ptr, int prefix_length) {
             unsigned int parent_rc = RC(parent_entry);
 
             // check the entry's LSB
-            int lsb = LSB(prefix, prev_prefix_length);
+            int lsb = LSB(prefix.s6_addr32, prev_prefix_length);
             if (lsb == 0) {
                 // lc
                 if (parent_lc == prev_index) {

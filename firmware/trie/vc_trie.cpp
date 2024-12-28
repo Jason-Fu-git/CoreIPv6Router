@@ -253,7 +253,7 @@ END: // excessive
 	/*
 	 * Lookup a prefix in the trie.
 	 * *Not to lookup max prefix match*
-	 * Return the address of the entry if found, else return 0.
+	 * Return the index of the entry if found, else return -1.
 	 * */
 	uint32_t lookup_entry(IP6* prefix_raw, uint32_t length) {
 		IP6 prefix = *prefix_raw;
@@ -274,7 +274,7 @@ END: // excessive
 		while (stage_level <= length) {
 			uint32_t match_index = now->match(prefix.ip[0], length - stage_level, BIN_SIZES[now_stage]);
 			if (match_index != BIN_SIZES[now_stage]) {
-				return VCTrieAddressToIndex((uint32_t)(&(now->getBin()[match_index])));
+				return VCTrieAddressToIndex(&(now->getBin()[match_index]));
 			}
 			if (now->noChild(lsb)) {
 				return 0xffffffff;

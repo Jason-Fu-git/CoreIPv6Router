@@ -18,13 +18,11 @@ int update_memory_rte(void *memory_rte_v);
 
 /**
  * @brief Disassemble the packet and check the correctness of the packet.
- * @param 
  * @param base_addr The base address of the packet.
  * @param length The length of the packet.
  * @param port The port the packet is sent from.
  * @return RipngErrorCode The error code of the packet.
  * @author Jason Fu, Eason Liu
- *
  */
 RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port);
 
@@ -52,6 +50,7 @@ int assemble(void *src_addr_v, void *dst_addr_v, void *entries_v, int num_entrie
 /**
  * @brief Send triggered update.
  * @note  This function will block until the whole routing table is sent.
+ *  No multicast logic should be in and after this function.
  * @param src_addr_v The source address of the packet.
  * @param dst_addr_v The destination address of the packet.
  * @param entries_v The routing table entries.
@@ -65,7 +64,6 @@ void send_triggered_update(void *src_addr_v, void *dst_addr_v, void *entries_v, 
  * @brief Send unsolicited response.
  * @note  This function will block until the whole routing table is sent.
  * @author Jason Fu
- *
  */
 void send_unsolicited_response();
 
