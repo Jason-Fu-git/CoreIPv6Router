@@ -95,12 +95,25 @@ module trie8 #(
   // Inherit max_match from the previous pipeline at: IDLE (so that at L0)
 
   state_t state, next_state;
+  logic [MATCH_LEN_WIDTH-1:0] state_level;
 
   always_ff @(posedge clk) begin
     if (rst_p) begin
       state <= IDLE;
+      state_level <= 0;
     end else begin
       state <= next_state;
+      case (next_state)
+        L0: state_level <= 0;
+        L1: state_level <= 1;
+        L2: state_level <= 2;
+        L3: state_level <= 3;
+        L4: state_level <= 4;
+        L5: state_level <= 5;
+        L6: state_level <= 6;
+        L7: state_level <= 7;
+        default: state_level <= 0;
+      endcase
     end
   end
 
@@ -133,18 +146,38 @@ module trie8 #(
 
   assign bt_node = bt_node_i;
 
+  logic [VC_BIN_SIZE-1:0][MATCH_LEN_WIDTH-1:0] vc_max_matches;
+  logic [VC_BIN_SIZE-1:0][   OFFSET_WIDTH-1:0] vc_next_hop_offsets;
+  logic [VC_BIN_SIZE-1:0]                      vc_valids;
+
   always_comb begin
-    vc_now_max_match       = 0;
-    vc_now_next_hop_offset = 0;
     for (int i = 0; i < VC_BIN_SIZE; i = i + 1) begin
       Entry entry = vc_node_i[2*VC_ADDR_WIDTH+(i+1)*VC_ENTRY_SIZE-1-:VC_ENTRY_SIZE];
       logic [27:0] mask = 28'hfffffff >> (28 - entry.prefix_length);
-      if ((entry.prefix_length != 5'b11111) && ((vc_remaining_prefix_o[27:0] & mask) == (entry.prefix & mask))) begin
-        logic [7:0] match_length = BEGIN_LEVEL + (state - L0) + entry.prefix_length;
-        if (match_length > vc_now_max_match) begin
-          vc_now_max_match       = match_length;
-          vc_now_next_hop_offset = entry.entry_offset;
-        end
+      vc_valids[i] = (entry.prefix_length != 5'b11111) && ((vc_remaining_prefix_o[27:0] & mask) == (entry.prefix & mask));
+      vc_max_matches[i] = BEGIN_LEVEL + state_level + entry.prefix_length;
+      vc_next_hop_offsets[i] = entry.entry_offset;
+    end
+  end
+
+  always_comb begin
+    vc_now_max_match       = 0;
+    vc_now_next_hop_offset = 0;
+    // for (int i = 0; i < VC_BIN_SIZE; i = i + 1) begin
+    //   Entry entry = vc_node_i[2*VC_ADDR_WIDTH+(i+1)*VC_ENTRY_SIZE-1-:VC_ENTRY_SIZE];
+    //   logic [27:0] mask = 28'hfffffff >> (28 - entry.prefix_length);
+    //   if ((entry.prefix_length != 5'b11111) && ((vc_remaining_prefix_o[27:0] & mask) == (entry.prefix & mask))) begin
+    //     logic [7:0] match_length = BEGIN_LEVEL + (state - L0) + entry.prefix_length;
+    //     if (match_length > vc_now_max_match) begin
+    //       vc_now_max_match       = match_length;
+    //       vc_now_next_hop_offset = entry.entry_offset;
+    //     end
+    //   end
+    // end
+    for (int i = 0; i < VC_BIN_SIZE; i = i + 1) begin
+      if (vc_valids[i] && (vc_max_matches[i] > vc_now_max_match)) begin
+        vc_now_max_match = vc_max_matches[i];
+        vc_now_next_hop_offset = vc_next_hop_offsets[i];
       end
     end
     bt_now_max_match       = 0;
