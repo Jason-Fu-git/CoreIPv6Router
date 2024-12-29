@@ -6,8 +6,8 @@
 localparam VC_ENTRY_SIZE = 38;
 localparam VC_LEN_WIDTH = 5;
 
-localparam BT_ADDR_WIDTH   = 13;
-localparam BT_NODE_WIDTH   = 36;
+localparam BT_ADDR_WIDTH = 13;
+localparam BT_NODE_WIDTH = 36;
 
 localparam OFFSET_WIDTH = 5;
 
@@ -59,7 +59,7 @@ module trie8 #(
     output logic [   OFFSET_WIDTH-1:0] bt_next_hop_offset_o
 );
 
-  localparam VC_NODE_WIDTH = ((VC_BIN_SIZE * VC_ENTRY_SIZE + 2 * VC_ADDR_WIDTH + 17)/18)*18;
+  localparam VC_NODE_WIDTH = ((VC_BIN_SIZE * VC_ENTRY_SIZE + 2 * VC_ADDR_WIDTH + 17) / 18) * 18;
 
   typedef enum logic [3:0] {
     IDLE,
@@ -71,7 +71,8 @@ module trie8 #(
     L5,
     L6,
     L7,
-    DONE
+    DONE,
+    WAIT
   } state_t;
 
   // Lk means this period we are trying to read a node from level k.
@@ -95,12 +96,25 @@ module trie8 #(
   // Inherit max_match from the previous pipeline at: IDLE (so that at L0)
 
   state_t state, next_state;
+  logic [MATCH_LEN_WIDTH-1:0] state_level;
 
   always_ff @(posedge clk) begin
     if (rst_p) begin
       state <= IDLE;
+      state_level <= 0;
     end else begin
       state <= next_state;
+      case (next_state)
+        L0: state_level <= 0;
+        L1: state_level <= 1;
+        L2: state_level <= 2;
+        L3: state_level <= 3;
+        L4: state_level <= 4;
+        L5: state_level <= 5;
+        L6: state_level <= 6;
+        L7: state_level <= 7;
+        default: state_level <= 0;
+      endcase
     end
   end
 
@@ -115,7 +129,8 @@ module trie8 #(
       L5:      next_state = L6;
       L6:      next_state = L7;
       L7:      next_state = DONE;
-      DONE:    next_state = IDLE;
+      DONE:    next_state = WAIT;
+      WAIT:    next_state = IDLE;
       default: next_state = IDLE;
     endcase
   end
@@ -133,24 +148,102 @@ module trie8 #(
 
   assign bt_node = bt_node_i;
 
+  logic [VC_BIN_SIZE-1:0][MATCH_LEN_WIDTH-1:0] vc_max_matches;
+  logic [VC_BIN_SIZE-1:0][   OFFSET_WIDTH-1:0] vc_next_hop_offsets;
+  logic [VC_BIN_SIZE-1:0]                      vc_valids;
+
   always_comb begin
-    vc_now_max_match       = 0;
-    vc_now_next_hop_offset = 0;
     for (int i = 0; i < VC_BIN_SIZE; i = i + 1) begin
       Entry entry = vc_node_i[2*VC_ADDR_WIDTH+(i+1)*VC_ENTRY_SIZE-1-:VC_ENTRY_SIZE];
       logic [27:0] mask = 28'hfffffff >> (28 - entry.prefix_length);
-      if ((entry.prefix_length != 5'b11111) && ((vc_remaining_prefix_o[27:0] & mask) == (entry.prefix & mask))) begin
-        logic [7:0] match_length = BEGIN_LEVEL + (state - L0) + entry.prefix_length;
-        if (match_length > vc_now_max_match) begin
-          vc_now_max_match       = match_length;
-          vc_now_next_hop_offset = entry.entry_offset;
+      vc_valids[i] = (entry.prefix_length != 5'b11111) && ((vc_remaining_prefix_o[27:0] & mask) == (entry.prefix & mask));
+      vc_max_matches[i] = BEGIN_LEVEL + state_level + entry.prefix_length;
+      vc_next_hop_offsets[i] = entry.entry_offset;
+    end
+  end
+
+  logic [7:0][MATCH_LEN_WIDTH-1:0] vc_now_max_match_temp_0; // register
+  logic [3:0][MATCH_LEN_WIDTH-1:0] vc_now_max_match_temp_1;
+  logic [1:0][MATCH_LEN_WIDTH-1:0] vc_now_max_match_temp_2;
+
+  logic [7:0][OFFSET_WIDTH-1:0] vc_next_hop_temp_0; // register
+  logic [3:0][OFFSET_WIDTH-1:0] vc_next_hop_temp_1;
+  logic [1:0][OFFSET_WIDTH-1:0] vc_next_hop_temp_2;
+
+  logic [15:0][MATCH_LEN_WIDTH-1:0] vc_max_matches_temp;
+  logic [15:0][OFFSET_WIDTH-1:0]    vc_next_hop_offsets_temp;
+
+  always_comb begin
+    for (int i = 0; i < 16; i = i + 1) begin
+      if ((i < VC_BIN_SIZE) && vc_valids[i]) begin
+        vc_max_matches_temp[i]      = vc_max_matches[i];
+        vc_next_hop_offsets_temp[i] = vc_next_hop_offsets[i];
+      end else begin
+        vc_max_matches_temp[i]      = 0;
+        vc_next_hop_offsets_temp[i] = 0;
+      end
+    end
+  end
+
+
+  always_ff @(posedge clk) begin
+    if (rst_p) begin
+      for (int i = 0; i < 8; i = i + 1) begin
+        vc_now_max_match_temp_0[i] <= 0;
+        vc_next_hop_temp_0[i]      <= 0;
+      end
+    end else begin
+      for (int i = 0; i < 8; i = i + 1) begin
+        if (vc_max_matches_temp[2*i] > vc_max_matches_temp[2*i+1]) begin
+          vc_now_max_match_temp_0[i] <= vc_max_matches_temp[2*i];
+          vc_next_hop_temp_0[i]      <= vc_next_hop_offsets_temp[2*i];
+        end else begin
+          vc_now_max_match_temp_0[i] <= vc_max_matches_temp[2*i+1];
+          vc_next_hop_temp_0[i]      <= vc_next_hop_offsets_temp[2*i+1];
         end
       end
     end
+  end
+
+  always_comb begin
+    for (int i = 0; i < 4; i = i + 1) begin
+      if (vc_now_max_match_temp_0[2*i] > vc_now_max_match_temp_0[2*i+1]) begin
+        vc_now_max_match_temp_1[i] = vc_now_max_match_temp_0[2*i];
+        vc_next_hop_temp_1[i]      = vc_next_hop_temp_0[2*i];
+      end else begin
+        vc_now_max_match_temp_1[i] = vc_now_max_match_temp_0[2*i+1];
+        vc_next_hop_temp_1[i]      = vc_next_hop_temp_0[2*i+1];
+      end
+    end
+  end
+
+  always_comb begin
+    for (int i = 0; i < 2; i = i + 1) begin
+      if (vc_now_max_match_temp_1[2*i] > vc_now_max_match_temp_1[2*i+1]) begin
+        vc_now_max_match_temp_2[i] = vc_now_max_match_temp_1[2*i];
+        vc_next_hop_temp_2[i]      = vc_next_hop_temp_1[2*i];
+      end else begin
+        vc_now_max_match_temp_2[i] = vc_now_max_match_temp_1[2*i+1];
+        vc_next_hop_temp_2[i]      = vc_next_hop_temp_1[2*i+1];
+      end
+    end
+  end
+
+  always_comb begin
+    if (vc_now_max_match_temp_2[0] > vc_now_max_match_temp_2[1]) begin
+      vc_now_max_match = vc_now_max_match_temp_2[0];
+      vc_now_next_hop_offset = vc_next_hop_temp_2[0];
+    end else begin
+      vc_now_max_match = vc_now_max_match_temp_2[1];
+      vc_now_next_hop_offset = vc_next_hop_temp_2[1];
+    end
+  end
+
+  always_comb begin
     bt_now_max_match       = 0;
     bt_now_next_hop_offset = 0;
-    if (bt_node.valid && (BEGIN_LEVEL + (state - L0) > bt_now_max_match)) begin
-      bt_now_max_match       = BEGIN_LEVEL + (state - L0);
+    if (bt_node.valid && (BEGIN_LEVEL + state_level > bt_now_max_match)) begin
+      bt_now_max_match       = BEGIN_LEVEL + state_level;
       bt_now_next_hop_offset = bt_node.next_hop_addr;
     end
   end
@@ -260,6 +353,11 @@ module trie8 #(
           bt_max_match_o       <= bt_now_max_match;
           bt_next_hop_offset_o <= bt_now_next_hop_offset;
         end
+      end else if (state == WAIT) begin
+        if (vc_now_max_match > vc_max_match_o) begin
+          vc_max_match_o       <= vc_now_max_match;
+          vc_next_hop_offset_o <= vc_now_next_hop_offset;
+        end
         vc_init_addr_o <= vc_remaining_prefix_o[0] ? vc_node_i[2*VC_ADDR_WIDTH-1:VC_ADDR_WIDTH] : vc_node_i[VC_ADDR_WIDTH-1:0];
         bt_init_addr_o <= bt_remaining_prefix_o[0] ? bt_node_i[2*BT_ADDR_WIDTH-1:BT_ADDR_WIDTH] : bt_node_i[BT_ADDR_WIDTH-1:0];
         frame_beat_o.valid <= 1;
@@ -269,17 +367,3 @@ module trie8 #(
   end
 
 endmodule : trie8
-
-module trie8_test (
-    input wire gtclk_125_p
-);
-
-  trie8 #(
-      .VC_ADDR_WIDTH(8),
-      .VC_BIN_SIZE(5),
-      .BEGIN_LEVEL(0)
-  ) trie8_i (
-      .clk(gtclk_125_p)
-  );
-
-endmodule

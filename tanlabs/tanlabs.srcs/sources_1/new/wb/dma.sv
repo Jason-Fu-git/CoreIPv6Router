@@ -193,7 +193,7 @@ module dma #(
     if (core_rst) begin
       dma_port_id_o <= 0;
     end else if (fifo_in_valid) begin
-      dma_port_id_o <= filtered_in_id;
+      dma_port_id_o <= fifo_in_id;
     end
   end
 

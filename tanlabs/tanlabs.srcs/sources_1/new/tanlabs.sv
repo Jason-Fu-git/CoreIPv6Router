@@ -1160,35 +1160,35 @@ module tanlabs #(
       .wbs4_cyc_o(wbs4_cyc)
   );
 
-  cache #(
-      .BLOCK_WIDTH(2),
-      .BLOCK_SIZE (4),
-      .TAG_WIDTH  (17),
-      .GROUP_NUM  (16),
-      .GROUP_WIDTH(4),
-      .GROUP_SIZE (4)
-  ) cache_IF (
-      .clk  (core_clk),
-      .rst_p(reset_core),
+//   cache #(
+//       .BLOCK_WIDTH(2),
+//       .BLOCK_SIZE (4),
+//       .TAG_WIDTH  (17),
+//       .GROUP_NUM  (16),
+//       .GROUP_WIDTH(4),
+//       .GROUP_SIZE (4)
+//   ) cache_IF (
+//       .clk  (core_clk),
+//       .rst_p(reset_core),
 
-      .adr_ctl_i (im_adr),
-      .stb_ctl_i (im_fence || im_stb),
-      .sel_ctl_i (4'b1111),
-      .we_p_ctl_i(1'b0),
-      .ack_ctl_o (im_ack),
-      .dat_ctl_i (0),
-      .dat_ctl_o (im_dat_r),
+//       .adr_ctl_i (im_adr),
+//       .stb_ctl_i (im_fence || im_stb),
+//       .sel_ctl_i (4'b1111),
+//       .we_p_ctl_i(1'b0),
+//       .ack_ctl_o (im_ack),
+//       .dat_ctl_i (0),
+//       .dat_ctl_o (im_dat_r),
 
-      .ack_sram_i (icache_sram_ack),
-      .stb_sram_o (icache_sram_stb),
-      .adr_sram_o (icache_sram_adr),
-      .sel_sram_o (icache_sram_sel),
-      .we_p_sram_o(icache_sram_we),
-      .dat_sram_i (icache_sram_dat_i),
-      .dat_sram_o (icache_sram_dat_o),
+//       .ack_sram_i (icache_sram_ack),
+//       .stb_sram_o (icache_sram_stb),
+//       .adr_sram_o (icache_sram_adr),
+//       .sel_sram_o (icache_sram_sel),
+//       .we_p_sram_o(icache_sram_we),
+//       .dat_sram_i (icache_sram_dat_i),
+//       .dat_sram_o (icache_sram_dat_o),
 
-      .fence(im_fence)
-  );
+//       .fence(im_fence)
+//   );
 
   //   cache #(
   //       .BLOCK_WIDTH(2),
@@ -1324,14 +1324,23 @@ module tanlabs #(
       .wbm1_ack_o(wbs0_ack),
       .wbm1_dat_o(wbs0_dat_r),
 
-      .wbm2_adr_i(icache_sram_adr),
-      .wbm2_dat_i(icache_sram_dat_o),
-      .wbm2_sel_i(icache_sram_sel),
-      .wbm2_we_i (icache_sram_we),
-      .wbm2_cyc_i(icache_sram_stb),
-      .wbm2_stb_i(icache_sram_stb),
-      .wbm2_ack_o(icache_sram_ack),
-      .wbm2_dat_o(icache_sram_dat_i),
+    //   .wbm2_adr_i(icache_sram_adr),
+    //   .wbm2_dat_i(icache_sram_dat_o),
+    //   .wbm2_sel_i(icache_sram_sel),
+    //   .wbm2_we_i (icache_sram_we),
+    //   .wbm2_cyc_i(icache_sram_stb),
+    //   .wbm2_stb_i(icache_sram_stb),
+    //   .wbm2_ack_o(icache_sram_ack),
+    //   .wbm2_dat_o(icache_sram_dat_i),
+
+      .wbm2_adr_i(im_adr),
+      .wbm2_dat_i(im_dat_w),
+      .wbm2_sel_i(im_sel),
+      .wbm2_we_i (im_we),
+      .wbm2_cyc_i(im_cyc),
+      .wbm2_stb_i(im_stb),
+      .wbm2_ack_o(im_ack),
+      .wbm2_dat_o(im_dat_r),
 
       .wbs_adr_o(arbiter_sram_addr),
       .wbs_dat_i(arbiter_sram_data_in),
