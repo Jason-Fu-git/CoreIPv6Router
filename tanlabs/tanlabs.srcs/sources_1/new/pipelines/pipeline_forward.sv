@@ -99,8 +99,6 @@ module pipeline_forward (
   always_ff @(posedge clk) begin : NEXTHOP_BEAT
     if (rst_p) begin
       nexthop_beat <= 0;
-    end else if (cache_ready && (!nexthop_ready)) begin
-      nexthop_beat.valid <= 1'b0;
     end else if (nexthop_ready) begin
       nexthop_beat <= fwt_out;
       nexthop_addr <= fwt_nexthop_addr;
@@ -112,10 +110,11 @@ module pipeline_forward (
   // =======================
   // Neighbor Cache
   // =======================
-  logic cache_ready;
-  fw_frame_beat_t cache_beat;
+  fw_frame_beat_t nc_beat;
+  logic [127:0] nc_IPv6_addr;
+  logic [1:0] nc_port_id;
 
-  always_ff @( posedge clk ) begin : NEXTHOP_READY
+  always_ff @(posedge clk) begin : NEXTHOP_READY
     if (rst_p) begin
       nexthop_ready <= 0;
     end else begin
@@ -123,9 +122,26 @@ module pipeline_forward (
     end
   end
 
+
+  always_ff @(posedge clk) begin : NC_BEAT
+    if (rst_p) begin
+      nc_beat <= 0;
+    end else if (cache_ready && (!nexthop_ready)) begin
+      nc_beat.valid <= 0;
+    end else if (nexthop_ready) begin  // Note : this is a buffer for nexthop_beat
+      nc_beat      <= nexthop_beat;
+      nc_IPv6_addr <= nexthop_IPv6_addr;
+      nc_port_id   <= nexthop_port_id;
+    end
+  end
+
+
+  logic cache_ready;
+  fw_frame_beat_t cache_beat;
+
   always_comb begin : FW_CACHE_SIGNALS
-    cache_r_IPv6_addr = nexthop_IPv6_addr;
-    cache_r_port_id   = nexthop_port_id;
+    cache_r_IPv6_addr = nc_IPv6_addr;
+    cache_r_port_id   = nc_port_id;
   end
 
   logic [1:0] cache_r_port_id_reg;
@@ -133,7 +149,7 @@ module pipeline_forward (
     if (rst_p) begin
       cache_r_port_id_reg <= 0;
     end else begin
-      if (nexthop_beat.data.is_first) begin
+      if (nc_beat.data.is_first) begin
         cache_r_port_id_reg <= cache_r_port_id;
       end
     end
@@ -144,60 +160,60 @@ module pipeline_forward (
       cache_beat <= 0;
     end else begin
       if (cache_ready) begin
-        cache_beat.valid <= nexthop_beat.valid;
-        if (nexthop_beat.valid) begin
-          if (nexthop_beat.data.is_first) begin
-            if (nexthop_beat.error == ERR_NONE) begin
+        cache_beat.valid <= nc_beat.valid;
+        if (nc_beat.valid) begin
+          if (nc_beat.data.is_first) begin
+            if (nc_beat.error == ERR_NONE) begin
               if (cache_r_exists) begin
                 cache_beat.error                <= ERR_NONE;
 
                 // frame_beat properties
-                cache_beat.data.keep            <= nexthop_beat.data.keep;
-                cache_beat.data.last            <= nexthop_beat.data.last;
-                cache_beat.data.user            <= nexthop_beat.data.user;
-                cache_beat.data.valid           <= nexthop_beat.data.valid;
-                cache_beat.data.is_first        <= nexthop_beat.data.is_first;
+                cache_beat.data.keep            <= nc_beat.data.keep;
+                cache_beat.data.last            <= nc_beat.data.last;
+                cache_beat.data.user            <= nc_beat.data.user;
+                cache_beat.data.valid           <= nc_beat.data.valid;
+                cache_beat.data.is_first        <= nc_beat.data.is_first;
 
                 // frame_meta properties
-                cache_beat.data.meta.id         <= nexthop_beat.data.meta.id;
+                cache_beat.data.meta.id         <= nc_beat.data.meta.id;
                 cache_beat.data.meta.dest       <= cache_r_port_id;
-                cache_beat.data.meta.drop       <= nexthop_beat.data.meta.drop;
-                cache_beat.data.meta.dont_touch <= nexthop_beat.data.meta.dont_touch;
-                cache_beat.data.meta.drop_next  <= nexthop_beat.data.meta.drop_next;
+                cache_beat.data.meta.drop       <= nc_beat.data.meta.drop;
+                cache_beat.data.meta.dont_touch <= nc_beat.data.meta.dont_touch;
+                cache_beat.data.meta.drop_next  <= nc_beat.data.meta.drop_next;
 
                 // ether_hdr properties
-                cache_beat.data.data.ethertype  <= nexthop_beat.data.data.ethertype;
-                cache_beat.data.data.src        <= nexthop_beat.data.data.src;
+                cache_beat.data.data.ethertype  <= nc_beat.data.data.ethertype;
+                cache_beat.data.data.src        <= nc_beat.data.data.src;
                 cache_beat.data.data.dst        <= cache_r_MAC_addr;
-                cache_beat.data.data.ip6        <= nexthop_beat.data.data.ip6;
+                cache_beat.data.data.ip6        <= nc_beat.data.data.ip6;
               end else begin
                 cache_beat.error <= ERR_NC_MISS;
-                cache_beat.data  <= nexthop_beat.data;
+                cache_beat.data  <= nc_beat.data;
               end
             end else begin
-              cache_beat.error <= nexthop_beat.error;
-              cache_beat.data  <= nexthop_beat.data;
+              cache_beat.error <= nc_beat.error;
+              cache_beat.data  <= nc_beat.data;
             end
           end else begin
             // Not the first beat
-            cache_beat.error                <= nexthop_beat.error;
+            cache_beat.error                <= nc_beat.error;
 
             // frame_beat properties
-            cache_beat.data.keep            <= nexthop_beat.data.keep;
-            cache_beat.data.last            <= nexthop_beat.data.last;
-            cache_beat.data.user            <= nexthop_beat.data.user;
-            cache_beat.data.valid           <= nexthop_beat.data.valid;
-            cache_beat.data.is_first        <= nexthop_beat.data.is_first;
+            cache_beat.data.keep            <= nc_beat.data.keep;
+            cache_beat.data.last            <= nc_beat.data.last;
+            cache_beat.data.user            <= nc_beat.data.user;
+            cache_beat.data.valid           <= nc_beat.data.valid;
+            cache_beat.data.is_first        <= nc_beat.data.is_first;
 
             // frame_meta properties
-            cache_beat.data.meta.id         <= nexthop_beat.data.meta.id;
+            cache_beat.data.meta.id         <= nc_beat.data.meta.id;
             cache_beat.data.meta.dest       <= cache_r_port_id_reg;
-            cache_beat.data.meta.drop       <= nexthop_beat.data.meta.drop;
-            cache_beat.data.meta.dont_touch <= nexthop_beat.data.meta.dont_touch;
-            cache_beat.data.meta.drop_next  <= nexthop_beat.data.meta.drop_next;
+            cache_beat.data.meta.drop       <= nc_beat.data.meta.drop;
+            cache_beat.data.meta.dont_touch <= nc_beat.data.meta.dont_touch;
+            cache_beat.data.meta.drop_next  <= nc_beat.data.meta.drop_next;
 
             // payload
-            cache_beat.data.data            <= nexthop_beat.data.data;
+            cache_beat.data.data            <= nc_beat.data.data;
           end
         end
       end

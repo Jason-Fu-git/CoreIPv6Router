@@ -135,24 +135,8 @@ module pipeline_rip (
             end
           end else begin
             // Not the first beat
-            cache_beat.error                <= in_buffer.error;
-
-            // frame_beat properties
-            cache_beat.data.keep            <= in_buffer.data.keep;
-            cache_beat.data.last            <= in_buffer.data.last;
-            cache_beat.data.user            <= in_buffer.data.user;
-            cache_beat.data.valid           <= in_buffer.data.valid;
-            cache_beat.data.is_first        <= in_buffer.data.is_first;
-
-            // frame_meta properties
-            cache_beat.data.meta.id         <= in_buffer.data.meta.id;
-            cache_beat.data.meta.dest       <= cache_beat.data.meta.dest;
-            cache_beat.data.meta.drop       <= in_buffer.data.meta.drop;
-            cache_beat.data.meta.dont_touch <= in_buffer.data.meta.dont_touch;
-            cache_beat.data.meta.drop_next  <= in_buffer.data.meta.drop_next;
-
-            // payload
-            cache_beat.data.data            <= in_buffer.data.data;
+            cache_beat.error <= in_buffer.error;
+            cache_beat.data  <= in_buffer.data;
           end
         end
       end
