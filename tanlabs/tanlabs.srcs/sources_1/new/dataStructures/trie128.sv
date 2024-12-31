@@ -103,7 +103,7 @@ module trie128(
 
     always_comb begin
         for (int i = 0; i < LEVELS-1; i = i + 1) begin
-            vc_max_match_in[i+1] = vc_max_match_out[i+1];
+            vc_max_match_in[i+1] = vc_max_match_out[i];
         end
     end
 

@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 /**
- * Implementation of Neighbor Cache using CAM + BRAM, supporting the following operations:
+ * Implementation of Neighbor Cache using CAM + RAM, supporting the following operations:
  *
  * (1) Read Mode
  * Query MAC address from IPv6 address.
@@ -28,8 +28,8 @@
  *
 */
 module neighbor_cache #(
-    parameter NUM_ENTRIES      = 16,
-    parameter ENTRY_ADDR_WIDTH = 4,
+    parameter NUM_ENTRIES      = 8,
+    parameter ENTRY_ADDR_WIDTH = 3,
     parameter REACHABLE_LIMIT  = 32'hFFFFFFF0,  // approx 34s for 125MHz clock
     // when the probe timer reaches this value, the external module should probe the IPv6 address
     parameter PROBE_LIMIT      = 32'hDFFFFFFF   // approx 30s for 125MHz clock

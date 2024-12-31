@@ -59,9 +59,9 @@ module frame_datapath #(
     input wire dma_checksum_valid,
 
     // next hop table
-    input wire [127:0] nexthop_ip6_addr,
-    input wire [  1:0] nexthop_port_id,
-    output reg [  4:0] nexthop_addr
+    input  wire [127:0] nexthop_ip6_addr,
+    input  wire [  1:0] nexthop_port_id,
+    output reg  [  4:0] nexthop_addr
 );
 
   frame_beat in8, in;
@@ -140,8 +140,8 @@ module frame_datapath #(
   logic ns_out_ready, fw_out_ready, nud_out_ready, rip_out_ready;
   logic ns_cache_valid, na_cache_valid;
   logic ns_cache_ready, na_cache_ready;
-  cache_entry ns_cache_entry, na_cache_entry, cache_w;
-  logic cache_wea_p, cache_exists0, cache_exists1;
+  cache_entry ns_cache_entry, na_cache_entry, cache_w, cache_w_buffer;
+  logic cache_wea_p, cache_wea_p_buffer, cache_exists0, cache_exists1;
   logic nud_we_p;
 
   logic [4:0] trie128_next_hop;
@@ -165,6 +165,17 @@ module frame_datapath #(
   reg [BRAM_DATA_WIDTH-1:0] bram_data_w;
   reg [BRAM_DATA_WIDTH-1:0] bram_data_r;
 
+
+  always_ff @(posedge eth_clk) begin : CACHE_W_BUFFER
+    if (reset) begin
+      cache_w_buffer <= 0;
+      cache_wea_p_buffer <= 0;
+    end else begin
+      cache_w_buffer <= cache_w;
+      cache_wea_p_buffer <= cache_wea_p;
+    end
+  end
+
   neighbor_cache neighbor_cache_i (
       .clk  (eth_clk),
       .rst_p(reset),
@@ -179,10 +190,10 @@ module frame_datapath #(
       .r_MAC_addr_1 (cache_mac_addr1_o),
       .r_exists_1   (cache_exists1),
 
-      .w_IPv6_addr(cache_w.ip6_addr),
-      .w_port_id  (cache_w.iface),
-      .w_MAC_addr (cache_w.mac_addr),
-      .wea_p      (cache_wea_p),
+      .w_IPv6_addr(cache_w_buffer.ip6_addr),
+      .w_port_id  (cache_w_buffer.iface),
+      .w_MAC_addr (cache_w_buffer.mac_addr),
+      .wea_p      (cache_wea_p_buffer),
 
       .nud_probe      (nud_we_p),
       .probe_IPv6_addr(nud_exp_addr),

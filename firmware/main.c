@@ -11,10 +11,13 @@
 #include <memory.h>
 #include <protocol.h>
 
+struct ip6_addr ip_addrs[PORT_NUM];
+struct ether_addr mac_addrs[PORT_NUM];
 extern uint32_t _bss_begin[];
 extern uint32_t _bss_end[];
 extern uint32_t multicast_timer_ldata;
 extern volatile struct memory_rte memory_rte[NUM_MEMORY_RTE];
+extern void TrieInit();
 
 void start(void)
 {
@@ -47,33 +50,28 @@ void start(void)
     // Initialize multicast timer
     multicast_timer_ldata = *((volatile uint32_t *)MTIME_LADDR);
 
+    // Initialize tries
+    TrieInit();
+
     *(volatile uint32_t *)DMA_OUT_LENGTH = 0;
 
     // Configurate the MAC and IP addresses
-    struct ip6_addr ip_addr0 = {
-        .s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x541069fe}};
-    struct ip6_addr ip_addr1 = {
-        .s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x551069fe}};
-    struct ip6_addr ip_addr2 = {
-        .s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x561069fe}};
-    struct ip6_addr ip_addr3 = {
-        .s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x571069fe}};
-    struct ether_addr mac_addr0 = {
-        .ether_addr16 = {0x1f8c, 0x6964, 0x5410}};
-    struct ether_addr mac_addr1 = {
-        .ether_addr16 = {0x1f8c, 0x6964, 0x5510}};
-    struct ether_addr mac_addr2 = {
-        .ether_addr16 = {0x1f8c, 0x6964, 0x5610}};
-    struct ether_addr mac_addr3 = {
-        .ether_addr16 = {0x1f8c, 0x6964, 0x5710}};
-    write_mac_addr(&mac_addr0, MAC_CONFIG_ADDR(0));
-    write_mac_addr(&mac_addr1, MAC_CONFIG_ADDR(1));
-    write_mac_addr(&mac_addr2, MAC_CONFIG_ADDR(2));
-    write_mac_addr(&mac_addr3, MAC_CONFIG_ADDR(3));
-    write_ip_addr(&ip_addr0, IP_CONFIG_ADDR(0));
-    write_ip_addr(&ip_addr1, IP_CONFIG_ADDR(1));
-    write_ip_addr(&ip_addr2, IP_CONFIG_ADDR(2));
-    write_ip_addr(&ip_addr3, IP_CONFIG_ADDR(3));
+    struct ip6_addr ip_addrs[PORT_NUM] = {
+        {.s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x541069fe}},
+        {.s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x551069fe}},
+        {.s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x561069fe}},
+        {.s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x571069fe}}
+    };
+    struct ether_addr mac_addrs[PORT_NUM] = {
+        {.ether_addr16 = {0x1f8c, 0x6964, 0x5410}},
+        {.ether_addr16 = {0x1f8c, 0x6964, 0x5510}},
+        {.ether_addr16 = {0x1f8c, 0x6964, 0x5610}},
+        {.ether_addr16 = {0x1f8c, 0x6964, 0x5710}}
+    };
+    for(int i = 0; i < PORT_NUM; i++){
+        write_ip_addr(ip_addrs + i, IP_CONFIG_ADDR(i));
+        write_mac_addr(mac_addrs + i, MAC_CONFIG_ADDR(i));
+    }
 
     // TODO: Configurate direct route
 
