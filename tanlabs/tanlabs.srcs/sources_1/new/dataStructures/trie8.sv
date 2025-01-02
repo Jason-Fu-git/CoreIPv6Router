@@ -315,10 +315,11 @@ module trie8 #(
       bt_next_hop_offset_o  <= 0;
     end else begin
       if (state == IDLE) begin
+        out_valid <= 0;
         if (in_valid && in_ready) begin
-          if (out_valid) begin
-            out_valid <= 0;
-          end
+        //   if (out_valid) begin
+        //     out_valid <= 0;
+        //   end
           frame_beat_o          <= frame_beat_i;
           frame_beat_o.valid    <= 0;
           vc_addr_reg           <= vc_init_addr_i;
@@ -353,13 +354,13 @@ module trie8 #(
           bt_max_match_o       <= bt_now_max_match;
           bt_next_hop_offset_o <= bt_now_next_hop_offset;
         end
+        vc_init_addr_o <= vc_remaining_prefix_o[0] ? vc_node_i[2*VC_ADDR_WIDTH-1:VC_ADDR_WIDTH] : vc_node_i[VC_ADDR_WIDTH-1:0];
+        bt_init_addr_o <= bt_remaining_prefix_o[0] ? bt_node_i[2*BT_ADDR_WIDTH-1:BT_ADDR_WIDTH] : bt_node_i[BT_ADDR_WIDTH-1:0];
       end else if (state == WAIT) begin
         if (vc_now_max_match > vc_max_match_o) begin
           vc_max_match_o       <= vc_now_max_match;
           vc_next_hop_offset_o <= vc_now_next_hop_offset;
         end
-        vc_init_addr_o <= vc_remaining_prefix_o[0] ? vc_node_i[2*VC_ADDR_WIDTH-1:VC_ADDR_WIDTH] : vc_node_i[VC_ADDR_WIDTH-1:0];
-        bt_init_addr_o <= bt_remaining_prefix_o[0] ? bt_node_i[2*BT_ADDR_WIDTH-1:BT_ADDR_WIDTH] : bt_node_i[BT_ADDR_WIDTH-1:0];
         frame_beat_o.valid <= 1;
         out_valid <= 1;
       end

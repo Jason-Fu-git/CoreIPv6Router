@@ -1031,16 +1031,6 @@ module tanlabs #(
   assign wbs3_ack = bram_cpu_ack;
   assign bram_cpu_stb = wbs3_stb;
 
-  reg wbs3_ack_wait;
-
-  always_ff @(posedge core_clk) begin
-    if (reset_core) begin
-      wbs3_ack_wait <= 0;
-    end else begin
-      wbs3_ack_wait <= wbs3_ack;
-    end
-  end
-
   logic [22:0] icache_sram_adr, dcache_sram_adr, dma_sram_adr;
   logic [31:0] icache_sram_dat_o, dcache_sram_dat_o, dma_sram_dat_o;
   logic [31:0] icache_sram_dat_i, dcache_sram_dat_i, dma_sram_dat_i;
@@ -1138,7 +1128,7 @@ module tanlabs #(
       .wbs3_we_o (wbs3_we),
       .wbs3_sel_o(wbs3_sel),
       .wbs3_stb_o(wbs3_stb),
-      .wbs3_ack_i(wbs3_ack_wait),
+      .wbs3_ack_i(wbs3_ack),
       .wbs3_err_i('0),
       .wbs3_rty_i('0),
       .wbs3_cyc_o(wbs3_cyc),

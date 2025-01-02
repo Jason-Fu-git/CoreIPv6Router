@@ -11,12 +11,24 @@
 #include <memory.h>
 #include <protocol.h>
 
-struct ip6_addr ip_addrs[PORT_NUM];
-struct ether_addr mac_addrs[PORT_NUM];
+// Configurate the MAC and IP addresses
+struct ip6_addr ip_addrs[PORT_NUM] = {
+        {.s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x541069fe}},
+        {.s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x551069fe}},
+        {.s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x561069fe}},
+        {.s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x571069fe}}
+};
+struct ether_addr mac_addrs[PORT_NUM] = {
+        {.ether_addr16 = {0x1f8c, 0x6964, 0x5410}},
+        {.ether_addr16 = {0x1f8c, 0x6964, 0x5510}},
+        {.ether_addr16 = {0x1f8c, 0x6964, 0x5610}},
+        {.ether_addr16 = {0x1f8c, 0x6964, 0x5710}}
+};
+
 extern uint32_t _bss_begin[];
 extern uint32_t _bss_end[];
 extern uint32_t multicast_timer_ldata;
-extern volatile struct memory_rte memory_rte[NUM_MEMORY_RTE];
+extern struct memory_rte memory_rte[NUM_MEMORY_RTE];
 extern void TrieInit();
 
 void start(void)
@@ -31,14 +43,14 @@ void start(void)
     init_uart();
 
     // Initialize RTEs
-    for (int i = 0; i < NUM_MEMORY_RTE; i++)
-    {
-        memory_rte[i].ip6_addr.s6_addr32[0] = 0;
-        memory_rte[i].ip6_addr.s6_addr32[1] = 0;
-        memory_rte[i].ip6_addr.s6_addr32[2] = 0;
-        memory_rte[i].ip6_addr.s6_addr32[3] = 0;
-        memory_rte[i].nexthop_port = 0;
-    }
+    // for (int i = 0; i < NUM_MEMORY_RTE; i++)
+    // {
+    //     memory_rte[i].ip6_addr.s6_addr32[0] = 0;
+    //     memory_rte[i].ip6_addr.s6_addr32[1] = 0;
+    //     memory_rte[i].ip6_addr.s6_addr32[2] = 0;
+    //     memory_rte[i].ip6_addr.s6_addr32[3] = 0;
+    //     memory_rte[i].nexthop_port = 0;
+    // }
 
     // Initialize timers
     *((volatile uint32_t *)MTIMECMP_HADDR) = 0xFFFFFFFF;
@@ -55,19 +67,6 @@ void start(void)
 
     *(volatile uint32_t *)DMA_OUT_LENGTH = 0;
 
-    // Configurate the MAC and IP addresses
-    struct ip6_addr ip_addrs[PORT_NUM] = {
-        {.s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x541069fe}},
-        {.s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x551069fe}},
-        {.s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x561069fe}},
-        {.s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x571069fe}}
-    };
-    struct ether_addr mac_addrs[PORT_NUM] = {
-        {.ether_addr16 = {0x1f8c, 0x6964, 0x5410}},
-        {.ether_addr16 = {0x1f8c, 0x6964, 0x5510}},
-        {.ether_addr16 = {0x1f8c, 0x6964, 0x5610}},
-        {.ether_addr16 = {0x1f8c, 0x6964, 0x5710}}
-    };
     for(int i = 0; i < PORT_NUM; i++){
         write_ip_addr(ip_addrs + i, IP_CONFIG_ADDR(i));
         write_mac_addr(mac_addrs + i, MAC_CONFIG_ADDR(i));
@@ -77,24 +76,26 @@ void start(void)
 
     // Send multicast request.
     for(int p = 0; p < PORT_NUM; p++){
-        send_multicast_request(p);
+        // Appoint out port id
+        *(volatile uint32_t *)DMA_OUT_PORT_ID = p;
+        // send_multicast_request(p);
+        // Grant DMA access (Read) to the memory
+        _grant_dma_access(DMA_BLOCK_RADDR, *(volatile uint32_t *)DMA_OUT_LENGTH, 0);
+        // Wait for the DMA to finish
+        _wait_for_dma();
+        *(volatile uint32_t *)DMA_CPU_STB = 0;
+        // Reset the out length
+        *(volatile uint32_t *)DMA_OUT_LENGTH = 0;
     }
-    // Grant DMA access (Read) to the memory
-    _grant_dma_access(DMA_BLOCK_RADDR, *(volatile uint32_t *)DMA_OUT_LENGTH, 0);
-    // Wait for the DMA to finish
-    _wait_for_dma();
-    *(volatile uint32_t *)DMA_CPU_STB = 0;
-    // Reset the out length
-    *(volatile uint32_t *)DMA_OUT_LENGTH = 0;
+
+    printf("I");
+
     // Grant DMA access (Write) to the memory
     _grant_dma_access(DMA_BLOCK_WADDR, MTU, 1);
-
-    printf("Initialization complete\n");
 
     // Main loop
     while (true)
     {
-        // Main loop starts here, above will be deleted.
         int dma_res = _check_dma_busy();
         uint32_t out_length = *(volatile uint32_t *)DMA_OUT_LENGTH;
         if (dma_res == 0)
@@ -120,8 +121,9 @@ void start(void)
             if (_check_dma_ack())
             { // ack
                 *(volatile uint32_t *)DMA_CPU_STB = 0;
-                uint32_t data_width = *(volatile uint32_t *)DMA_CPU_DATA_WIDTH;
-
+                uint32_t data_width = *(volatile uint32_t *)DMA_DATA_WIDTH;
+                uint8_t port_id = *(volatile uint8_t *)DMA_IN_PORT_ID;
+                
                 // Make DMA busy
                 out_length = *(volatile uint32_t *)DMA_OUT_LENGTH;
                 if (out_length)
@@ -130,10 +132,10 @@ void start(void)
                 *(volatile uint32_t *)DMA_OUT_LENGTH = 0;
 
                 // Process the packet
-                RipngErrorCode error = disassemble(DMA_BLOCK_WADDR, data_width, *(volatile uint8_t *)DMA_IN_PORT_ID);
+                RipngErrorCode error = disassemble(DMA_BLOCK_WADDR, data_width, port_id);
                 if (error != SUCCESS)
                 {
-                    printf("Error: %d\n", error);
+                    printf("D%d", error);
                 }
                 else // If SUCCESS, we should continue
                 {

@@ -21,23 +21,23 @@
 
 static const void* BRAM_BASE = (void*)0x20000000;
 
-#define CONSTRUCT_BRAM_ENTRY(valid, next_hop_addr, rc, lc) ((valid << 31) | (next_hop_addr << 26) | (rc << 13) | lc)
-#define VALID(entry) ((entry >> 31) & 0x1)
-#define NEXT_HOP_ADDR(entry) ((entry >> 26) & 0x1F)
-#define LC(entry) (entry & 0x1FFF)
-#define RC(entry) ((entry >> 13) & 0x1FFF)
+#define CONSTRUCT_BRAM_ENTRY(valid, next_hop_addr, rc, lc) (((valid) << 31) | ((next_hop_addr) << 26) | ((rc) << 13) | (lc))
+#define VALID(entry) (((entry) >> 31) & 0x1)
+#define NEXT_HOP_ADDR(entry) (((entry) >> 26) & 0x1F)
+#define LC(entry) ((entry) & 0x1FFF)
+#define RC(entry) (((entry) >> 13) & 0x1FFF)
 
 // For C code
 // typedef struct packed {
 //   logic [ 3:0] level;
 //   logic [12:0] index;
 // } bram_address_t;
-#define CONSTRUCT_BRAM_ADDRESS(level, index) ((uint32_t)BRAM_BASE | (level << 23) | (index << 10))
-#define LEVEL(address) ((address >> 23) & 0xF)
-#define INDEX(address) ((address >> 10) & 0x1FFF)
+#define CONSTRUCT_BRAM_ADDRESS(level, index) ((uint32_t)BRAM_BASE | ((level) << 23) | ((index) << 10))
+#define LEVEL(address) (((address) >> 23) & 0xF)
+#define INDEX(address) (((address) >> 10) & 0x1FFF)
 
 // ip6_4 is an unsigned int array with 4 elements
-#define LSB(ip6_4, index) (((ip6_4[(index >> 5) & 0x3]) >> (index & 0x1F)) & 0x1)
+#define LSB(ip6_4, index) ((((ip6_4)[((index) >> 5) & 0x3]) >> ((index) & 0x1F)) & 0x1)
 
 static const unsigned int INDEX_BASE = 306496;
 
@@ -187,7 +187,7 @@ int BTrieInsert(void* prefix_ptr, int prefix_length, unsigned int next_hop_addr)
     // update the entry
     *(volatile unsigned int*)CONSTRUCT_BRAM_ADDRESS(entry_level, entry_index) = CONSTRUCT_BRAM_ENTRY(1, next_hop_addr, rc, lc);
 
-    return BTrieAddressToIndex(CONSTRUCT_BRAM_ADDRESS(entry_level, entry_index));
+    return BTrieAddressToIndex((void*)CONSTRUCT_BRAM_ADDRESS(entry_level, entry_index));
 }
 
 /**
@@ -229,7 +229,7 @@ int BTrieDelete(void* prefix_ptr, int prefix_length) {
 
         // lookup the node's parent
         if (prefix_length == 1) {
-            return BTrieAddressToIndex(address);
+            return BTrieAddressToIndex((void*)address);
         }
 
         // iteratively delete the parent node
@@ -292,7 +292,7 @@ int BTrieDelete(void* prefix_ptr, int prefix_length) {
             }
         }
     }
-    return BTrieAddressToIndex(address);
+    return BTrieAddressToIndex((void*)address);
 }
 
 void BTrieInitBram() {
@@ -313,7 +313,12 @@ void BTrieUpdateBramEmptyBottom(int level);
 void BTrieInitBram();
 unsigned int BTrieLookup(void* prefix, int prefix_length) {
 	int temp;
-	return BTrieAddressToIndex(_BTrieLookup(prefix, prefix_length, temp));
+    int result = _BTrieLookup(prefix, prefix_length, &temp);
+    if (temp < prefix_length) {
+        return -1;
+    } else {
+        return BTrieAddressToIndex((void*)result);
+    }
 }
 int BTrieInsert(void* prefix, int prefix_length, unsigned int next_hop_addr);
 int BTrieDelete(void* prefix, int prefix_length);

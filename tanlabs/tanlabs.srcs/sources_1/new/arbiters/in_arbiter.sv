@@ -125,6 +125,7 @@ module in_arbiter (
             ns_valid     <= 0;
             na_valid     <= 0;
             fw_valid     <= 1;
+            rip_valid    <= 0;
           end else begin
             handling_ns  <= 0;
             handling_na  <= 0;

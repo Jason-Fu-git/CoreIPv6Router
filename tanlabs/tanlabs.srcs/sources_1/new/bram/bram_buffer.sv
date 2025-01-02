@@ -16,7 +16,7 @@ module bram_buffer_1 (
 
 	always_comb begin
 		node = node_in;
-		case (sel[7:2])
+		case (sel[5:0])
 			6'b000100: node.bin.prefix_length = dat_in[4:0];
 			6'b000101: node.bin.prefix = dat_in[27:0];
 			6'b000110: node.bin.entry_offset = dat_in[4:0];
@@ -61,15 +61,15 @@ module bram_buffer_7 (
 
 	always_comb begin
 		node = node_in;
-		if (sel[7:2] == 6'd0) begin
+		if (sel[5:0] == 6'd0) begin
 			node.lc = dat_in[12:0];
-		end else if (sel[7:2] == 6'd1) begin
+		end else if (sel[5:0] == 6'd1) begin
 			node.rc = dat_in[12:0];
 		end else begin
-			case (sel[3:2])
-				2'd0: node.bin[sel[7:4] - 1].prefix_length = dat_in[4:0];
-				2'd1: node.bin[sel[7:4] - 1].prefix = dat_in[27:0];
-				2'd2: node.bin[sel[7:4] - 1].entry_offset = dat_in[4:0];
+			case (sel[1:0])
+				2'd0: node.bin[sel[5:2] - 1].prefix_length = dat_in[4:0];
+				2'd1: node.bin[sel[5:2] - 1].prefix = dat_in[27:0];
+				2'd2: node.bin[sel[5:2] - 1].entry_offset = dat_in[4:0];
 				default: ;
 			endcase
 		end
@@ -110,15 +110,15 @@ module bram_buffer_15 (
 
 	always_comb begin
 		node = node_in;
-		if (sel[7:2] == 6'd0) begin
+		if (sel[5:0] == 6'd0) begin
 			node.lc = dat_in[12:0];
-		end else if (sel[7:2] == 6'd1) begin
+		end else if (sel[5:0] == 6'd1) begin
 			node.rc = dat_in[12:0];
 		end else begin
-			case (sel[3:2])
-				2'd0: node.bin[sel[7:4] - 1].prefix_length = dat_in[4:0];
-				2'd1: node.bin[sel[7:4] - 1].prefix = dat_in[27:0];
-				2'd2: node.bin[sel[7:4] - 1].entry_offset = dat_in[4:0];
+			case (sel[1:0])
+				2'd0: node.bin[sel[5:2] - 1].prefix_length = dat_in[4:0];
+				2'd1: node.bin[sel[5:2] - 1].prefix = dat_in[27:0];
+				2'd2: node.bin[sel[5:2] - 1].entry_offset = dat_in[4:0];
 				default: ;
 			endcase
 		end
@@ -159,15 +159,15 @@ module bram_buffer_14 (
 
 	always_comb begin
 		node = node_in;
-		if (sel[7:2] == 6'd0) begin
+		if (sel[5:0] == 6'd0) begin
 			node.lc = dat_in[12:0];
-		end else if (sel[7:2] == 6'd1) begin
+		end else if (sel[5:0] == 6'd1) begin
 			node.rc = dat_in[12:0];
 		end else begin
-			case (sel[3:2])
-				2'd0: node.bin[sel[7:4] - 1].prefix_length = dat_in[4:0];
-				2'd1: node.bin[sel[7:4] - 1].prefix = dat_in[27:0];
-				2'd2: node.bin[sel[7:4] - 1].entry_offset = dat_in[4:0];
+			case (sel[1:0])
+				2'd0: node.bin[sel[5:2] - 1].prefix_length = dat_in[4:0];
+				2'd1: node.bin[sel[5:2] - 1].prefix = dat_in[27:0];
+				2'd2: node.bin[sel[5:2] - 1].entry_offset = dat_in[4:0];
 				default: ;
 			endcase
 		end
@@ -208,15 +208,15 @@ module bram_buffer_10 (
 
 	always_comb begin
 		node = node_in;
-		if (sel[7:2] == 6'd0) begin
+		if (sel[5:0] == 6'd0) begin
 			node.lc = dat_in[11:0];
-		end else if (sel[7:2] == 6'd1) begin
+		end else if (sel[5:0] == 6'd1) begin
 			node.rc = dat_in[11:0];
 		end else begin
-			case (sel[3:2])
-				2'd0: node.bin[sel[7:4] - 1].prefix_length = dat_in[4:0];
-				2'd1: node.bin[sel[7:4] - 1].prefix = dat_in[27:0];
-				2'd2: node.bin[sel[7:4] - 1].entry_offset = dat_in[4:0];
+			case (sel[1:0])
+				2'd0: node.bin[sel[5:2] - 1].prefix_length = dat_in[4:0];
+				2'd1: node.bin[sel[5:2] - 1].prefix = dat_in[27:0];
+				2'd2: node.bin[sel[5:2] - 1].entry_offset = dat_in[4:0];
 				default: ;
 			endcase
 		end
