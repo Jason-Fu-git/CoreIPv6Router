@@ -384,7 +384,6 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                     if(spare_memory_index == NUM_MEMORY_RTE) spare_memory_index = 0;
                 }
                 for(int p = 0; p < PORT_NUM; p++){
-                    printf("%d", send_entry_num);
                     send_entries[p][send_entry_num] = entries[i];
                     send_entries[p][send_entry_num].metric = (p == port) ? 16 : entries[i].metric + 1;
                 }
@@ -525,13 +524,13 @@ int assemble(void *src_addr_v, void *dst_addr_v, void *entries_v, int num_entrie
     volatile struct ripng_rte *rte = (struct ripng_rte *)(packet_hdr + 1);
     int entries_size = 0;
     for(int i = 0; i < num_entries; i++){
-        rte->ip6_addr.s6_addr32[0] = entries[i].ip6_addr.s6_addr32[0];
-        rte->ip6_addr.s6_addr32[1] = entries[i].ip6_addr.s6_addr32[1];
-        rte->ip6_addr.s6_addr32[2] = entries[i].ip6_addr.s6_addr32[2];
-        rte->ip6_addr.s6_addr32[3] = entries[i].ip6_addr.s6_addr32[3];
-        rte->prefix_len = entries[i].prefix_len;
-        rte->metric = entries[i].metric;
-        rte->route_tag = htons(entries[i].route_tag);
+        rte[i].ip6_addr.s6_addr32[0] = entries[i].ip6_addr.s6_addr32[0];
+        rte[i].ip6_addr.s6_addr32[1] = entries[i].ip6_addr.s6_addr32[1];
+        rte[i].ip6_addr.s6_addr32[2] = entries[i].ip6_addr.s6_addr32[2];
+        rte[i].ip6_addr.s6_addr32[3] = entries[i].ip6_addr.s6_addr32[3];
+        rte[i].prefix_len = entries[i].prefix_len;
+        rte[i].metric = entries[i].metric;
+        rte[i].route_tag = htons(entries[i].route_tag);
         entries_size += RTE_LEN;
     }
     // set the lengths
