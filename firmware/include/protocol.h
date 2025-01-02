@@ -42,10 +42,11 @@ void send_multicast_request(int port);
  * @param entries_v The routing table entries.
  * @param num_entries The number of routing table entries. It shouldn't be bigger than RIPNG_MAX_RTE_NUM.
  * @param port The port to send the packet to.
+ * @param is_multicast Whether the packet is multicast or unicast.
  * @return The size of the packet.
  * @author Eason Liu
  */
-int assemble(void *src_addr_v, void *dst_addr_v, void *entries_v, int num_entries, uint8_t port);
+int assemble(void *src_addr_v, void *dst_addr_v, void *entries_v, int num_entries, uint8_t port, uint8_t is_multicast);
 
 /**
  * @brief Send triggered update.
@@ -56,9 +57,10 @@ int assemble(void *src_addr_v, void *dst_addr_v, void *entries_v, int num_entrie
  * @param entries_v The routing table entries.
  * @param num_entries The number of routing table entries. If num_entries > RIPNG_MAX_RTE_NUM, split the entries into multiple packets.
  * @param port The port to send the packet to.
+ * @param is_multicast Whether the packet is multicast or unicast.
  * @author Eason Liu
  */
-void send_triggered_update(void *src_addr_v, void *dst_addr_v, void *entries_v, int num_entries, uint8_t port);
+void send_response(void *src_addr_v, void *dst_addr_v, void *entries_v, int num_entries, uint8_t port, uint8_t is_multicast);
 
 /**
  * @brief Send unsolicited response.
