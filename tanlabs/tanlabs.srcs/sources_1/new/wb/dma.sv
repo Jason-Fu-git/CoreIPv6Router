@@ -192,7 +192,7 @@ module dma #(
   always_ff @(posedge core_clk) begin : PORTID
     if (core_rst) begin
       dma_port_id_o <= 0;
-    end else if (fifo_in_valid) begin
+    end else if (fifo_in_valid && fifo_in_last) begin
       dma_port_id_o <= fifo_in_id;
     end
   end

@@ -485,8 +485,8 @@ module cpu_controller (
   // =============
 
   always_comb begin : IF_MEM
-    im_adr_o = (im_ack_i) ? pc_next : pc;  // Enable continuous fetch
-    // im_adr_o = pc;
+    // im_adr_o = (im_ack_i) ? pc_next : pc;  // Enable continuous fetch
+    im_adr_o = pc;
     im_dat_o = 0;
     im_we_o  = 0;
     if (!if_idle

@@ -55,26 +55,31 @@ module out_arbiter (
       handling_nud <= 0;
       handling_rip <= 0;
     end else begin
-      if (rip_valid && in_rip.is_first) begin
-        handling_rip <= 1;
-      end else if (!handling_rip && ns_valid && in_ns.is_first) begin
-        handling_ns <= 1;
-      end else if (!handling_rip && !handling_ns && nud_valid && in_nud.is_first) begin
-        handling_nud <= 1;
-      end else if (!handling_rip && !handling_ns && !handling_nud && fw_valid && in_fw.is_first) begin
-        handling_fw <= 1;
-      end
-      if (handling_rip && rip_valid && in_rip.last && out_ready) begin
-        handling_rip <= 0;
-      end else if (handling_ns && ns_valid && in_ns.last && out_ready) begin
-        handling_ns <= 0;
-      end else if (handling_nud && nud_valid && in_nud.last && out_ready) begin
-        handling_nud <= 0;
-      end else if (handling_fw && fw_valid && in_fw.last && out_ready) begin
-        handling_fw <= 0;
-      end
+        if (idle) begin
+            if (rip_valid && in_rip.is_first) begin
+              handling_rip <= 1;
+            end else if (!handling_rip && ns_valid && in_ns.is_first) begin
+              handling_ns <= 1;
+            end else if (!handling_rip && !handling_ns && nud_valid && in_nud.is_first) begin
+              handling_nud <= 1;
+            end else if (!handling_rip && !handling_ns && !handling_nud && fw_valid && in_fw.is_first) begin
+              handling_fw <= 1;
+            end
+        end
+        if (handling_rip && rip_valid && in_rip.last && out_ready) begin
+            handling_rip <= 0;
+        end else if (handling_ns && ns_valid && in_ns.last && out_ready) begin
+            handling_ns <= 0;
+        end else if (handling_nud && nud_valid && in_nud.last && out_ready) begin
+            handling_nud <= 0;
+        end else if (handling_fw && fw_valid && in_fw.last && out_ready) begin
+            handling_fw <= 0;
+        end
     end
   end
+
+  logic handling_rip_comb;
+  assign handling_rip_comb = handling_rip || (rip_valid && in_rip.is_first);
 
   always_comb begin
     out = handling_rip ? in_rip :
@@ -85,13 +90,13 @@ module out_arbiter (
              (ns_valid ? in_ns :
              (nud_valid ? in_nud :
              (fw_valid ? in_fw : 0)))))));
-    out.valid = ( (handling_rip || in_rip.is_first) && rip_valid
-                 || ( (!handling_rip && !in_rip.is_first)
-                 && (handling_ns || in_ns.is_first) && ns_valid)
-                 || ( (!handling_rip && !in_rip.is_first && !handling_ns && !in_ns.is_first)
-                 &&(handling_nud || in_nud.is_first) && nud_valid)
-                 || ((!handling_rip && !in_rip.is_first && !handling_ns && !in_ns.is_first && !handling_nud && !in_nud.is_first)
-                 && (handling_fw || in_fw.is_first) && fw_valid));
+    out.valid = ( ((handling_rip_comb) && rip_valid)
+                 || ( (!handling_rip_comb)
+                    && (handling_ns || in_ns.is_first) && ns_valid)
+                 || ( (!handling_rip_comb && !handling_ns && !in_ns.is_first)
+                    &&(handling_nud || in_nud.is_first) && nud_valid)
+                 || ( (!handling_rip_comb && !handling_ns && !in_ns.is_first && !handling_nud && !in_nud.is_first)
+                    && (handling_fw || in_fw.is_first) && fw_valid));
     out_valid = out.valid;
   end
 

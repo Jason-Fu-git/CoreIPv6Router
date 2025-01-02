@@ -14,10 +14,10 @@
 #define NUM_TRIE_NODE 330000
 #define NEXTHOP_TABLE_INDEX_NUM 32
 
-#define IP_CONFIG_ADDR(i)               (IP_CONFIG_BASE_ADDR + (i << 8))
-#define MAC_CONFIG_ADDR(i)              (MAC_CONFIG_BASE_ADDR + (i << 8))
-#define NEXTHOP_TABLE_ADDR(i)           (NEXTHOP_TABLE_BASE_ADDR + (i << 4))
-#define NEXTHOP_TABLE_PORT_ID_ADDR(i)   (NEXTHOP_TABLE_PORT_ID_BASE_ADDR + (i << 4))
+#define IP_CONFIG_ADDR(i)               (IP_CONFIG_BASE_ADDR + ((i) << 8))
+#define MAC_CONFIG_ADDR(i)              (MAC_CONFIG_BASE_ADDR + ((i) << 8))
+#define NEXTHOP_TABLE_ADDR(i)           (NEXTHOP_TABLE_BASE_ADDR + ((i) << 4))
+#define NEXTHOP_TABLE_PORT_ID_ADDR(i)   (NEXTHOP_TABLE_PORT_ID_BASE_ADDR + ((i) << 4))
 
 struct memory_rte
 {

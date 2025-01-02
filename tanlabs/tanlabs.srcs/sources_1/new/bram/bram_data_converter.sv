@@ -37,7 +37,7 @@ module bram_data_converter_1 (
 	end
 
 	always_comb begin
-		case (sel[7:2])
+		case (sel[5:0])
 			6'b000100: out = out_node.bin.prefix_length;
 			6'b000101: out = out_node.bin.prefix;
 			6'b000110: out = out_node.bin.entry_offset;
@@ -61,18 +61,18 @@ module bram_data_converter_7 (
 	Entry_Aligned entry;
 
 	always_comb begin
-		entry.entry_offset  = {27'b0, in_node.bin[sel[7:4] - 1].entry_offset};
-		entry.prefix        = {4'b0,  in_node.bin[sel[7:4] - 1].prefix};
-		entry.prefix_length = {27'b0, in_node.bin[sel[7:4] - 1].prefix_length};
+		entry.entry_offset  = {27'b0, in_node.bin[sel[5:2] - 1].entry_offset};
+		entry.prefix        = {4'b0,  in_node.bin[sel[5:2] - 1].prefix};
+		entry.prefix_length = {27'b0, in_node.bin[sel[5:2] - 1].prefix_length};
 	end
 
 	always_comb begin
-		if (sel[7:2] == 6'd0) begin
+		if (sel[5:0] == 6'd0) begin
 			out = {19'b0, in_node.lc};
-		end else if (sel[7:2] == 6'd1) begin
+		end else if (sel[5:0] == 6'd1) begin
 			out = {19'b0, in_node.rc};
 		end else begin
-			case (sel[3:2])
+			case (sel[1:0])
 				2'd0: out = entry.prefix_length;
 				2'd1: out = entry.prefix;
 				2'd2: out = entry.entry_offset;
@@ -95,18 +95,18 @@ module bram_data_converter_15 (
 	Entry_Aligned entry;
 
 	always_comb begin
-		entry.entry_offset  = {27'b0, in_node.bin[sel[7:4] - 1].entry_offset};
-		entry.prefix        = {4'b0,  in_node.bin[sel[7:4] - 1].prefix};
-		entry.prefix_length = {27'b0, in_node.bin[sel[7:4] - 1].prefix_length};
+		entry.entry_offset  = {27'b0, in_node.bin[sel[5:2] - 1].entry_offset};
+		entry.prefix        = {4'b0,  in_node.bin[sel[5:2] - 1].prefix};
+		entry.prefix_length = {27'b0, in_node.bin[sel[5:2] - 1].prefix_length};
 	end
 
 	always_comb begin
-		if (sel[7:2] == 6'd0) begin
+		if (sel[5:0] == 6'd0) begin
 			out = {19'b0, in_node.lc};
-		end else if (sel[7:2] == 6'd1) begin
+		end else if (sel[5:0] == 6'd1) begin
 			out = {19'b0, in_node.rc};
 		end else begin
-			case (sel[3:2])
+			case (sel[1:0])
 				2'd0: out = entry.prefix_length;
 				2'd1: out = entry.prefix;
 				2'd2: out = entry.entry_offset;
@@ -129,18 +129,18 @@ module bram_data_converter_14 (
 	Entry_Aligned entry;
 
 	always_comb begin
-		entry.entry_offset  = {27'b0, in_node.bin[sel[7:4] - 1].entry_offset};
-		entry.prefix        = {4'b0,  in_node.bin[sel[7:4] - 1].prefix};
-		entry.prefix_length = {27'b0, in_node.bin[sel[7:4] - 1].prefix_length};
+		entry.entry_offset  = {27'b0, in_node.bin[sel[5:2] - 1].entry_offset};
+		entry.prefix        = {4'b0,  in_node.bin[sel[5:2] - 1].prefix};
+		entry.prefix_length = {27'b0, in_node.bin[sel[5:2] - 1].prefix_length};
 	end
 
 	always_comb begin
-		if (sel[7:2] == 6'd0) begin
+		if (sel[5:0] == 6'd0) begin
 			out = {19'b0, in_node.lc};
-		end else if (sel[7:2] == 6'd1) begin
+		end else if (sel[5:0] == 6'd1) begin
 			out = {19'b0, in_node.rc};
 		end else begin
-			case (sel[3:2])
+			case (sel[1:0])
 				2'd0: out = entry.prefix_length;
 				2'd1: out = entry.prefix;
 				2'd2: out = entry.entry_offset;
@@ -163,18 +163,18 @@ module bram_data_converter_10 (
 	Entry_Aligned entry;
 
 	always_comb begin
-		entry.entry_offset  = {27'b0, in_node.bin[sel[7:4] - 1].entry_offset};
-		entry.prefix        = {4'b0,  in_node.bin[sel[7:4] - 1].prefix};
-		entry.prefix_length = {27'b0, in_node.bin[sel[7:4] - 1].prefix_length};
+		entry.entry_offset  = {27'b0, in_node.bin[sel[5:2] - 1].entry_offset};
+		entry.prefix        = {4'b0,  in_node.bin[sel[5:2] - 1].prefix};
+		entry.prefix_length = {27'b0, in_node.bin[sel[5:2] - 1].prefix_length};
 	end
 
 	always_comb begin
-		if (sel[7:2] == 6'd0) begin
+		if (sel[5:0] == 6'd0) begin
 			out = {19'b0, in_node.lc};
-		end else if (sel[7:2] == 6'd1) begin
+		end else if (sel[5:0] == 6'd1) begin
 			out = {19'b0, in_node.rc};
 		end else begin
-			case (sel[3:2])
+			case (sel[1:0])
 				2'd0: out = entry.prefix_length;
 				2'd1: out = entry.prefix;
 				2'd2: out = entry.entry_offset;

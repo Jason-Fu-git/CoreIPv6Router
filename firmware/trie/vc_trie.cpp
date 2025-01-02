@@ -125,7 +125,7 @@ protected:
 public:
 	VCNode() : lc(0), rc(0) {}
 	uint32_t isAvailable(uint32_t bin_size) const {
-		for (int index = 0; index < bin_size; ++index) {
+		for (uint32_t index = 0; index < bin_size; ++index) {
 			if (bin[index].isInvalid()) {
 				return index;
 			}
@@ -155,13 +155,13 @@ public:
 		}
 	}
 	bool noChild(uint32_t lsb) const {
-		return ((lsb != 1) ? rc == 0: lc == 0);
+		return ((lsb == 1) ? rc == 0: lc == 0);
 	}
 	VCEntry* getBin() {
 		return bin;
 	}
 	uint32_t match(uint32_t prefix, uint32_t length, uint32_t bin_size) const {
-		for (int index = 0; index < bin_size; ++index) {
+		for (uint32_t index = 0; index < bin_size; ++index) {
 			if (bin[index].match(prefix, length)) {
 				return index;
 			}
@@ -190,7 +190,7 @@ public:
 			++node_count;
 			++node_num[stage];
 			if (node_num[stage] >= BRAM_DEPTHS[stage]) {
-				// printf("[WARN]BRAM run out\n");
+				printf("U");
 				--node_count;
 				--node_num[stage];
 				return -1;
@@ -216,7 +216,7 @@ public:
 #define level (stage_level & 0x7)
 #define lsb   (prefix & 0x1)
 #define _NEXT_LEVEL \
-			if (_create_subtree(now, stage, lsb) == -1) { \
+			if (_create_subtree(now, stage, lsb) == (uint32_t)-1) { \
 				goto END;                                \
 			}                                            \
             now = _childAddrInStage(now, stage, lsb);    \
@@ -241,7 +241,7 @@ public:
 		}
 END: // excessive
 		prefix_raw->toHex(error_buffer);
-		printf("[WARN]Ex:%s/%d\n", error_buffer, length);
+		printf("E%s/%d\n", error_buffer, length);
 		++excessive_count;
 		return 0xffffffff;
 #undef stage
@@ -289,15 +289,47 @@ END: // excessive
 #undef level
 #undef lsb
 	}
+    VCNodePtr get_root() {
+        return (VCNodePtr)&root;
+    }
 	uint32_t get_node_count() const {
 		return node_count;
 	}
 	uint32_t get_excessive_count() const {
 		return excessive_count;
 	}
+    uint32_t& get_node_count() {
+		return node_count;
+    }
+    uint32_t& get_excessive_count() {
+		return excessive_count;
+    }
+    uint32_t* get_node_num() {
+        return node_num;
+    }
 };
 
 VCTrie trie __attribute__((section(".data")));
+
+extern "C" void VCTrieInit() {
+    trie.get_node_count() = 0;
+    trie.get_excessive_count() = 0;
+    trie.get_node_num()[0] = 2;
+    trie.get_root()->setLc(1);
+    trie.get_root()->setRc(2);
+	for (uint32_t stage = 1; stage < 16; ++stage) {
+		trie.get_node_num()[stage] = 0;
+    //     for (uint32_t index = 0; index < BRAM_DEPTHS[stage]; ++index) {
+    //         VCNodePtr base = (VCNodePtr)((uint32_t)BRAM_BASE | (stage << 23) | (index << 10));
+    //         base->setLc(0);
+    //         base->setRc(0);
+    //         VCEntry* bin = base->getBin();
+    //         for (uint32_t i = 0; i < BIN_SIZES[stage]; ++i) {
+    //             bin[i].invalidate();
+    //         }
+    //     }
+    }
+}
 
 extern "C" uint32_t VCTrieInsert(void* prefix, uint32_t length, uint32_t next_hop) {
 	return trie.insert((IP6*)prefix, length, next_hop);

@@ -247,7 +247,7 @@ module trie128(
 
     always_comb begin
         for (int i = 0; i < LEVELS; i = i + 1) begin
-            cpu_bt_node_wea[i] = bt_bram_write_stb[i];
+            cpu_bt_node_wea[i] = bt_bram_write_stb[i] && cpu_wea;
             cpu_bt_addr[i] = cpu_adr[22:10];
         end
     end
@@ -291,7 +291,7 @@ module trie128(
         for (int i = 0; i < LEVELS; i = i + 1) begin
             cpu_vc_node_in[i] = cpu_vc_node_buffer[i];
             cpu_vc_addr[i] = cpu_adr[22:10];
-            cpu_vc_node_wea[i] = vc_bram_buffer_stb[i];
+            cpu_vc_node_wea[i] = vc_bram_buffer_stb[i] && cpu_wea;
         end
     end
 
@@ -540,77 +540,122 @@ module trie128(
 
     logic cpu_stb_trigger;
     logic cpu_stb_lock;
-    logic bram_ack_trigger;
-    logic bram_ack_lock;
+    // logic bram_ack_trigger;
+    // logic bram_ack_lock;
 
-    always_ff @(posedge cpu_clk) begin
+    always_ff @(posedge clk) begin
         if (cpu_rst_p) begin
             cpu_stb_lock <= 0;
         end else begin
-            cpu_stb_lock <= cpu_stb_raw;
+            cpu_stb_lock <= cpu_stb;
         end
     end
 
-    always_ff @(posedge clk) begin
-        if (rst_p) begin
-            bram_ack_lock <= 0;
-        end else begin
-            bram_ack_lock <= cpu_ack;
-        end
-    end
+    // always_ff @(posedge clk) begin
+    //     if (rst_p) begin
+    //         bram_ack_lock <= 0;
+    //     end else begin
+    //         bram_ack_lock <= cpu_ack_delay;
+    //     end
+    // end
 
-    assign cpu_stb_trigger = cpu_stb_raw && !cpu_stb_lock;
-    assign cpu_write_valid = cpu_stb_trigger;
-    assign bram_ack_trigger = cpu_ack && !bram_ack_lock;
-    assign bram_read_valid = bram_ack_trigger;
+    assign cpu_stb_trigger = cpu_stb && !cpu_stb_lock;
+    // assign cpu_write_valid = cpu_stb_trigger;
+    // assign bram_ack_trigger = cpu_ack_delay && !bram_ack_lock;
+    // assign bram_read_valid = bram_ack_trigger;
 
-    logic cpu_ack_delay;
-    logic [31:0] cpu_dat_out_delay;
-    logic cpu_stb_delay, cpu_wea_delay;
-    logic [31:0] cpu_adr_delay, cpu_dat_in_delay;
+    // logic cpu_ack_delay;
+    // logic [31:0] cpu_dat_out_delay;
+    // logic cpu_stb_delay, cpu_wea_delay;
+    // logic [31:0] cpu_adr_delay, cpu_dat_in_delay;
 
-    always_ff @(posedge clk) begin
-        if (rst_p) begin
-            cpu_ack_delay <= 0;
-            cpu_dat_out_delay <= 0;
-            cpu_stb <= 0;
-            cpu_wea <= 0;
-            cpu_adr <= 0;
-            cpu_dat_in <= 0;
-        end else begin
-            cpu_ack_delay <= cpu_ack;
-            cpu_dat_out_delay <= cpu_dat_out;
-            cpu_stb <= cpu_stb_delay;
-            cpu_wea <= cpu_wea_delay;
-            cpu_adr <= cpu_adr_delay;
-            cpu_dat_in <= cpu_dat_in_delay;
-        end
-    end
+    // always_ff @(posedge clk) begin
+    //     if (rst_p) begin
+    //         cpu_ack_delay <= 0;
+    //         cpu_dat_out_delay <= 0;
+    //         cpu_stb <= 0;
+    //         cpu_wea <= 0;
+    //         cpu_adr <= 0;
+    //         cpu_dat_in <= 0;
+    //     end else begin
+    //         cpu_ack_delay <= cpu_ack;
+    //         cpu_dat_out_delay <= cpu_dat_out;
+    //         cpu_stb <= cpu_stb_delay;
+    //         cpu_wea <= cpu_wea_delay;
+    //         cpu_adr <= cpu_adr_delay;
+    //         cpu_dat_in <= cpu_dat_in_delay;
+    //     end
+    // end
 
-    axis_data_fifo_bram axis_data_fifo_bram_read_i(
-        .s_axis_aclk(clk),
-        .m_axis_aclk(cpu_clk),
-        .s_axis_aresetn(~rst_p),
+    // logic cpu_stb_mux_trigger;
+    // logic cpu_stb_mux_lock;
 
-        .s_axis_tdata({cpu_ack_delay, cpu_dat_out_delay}),
-        .s_axis_tready(), // NULL
-        .s_axis_tvalid(bram_read_valid),
-        .m_axis_tdata({cpu_ack_raw, cpu_dat_out_raw}),
-        .m_axis_tready(1'b1),
-        .m_axis_tvalid(cpu_read_valid)
-    );
+    // always_ff @(posedge clk) begin
+    //     if (rst_p) begin
+    //         cpu_stb_mux_lock <= 0;
+    //     end else begin
+    //         cpu_stb_mux_lock <= cpu_stb;
+    //     end
+    // end
 
-    axis_data_fifo_bram_cpu axis_data_fifo_bram_write_i(
-        .s_axis_aclk(cpu_clk),
-        .m_axis_aclk(clk),
-        .s_axis_aresetn(~cpu_rst_p),
+    // assign cpu_stb_mux_trigger = cpu_stb && !cpu_stb_mux_lock;
 
-        .s_axis_tdata({cpu_stb_raw, cpu_wea_raw, cpu_adr_raw, cpu_dat_in_raw}),
-        .s_axis_tready(), // NULL
-        .s_axis_tvalid(cpu_write_valid),
-        .m_axis_tdata({cpu_stb_delay, cpu_wea_delay, cpu_adr_delay, cpu_dat_in_delay}),
-        .m_axis_tready(1'b1),
-        .m_axis_tvalid(bram_write_valid)
+    // axis_data_fifo_bram axis_data_fifo_bram_read_i(
+    //     .s_axis_aclk(clk),
+    //     .m_axis_aclk(cpu_clk),
+    //     .s_axis_aresetn(~rst_p),
+
+    //     // .s_axis_tdata({cpu_ack_delay, cpu_dat_out_delay}),
+    //     .s_axis_tdata(cpu_dat_out_delay),
+    //     .s_axis_tready(), // NULL
+    //     .s_axis_tvalid(bram_read_valid),
+    //     // .m_axis_tdata({cpu_ack_raw, cpu_dat_out_raw}),
+    //     .m_axis_tdata(cpu_dat_out_raw),
+    //     .m_axis_tready(1'b1),
+    //     .m_axis_tvalid(cpu_read_valid)
+    // );
+
+    // assign cpu_ack_raw = cpu_read_valid;
+
+    // axis_data_fifo_bram_cpu axis_data_fifo_bram_write_i(
+    //     .s_axis_aclk(cpu_clk),
+    //     .m_axis_aclk(clk),
+    //     .s_axis_aresetn(~cpu_rst_p),
+
+    //     .s_axis_tdata({cpu_stb_raw, cpu_wea_raw, cpu_adr_raw, cpu_dat_in_raw}),
+    //     .s_axis_tready(), // NULL
+    //     .s_axis_tvalid(cpu_write_valid),
+    //     .m_axis_tdata({cpu_stb_delay, cpu_wea_delay, cpu_adr_delay, cpu_dat_in_delay}),
+    //     .m_axis_tready(1'b1),
+    //     .m_axis_tvalid(bram_write_valid)
+    // );
+
+    wb_async wb_async_bram_i(
+        .eth_clk(clk),
+        .eth_reset(rst_p),
+        .core_clk(cpu_clk),
+        .core_reset(cpu_rst_p),
+        .wbm_adr_i(cpu_adr_raw),
+        .wbm_dat_i(cpu_dat_in_raw),
+        .wbm_sel_i(4'b1111),
+        .wbm_stb_i(cpu_stb_raw),
+        .wbm_we_i(cpu_wea_raw),
+        .wbm_dat_o(cpu_dat_out_raw),
+        .wbm_ack_o(cpu_ack_raw),
+        // .wbs_adr_o(cpu_adr_delay),
+        // .wbs_dat_o(cpu_dat_in_delay),
+        // .wbs_sel_o(),
+        // .wbs_stb_o(cpu_stb_delay),
+        // .wbs_we_o(cpu_wea_delay),
+        // .wbs_dat_i(cpu_dat_out_delay),
+        // .wbs_ack_i(cpu_ack_delay)
+        .wbs_adr_o(cpu_adr),
+        .wbs_dat_o(cpu_dat_in),
+        .wbs_sel_o(),
+        .wbs_stb_o(cpu_stb),
+        .wbs_we_o(cpu_wea),
+        .wbs_dat_i(cpu_dat_out),
+        .wbs_ack_i(cpu_ack)
     );
 
     bram_mux bram_mux_i(
@@ -621,7 +666,7 @@ module trie128(
         .wbm_dat_o(cpu_dat_out),
         .wbm_we_i(cpu_wea),
         .wbm_sel_i(4'b1111),  // Sent to converter, `sel` is of no use
-        .wbm_stb_i(cpu_stb),
+        .wbm_stb_i(cpu_stb_trigger),
         .wbm_ack_o(cpu_ack),
         .wbm_err_o(),
         .wbm_rty_o(),

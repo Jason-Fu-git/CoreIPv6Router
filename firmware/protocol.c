@@ -44,7 +44,7 @@ int update_memory_rte(void *memory_rte_v){
             // invalidate (trie->memory[index])
             int trie_index = TrieDelete(&(memory_rte->ip6_addr), memory_rte->prefix_len);
             if(trie_index < 0){
-                printf("[ERR]TDel ret %d\n", trie_index);
+                printf("[TD]%d\n", trie_index);
                 return 0;
             }
             if(spare_memory_index > rte_map[trie_index]) spare_memory_index = rte_map[trie_index];
@@ -183,7 +183,7 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
 
         if (ripng_hdr->cmd == RIPNG_CMD_REQUEST) // Received REQUEST
         {
-            printf("RQ ");
+            printf("Q");
             /*
               - 如果请求只有一个RTE，`destination prefix`为0，`prefix length`为0，`metric`为16，则**发送自己的全部路由表**。
               - 否则，逐一处理RTE，如果自己通往某一network有路由，则将`metric`填为自己的`metric`；若没有路由，填为16。
@@ -196,12 +196,12 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
             && entries[i].ip6_addr.s6_addr32[2] == 0 && entries[i].ip6_addr.s6_addr32[3] == 0
             ){
                 // Send all routes
-                printf("SARU\n");
+                printf("A");
                 send_triggered_update(&(ip6->dst_addr), &(ip6->src_addr), NULL, 0, port);
                 break;
             }
             else {
-                printf("SPRU\n");
+                printf("P");
                 // Send needed routes
                 int trie_index = TrieLookup(&(entries[i].ip6_addr), entries[i].prefix_len);
                 if(trie_index >= 0){
@@ -234,7 +234,7 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
         }
         else // Received RESPONSE
         {
-            printf("RR\n");
+            printf("R");
             // Update memory rte
             // Check nexthop_table (src_addr, port), return index (insert:FIFO)
             // Lookup if the rte exists
@@ -263,7 +263,7 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
             int trie_index = TrieLookup(&(entries[i].ip6_addr), entries[i].prefix_len);
             if(trie_index >= 0){
                 j = rte_map[trie_index];
-                printf("F %d ", j);
+                printf("F%dt%d", trie_index, j);
                 // Route found
                 int new_metric = entries[i].metric + 1;
                 if(new_metric > 16) new_metric = 16;
@@ -272,7 +272,7 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                         // Delete the route
                         int trie_index = TrieDelete(&(memory_rte->ip6_addr), memory_rte->prefix_len);
                         if(trie_index < 0){
-                            printf("[ERR]TDel ret %d\n", trie_index);
+                            printf("[TD]%d", trie_index);
                             return 0;
                         }
                         if(spare_memory_index > rte_map[trie_index]) spare_memory_index = rte_map[trie_index];
@@ -289,7 +289,7 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                         }
                         send_entry_num++;
                         if(send_entry_num == RIPNG_MAX_RTE_NUM){
-                            printf("STRU\n");
+                            printf("T");
                             struct ip6_addr dst_addr = {.s6_addr32 = MULTICAST_ADDR};
                             for(int p = 0; p < PORT_NUM; p++){
                                 send_triggered_update(&(ip6->dst_addr), &dst_addr, send_entries[p], RIPNG_MAX_RTE_NUM, p);
@@ -310,7 +310,7 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                         }
                         send_entry_num++;
                         if(send_entry_num == RIPNG_MAX_RTE_NUM){
-                            printf("STRU\n");
+                            printf("T");
                             struct ip6_addr dst_addr = {.s6_addr32 = MULTICAST_ADDR};
                             for(int p = 0; p < PORT_NUM; p++){
                                 send_triggered_update(&(ip6->dst_addr), &dst_addr, send_entries[p], RIPNG_MAX_RTE_NUM, p);
@@ -333,7 +333,7 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                         }
                         send_entry_num++;
                         if(send_entry_num == RIPNG_MAX_RTE_NUM){
-                            printf("STRU\n");
+                            printf("T");
                             struct ip6_addr dst_addr = {.s6_addr32 = MULTICAST_ADDR};
                             for(int p = 0; p < PORT_NUM; p++){
                                 send_triggered_update(&(ip6->dst_addr), &dst_addr, send_entries[p], RIPNG_MAX_RTE_NUM, p);
@@ -354,7 +354,7 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                     }
                     send_entry_num++;
                     if(send_entry_num == RIPNG_MAX_RTE_NUM){
-                        printf("STRU\n");
+                        printf("T");
                         struct ip6_addr dst_addr = {.s6_addr32 = MULTICAST_ADDR};
                         for(int p = 0; p < PORT_NUM; p++){
                             send_triggered_update(&(ip6->dst_addr), &dst_addr, send_entries[p], RIPNG_MAX_RTE_NUM, p);
@@ -365,13 +365,14 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
             }
             else{
                 // Add new route
-                printf("A %d ", j);
+                printf("A%d/", j);
                 int trie_index = TrieInsert(&(entries[i].ip6_addr), entries[i].prefix_len, j);
                 if(trie_index < 0){
-                    printf("[ERR]TIns ret %d\n", trie_index);
+                    printf("[TI]%d", trie_index);
                     continue;
                 }
                 j = spare_memory_index;
+                printf("%d", j);
                 rte_map[trie_index] = j;
                 memory_rte[j].ip6_addr = entries[i].ip6_addr;
                 memory_rte[j].metric = entries[i].metric + 1;
@@ -388,7 +389,7 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                 }
                 send_entry_num++;
                 if(send_entry_num == RIPNG_MAX_RTE_NUM){
-                    printf("STRU\n");
+                    printf("T");
                     struct ip6_addr dst_addr = {.s6_addr32 = MULTICAST_ADDR};
                     for(int p = 0; p < PORT_NUM; p++){
                         send_triggered_update(&(ip6->dst_addr), &dst_addr, send_entries[p], RIPNG_MAX_RTE_NUM, p);
@@ -404,15 +405,15 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
     }
     if(send_entry_num > 0){
         if(ripng_hdr->cmd == RIPNG_CMD_REQUEST){
-            printf("SPRU\n");
-            send_triggered_update(&(ip6->dst_addr), &(ip6->src_addr), send_entries[port], RIPNG_MAX_RTE_NUM, port);
+            printf("P%d", send_entry_num);
+            send_triggered_update(&(ip6->dst_addr), &(ip6->src_addr), send_entries[port], send_entry_num, port);
             send_entry_num = 0;
         }
         else if(ripng_hdr->cmd == RIPNG_CMD_RESPONSE){
-            printf("STRU\n");
+            printf("T%d", send_entry_num);
             struct ip6_addr dst_addr = {.s6_addr32 = MULTICAST_ADDR};
             for(int p = 0; p < PORT_NUM; p++){
-                send_triggered_update(&(ip6->dst_addr), &dst_addr, send_entries[p], RIPNG_MAX_RTE_NUM, p);
+                send_triggered_update(&(ip6->dst_addr), &dst_addr, send_entries[p], send_entry_num, p);
             }
         }
     }
@@ -428,14 +429,14 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
  */
 void send_multicast_request(int port)
 {
-    printf("SNQM\n");
+    printf("Q%d", port);
     // Write to DMA_BLOCK_RADDR
     volatile struct packet_hdr *packet = (volatile struct packet_hdr *)DMA_BLOCK_RADDR;
     // set the ether header
     packet->ether.padding = 0;
-    packet->ether.dst_addr.ether_addr16[0] = 0;
+    packet->ether.dst_addr.ether_addr16[0] = htons(0x3333);
     packet->ether.dst_addr.ether_addr16[1] = 0;
-    packet->ether.dst_addr.ether_addr16[2] = 0;
+    packet->ether.dst_addr.ether_addr16[2] = htons(0x0009);
     packet->ether.src_addr = mac_addrs[port];
     packet->ether.ethertype = 0xdd86;
     // set the ip6 header
@@ -486,10 +487,10 @@ int assemble(void *src_addr_v, void *dst_addr_v, void *entries_v, int num_entrie
     struct ripng_rte *entries = (struct ripng_rte *)entries_v;
     struct ip6_addr *src_addr = (struct ip6_addr *)src_addr_v;
     struct ip6_addr *dst_addr = (struct ip6_addr *)dst_addr_v;
-    struct packet_hdr *packet_hdr = (volatile struct packet_hdr*)DMA_BLOCK_RADDR;
+    volatile struct packet_hdr *packet_hdr = (struct packet_hdr*)DMA_BLOCK_RADDR;
     // set the ether header
     packet_hdr->ether.padding = 0;
-    packet_hdr->ether.ethertype = 0x86dd;
+    packet_hdr->ether.ethertype = 0xdd86;
     for(int i = 0; i < 3; i++){
         packet_hdr->ether.dst_addr.ether_addr16[i] = 0;
     }
@@ -512,7 +513,7 @@ int assemble(void *src_addr_v, void *dst_addr_v, void *entries_v, int num_entrie
     packet_hdr->ripng.vers = 1;
     packet_hdr->ripng.reserved = 0;
     // set the routing table entries
-    struct ripng_rte *rte = (struct ripng_rte *)packet_hdr + PACKET_HDR_LEN;
+    volatile struct ripng_rte *rte = (struct ripng_rte *)packet_hdr + PACKET_HDR_LEN;
     int entries_size = 0;
     for(int i = 0; i < num_entries; i++){
         rte->ip6_addr.s6_addr32[0] = entries[i].ip6_addr.s6_addr32[0];
@@ -558,7 +559,7 @@ void send_triggered_update(void *src_addr_v, void *dst_addr_v, void *entries_v, 
                 send_entry_num++;
                 if(send_entry_num == RIPNG_MAX_RTE_NUM){
                     int size = assemble(ip_addrs + port, dst_addr, send_entries, RIPNG_MAX_RTE_NUM, port);
-                    _wait_for_dma();
+                    if(_check_dma_busy()) _wait_for_dma();
                     *(volatile uint8_t*)DMA_OUT_PORT_ID = port;
                     _grant_dma_access(DMA_BLOCK_RADDR, size, 0);
                     send_entry_num = 0;
@@ -567,7 +568,7 @@ void send_triggered_update(void *src_addr_v, void *dst_addr_v, void *entries_v, 
         }
         if(send_entry_num > 0){
             int size = assemble(ip_addrs + port, dst_addr, send_entries, send_entry_num, port);
-            _wait_for_dma();
+            if(_check_dma_busy()) _wait_for_dma();
             *(volatile uint8_t*)DMA_OUT_PORT_ID = port;
             _grant_dma_access(DMA_BLOCK_RADDR, size, 0);
             send_entry_num = 0;
@@ -577,13 +578,13 @@ void send_triggered_update(void *src_addr_v, void *dst_addr_v, void *entries_v, 
         int start_entrie = 0;
         while((num_entries - start_entrie) > RIPNG_MAX_RTE_NUM){
             int size = assemble(src_addr, dst_addr, &entries[start_entrie], RIPNG_MAX_RTE_NUM, port);
-            _wait_for_dma();
+            if(_check_dma_busy()) _wait_for_dma();
             *(volatile uint8_t*)DMA_OUT_PORT_ID = port;
             _grant_dma_access(DMA_BLOCK_RADDR, size, 0);
             start_entrie += RIPNG_MAX_RTE_NUM;
         }
         int size = assemble(src_addr, dst_addr, &entries[start_entrie], num_entries - start_entrie, port);
-        _wait_for_dma();
+        if(_check_dma_busy()) _wait_for_dma();
         *(volatile uint8_t*)DMA_OUT_PORT_ID = port;
         _grant_dma_access(DMA_BLOCK_RADDR, size, 0);
     }
@@ -592,14 +593,13 @@ void send_triggered_update(void *src_addr_v, void *dst_addr_v, void *entries_v, 
 /**
  * @brief Send unsolicited response.
  * @note This function will block until the whole routing table is sent.
- * @param port The port to send the packet to.
  * @author Jason Fu
  */
 void send_unsolicited_response()
 {
     struct ip6_addr src_addr = {0}; // This is considered in assemble function.
     struct ip6_addr dst_addr = {.s6_addr32 = MULTICAST_ADDR};
-    printf("STRM\n");
+    printf("M");
     for(int p = 0; p < PORT_NUM; p++){
         send_triggered_update(&src_addr, &dst_addr, NULL, 0, p);
     }

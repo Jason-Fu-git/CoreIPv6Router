@@ -56,7 +56,7 @@ module dma_adapter (
       dma_cpu_dat_width_o <= 32'h0;
       dma_cpu_stb_o       <= 1'b0;
       dma_cpu_we_o        <= 1'b0;
-    end else if (wbm_stb_i) begin
+    end else if (wbm_stb_i && wbm_we_i) begin
       case (wbm_adr_i)
         DMA_CPU_STB:        dma_cpu_stb_o       <= wbm_dat_i;
         DMA_CPU_WE:         dma_cpu_we_o        <= wbm_dat_i;

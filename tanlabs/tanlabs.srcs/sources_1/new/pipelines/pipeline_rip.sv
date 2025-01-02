@@ -94,6 +94,10 @@ module pipeline_rip (
     cache_r_port_id   = in_buffer.data.meta.dest[1:0];
   end
 
+
+  logic is_multicast;
+  assign is_multicast = in_buffer.data.data.ip6.dst[7:0] == 8'hff;
+
   always_ff @(posedge clk) begin : FW_CACHE_REG
     if (rst_p) begin
       cache_beat <= 0;
@@ -102,7 +106,9 @@ module pipeline_rip (
         cache_beat.valid <= in_buffer.valid;
         if (in_buffer.valid) begin
           if (in_buffer.data.is_first) begin
-            if (in_buffer.error == ERR_NONE) begin
+            if (is_multicast) begin
+                cache_beat <= in_buffer;
+            end else if (in_buffer.error == ERR_NONE) begin
               if (cache_r_exists) begin
                 cache_beat.error                <= ERR_NONE;
 

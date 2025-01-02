@@ -26,6 +26,7 @@ module pipeline_forward (
     input  wire            [4:0] fwt_nexthop_addr,
     input  wire                  fwt_in_ready,
     output reg                   fwt_out_ready,
+    output reg [127:0]           fwt_addr,
 
     // nexthop lookup
     output reg  [  4:0] nexthop_addr,
@@ -79,16 +80,69 @@ module pipeline_forward (
   // =======================
   assign buffer_ready = fwt_in_ready || (!in_buffer.valid);
 
+  logic [127:0] fwt_addr_rev;
+
   always_ff @(posedge clk) begin : FW_FWT_IN_REG
     if (rst_p) begin
       fwt_in <= 0;
+      fwt_addr_rev <= 0;
     end else begin
       if (fwt_in_ready) begin
         fwt_in <= in_buffer;
+        fwt_addr_rev <= in_buffer.data.data.ip6.dst;
       end
     end
   end
 
+  always_comb begin
+    for (int i = 0; i < 16; i = i + 1) begin
+        fwt_addr[i*8 +: 8] = {
+            fwt_addr_rev[i*8+0],
+            fwt_addr_rev[i*8+1],
+            fwt_addr_rev[i*8+2],
+            fwt_addr_rev[i*8+3],
+            fwt_addr_rev[i*8+4],
+            fwt_addr_rev[i*8+5],
+            fwt_addr_rev[i*8+6],
+            fwt_addr_rev[i*8+7]
+        };
+    end
+  end
+
+//   assign fwt_addr = {
+//     fwt_addr_rev[123:120],
+//     fwt_addr_rev[127:124],
+//     fwt_addr_rev[115:112],
+//     fwt_addr_rev[119:116],
+//     fwt_addr_rev[107:104],
+//     fwt_addr_rev[111:108],
+//     fwt_addr_rev[99:96],
+//     fwt_addr_rev[103:100],
+//     fwt_addr_rev[91:88],
+//     fwt_addr_rev[95:92],
+//     fwt_addr_rev[83:80],
+//     fwt_addr_rev[87:84],
+//     fwt_addr_rev[75:72],
+//     fwt_addr_rev[79:76],
+//     fwt_addr_rev[67:64],
+//     fwt_addr_rev[71:68],
+//     fwt_addr_rev[59:56],
+//     fwt_addr_rev[63:60],
+//     fwt_addr_rev[51:48],
+//     fwt_addr_rev[55:52],
+//     fwt_addr_rev[43:40],
+//     fwt_addr_rev[47:44],
+//     fwt_addr_rev[35:32],
+//     fwt_addr_rev[39:36],
+//     fwt_addr_rev[27:24],
+//     fwt_addr_rev[31:28],
+//     fwt_addr_rev[19:16],
+//     fwt_addr_rev[23:20],
+//     fwt_addr_rev[11:8],
+//     fwt_addr_rev[15:12],
+//     fwt_addr_rev[3:0],
+//     fwt_addr_rev[7:4]
+//   };
 
   // ======================
   // Nexthop lookup
@@ -227,7 +281,7 @@ module pipeline_forward (
 
   logic [47:0] src_MAC_addr;
   always_comb begin : FW_OUT_SRC
-    case (cache_beat.data.meta.id)
+    case (cache_beat.data.meta.dest)
       2'd0: begin
         src_MAC_addr = mac_addrs[0];
       end

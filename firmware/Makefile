@@ -19,8 +19,8 @@ ifeq ($(EN_UART16550), y)
 endif
 
 HEADERS=$(wildcard include/*.h)
-SOURCES=$(wildcard *.c *.S)
-OBJECTS=$(patsubst %.c,%.o,$(wildcard *.c)) $(patsubst %.S,%.o,$(wildcard *.S))
+SOURCES=$(wildcard *.c *.cpp *.S trie/*.c trie/*.cpp)
+OBJECTS=$(patsubst %.c *.cpp trie/*.c trie/*.cpp,%.o,$(wildcard *.c *.cpp trie/*.c trie/*.cpp)) $(patsubst %.S,%.o,$(wildcard *.S))
 TARGET=kernel.elf
 
 .PHONY: all

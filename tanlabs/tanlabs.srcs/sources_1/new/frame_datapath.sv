@@ -10,6 +10,8 @@ module frame_datapath #(
 ) (
     input wire eth_clk,
     input wire reset,
+    input wire cpu_clk,
+    input wire cpu_rst_p,
 
     input wire [DATA_WIDTH - 1:0] s_data,
     input wire [DATA_WIDTH / 8 - 1:0] s_keep,
@@ -39,8 +41,6 @@ module frame_datapath #(
     input wire [47:0] mac_addr_2,
     input wire [47:0] mac_addr_3,
 
-    input wire cpu_clk,
-    input wire cpu_rst_p,
     input wire [31:0] cpu_adr,
     input wire [31:0] cpu_dat_in,
     output reg [31:0] cpu_dat_out,
@@ -200,7 +200,7 @@ module frame_datapath #(
       .probe_port_id  (nud_iface)
   );
 
-
+  logic [127:0] fwt_addr;
 
   trie128 forward_table_i (
       .clk  (eth_clk),
@@ -215,11 +215,11 @@ module frame_datapath #(
       .in_valid (fwt_in.valid),
       .out_valid(trie128_out_ready),
 
-      .addr(fwt_in.data.data.ip6.dst),
+      .addr(fwt_addr),
       .next_hop(trie128_next_hop),
       // .next_hop_ip6(trie128_ip6_addr),
       // .next_hop_iface(trie128_port_id),
-      .default_next_hop(0),
+      .default_next_hop(5),
 
       .cpu_clk(cpu_clk),
       .cpu_rst_p(cpu_rst_p),
@@ -267,6 +267,7 @@ module frame_datapath #(
       .checksum(dma_checksum),
       .checksum_valid(dma_checksum_valid)
   );
+
   pipeline_forward pipeline_forward_i (
       .clk  (eth_clk),
       .rst_p(reset),
@@ -289,6 +290,7 @@ module frame_datapath #(
       .fwt_nexthop_addr(trie128_next_hop),
       .fwt_in_ready    (fwt_in_ready),
       .fwt_out_ready   (fwt_out_ready),
+      .fwt_addr        (fwt_addr),
 
       .nexthop_addr     (nexthop_addr),
       .nexthop_IPv6_addr(nexthop_ip6_addr),
