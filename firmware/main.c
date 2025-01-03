@@ -88,7 +88,7 @@ void start(void)
         // *(volatile uint32_t *)DMA_OUT_LENGTH = 0;
     // }
 
-    printf("I");
+    _putchar('I');
 
     // Grant DMA access (Write) to the memory
     _grant_dma_access(DMA_BLOCK_WADDR, MTU, 1);
