@@ -93,21 +93,25 @@ module tanlabs #(
   wire core_clk;  // 50MHz for the CPU
   wire reset_core;  // reset for the CPU
 
-  clk_wiz_1 clk_wiz_1_i (
-      .core_clk_out(core_clk),
-      .reset(1'b0),
-      .locked(locked1),
-      .clk_in1(gtref_clk)
-  );
+  assign core_clk   = eth_clk;
+  assign reset_core = reset_eth;
+  wire reset_not_sync = reset_in || !locked0;
 
-  wire reset_not_sync = reset_in || !locked0 || !locked1;  // reset components
+  //   clk_wiz_1 clk_wiz_1_i (
+  //       .core_clk_out(core_clk),
+  //       .reset(1'b0),
+  //       .locked(locked1),
+  //       .clk_in1(gtref_clk)
+  //   );
+
+  //   wire reset_not_sync = reset_in || !locked0 || !locked1;  // reset components
 
 
-  reset_sync reset_sync_reset_core (
-      .clk(core_clk),
-      .i  (reset_not_sync),
-      .o  (reset_core)
-  );
+  //   reset_sync reset_sync_reset_core (
+  //       .clk(core_clk),
+  //       .i  (reset_not_sync),
+  //       .o  (reset_core)
+  //   );
 
   wire mmcm_locked_out;
   wire rxuserclk_out;
@@ -1150,35 +1154,35 @@ module tanlabs #(
       .wbs4_cyc_o(wbs4_cyc)
   );
 
-//   cache #(
-//       .BLOCK_WIDTH(2),
-//       .BLOCK_SIZE (4),
-//       .TAG_WIDTH  (17),
-//       .GROUP_NUM  (16),
-//       .GROUP_WIDTH(4),
-//       .GROUP_SIZE (4)
-//   ) cache_IF (
-//       .clk  (core_clk),
-//       .rst_p(reset_core),
+  //   cache #(
+  //       .BLOCK_WIDTH(2),
+  //       .BLOCK_SIZE (4),
+  //       .TAG_WIDTH  (17),
+  //       .GROUP_NUM  (16),
+  //       .GROUP_WIDTH(4),
+  //       .GROUP_SIZE (4)
+  //   ) cache_IF (
+  //       .clk  (core_clk),
+  //       .rst_p(reset_core),
 
-//       .adr_ctl_i (im_adr),
-//       .stb_ctl_i (im_fence || im_stb),
-//       .sel_ctl_i (4'b1111),
-//       .we_p_ctl_i(1'b0),
-//       .ack_ctl_o (im_ack),
-//       .dat_ctl_i (0),
-//       .dat_ctl_o (im_dat_r),
+  //       .adr_ctl_i (im_adr),
+  //       .stb_ctl_i (im_fence || im_stb),
+  //       .sel_ctl_i (4'b1111),
+  //       .we_p_ctl_i(1'b0),
+  //       .ack_ctl_o (im_ack),
+  //       .dat_ctl_i (0),
+  //       .dat_ctl_o (im_dat_r),
 
-//       .ack_sram_i (icache_sram_ack),
-//       .stb_sram_o (icache_sram_stb),
-//       .adr_sram_o (icache_sram_adr),
-//       .sel_sram_o (icache_sram_sel),
-//       .we_p_sram_o(icache_sram_we),
-//       .dat_sram_i (icache_sram_dat_i),
-//       .dat_sram_o (icache_sram_dat_o),
+  //       .ack_sram_i (icache_sram_ack),
+  //       .stb_sram_o (icache_sram_stb),
+  //       .adr_sram_o (icache_sram_adr),
+  //       .sel_sram_o (icache_sram_sel),
+  //       .we_p_sram_o(icache_sram_we),
+  //       .dat_sram_i (icache_sram_dat_i),
+  //       .dat_sram_o (icache_sram_dat_o),
 
-//       .fence(im_fence)
-//   );
+  //       .fence(im_fence)
+  //   );
 
   //   cache #(
   //       .BLOCK_WIDTH(2),
@@ -1314,14 +1318,14 @@ module tanlabs #(
       .wbm1_ack_o(wbs0_ack),
       .wbm1_dat_o(wbs0_dat_r),
 
-    //   .wbm2_adr_i(icache_sram_adr),
-    //   .wbm2_dat_i(icache_sram_dat_o),
-    //   .wbm2_sel_i(icache_sram_sel),
-    //   .wbm2_we_i (icache_sram_we),
-    //   .wbm2_cyc_i(icache_sram_stb),
-    //   .wbm2_stb_i(icache_sram_stb),
-    //   .wbm2_ack_o(icache_sram_ack),
-    //   .wbm2_dat_o(icache_sram_dat_i),
+      //   .wbm2_adr_i(icache_sram_adr),
+      //   .wbm2_dat_i(icache_sram_dat_o),
+      //   .wbm2_sel_i(icache_sram_sel),
+      //   .wbm2_we_i (icache_sram_we),
+      //   .wbm2_cyc_i(icache_sram_stb),
+      //   .wbm2_stb_i(icache_sram_stb),
+      //   .wbm2_ack_o(icache_sram_ack),
+      //   .wbm2_dat_o(icache_sram_dat_i),
 
       .wbm2_adr_i(im_adr),
       .wbm2_dat_i(im_dat_w),
