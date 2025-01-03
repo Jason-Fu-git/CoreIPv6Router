@@ -47,7 +47,6 @@ int update_memory_rte(void *memory_rte_v){
                 printf("[TD]%d\n", trie_index);
                 return 0;
             }
-            if(spare_memory_index > rte_map[trie_index]) spare_memory_index = rte_map[trie_index];
             rte_map[trie_index] = 0;
             memory_rte->metric = 16;
             memory_rte->lower_timer = 0;
@@ -275,7 +274,6 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                             printf("[TD]%d", trie_index);
                             return 0;
                         }
-                        if(spare_memory_index > rte_map[trie_index]) spare_memory_index = rte_map[trie_index];
                         rte_map[trie_index] = 0;
                         memory_rte->metric = 16;
                         memory_rte->lower_timer = 0;
@@ -292,7 +290,7 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                             _putchar('T');
                             struct ip6_addr dst_addr = {.s6_addr32 = MULTICAST_ADDR};
                             for(int p = 0; p < PORT_NUM; p++){
-                                send_response(&(ip6->dst_addr), &dst_addr, send_entries[p], RIPNG_MAX_RTE_NUM, p, 1);
+                                send_response(ip_addrs + p, &dst_addr, send_entries[p], RIPNG_MAX_RTE_NUM, p, 1);
                             }
                             send_entry_num = 0;
                         }
@@ -313,7 +311,7 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                             _putchar('T');
                             struct ip6_addr dst_addr = {.s6_addr32 = MULTICAST_ADDR};
                             for(int p = 0; p < PORT_NUM; p++){
-                                send_response(&(ip6->dst_addr), &dst_addr, send_entries[p], RIPNG_MAX_RTE_NUM, p, 1);
+                                send_response(ip_addrs + p, &dst_addr, send_entries[p], RIPNG_MAX_RTE_NUM, p, 1);
                             }
                             send_entry_num = 0;
                         }
@@ -336,7 +334,7 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                             _putchar('T');
                             struct ip6_addr dst_addr = {.s6_addr32 = MULTICAST_ADDR};
                             for(int p = 0; p < PORT_NUM; p++){
-                                send_response(&(ip6->dst_addr), &dst_addr, send_entries[p], RIPNG_MAX_RTE_NUM, p, 1);
+                                send_response(ip_addrs + p, &dst_addr, send_entries[p], RIPNG_MAX_RTE_NUM, p, 1);
                             }
                             send_entry_num = 0;
                         }
@@ -357,7 +355,7 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                         _putchar('T');
                         struct ip6_addr dst_addr = {.s6_addr32 = MULTICAST_ADDR};
                         for(int p = 0; p < PORT_NUM; p++){
-                            send_response(&(ip6->dst_addr), &dst_addr, send_entries[p], RIPNG_MAX_RTE_NUM, p, 1);
+                            send_response(ip_addrs + p, &dst_addr, send_entries[p], RIPNG_MAX_RTE_NUM, p, 1);
                         }
                         send_entry_num = 0;
                     }
@@ -413,7 +411,7 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
             printf("T%d", send_entry_num);
             struct ip6_addr dst_addr = {.s6_addr32 = MULTICAST_ADDR};
             for(int p = 0; p < PORT_NUM; p++){
-                send_response(&(ip6->dst_addr), &dst_addr, send_entries[p], send_entry_num, p, 1);
+                send_response(ip_addrs + p, &dst_addr, send_entries[p], send_entry_num, p, 1);
             }
         }
     }
@@ -559,7 +557,7 @@ void send_response(void *src_addr_v, void *dst_addr_v, void *entries_v, int num_
     if (entries == NULL){
         int send_entry_num = 0;
         struct ripng_rte send_entries[RIPNG_MAX_RTE_NUM];
-        for(int i = 0; i < NUM_MEMORY_RTE; i++){
+        for(int i = 0; i < spare_memory_index; i++){
             if(update_memory_rte(memory_rte + i)){
                 send_entries[send_entry_num].ip6_addr = memory_rte[i].ip6_addr;
                 send_entries[send_entry_num].prefix_len = memory_rte[i].prefix_len;
@@ -572,6 +570,7 @@ void send_response(void *src_addr_v, void *dst_addr_v, void *entries_v, int num_
                     *((volatile uint32_t *)DMA_CPU_STB) = 0;
                     *(volatile uint8_t*)DMA_OUT_PORT_ID = port;
                     _grant_dma_access(DMA_BLOCK_RADDR, size, 0);
+                    *(volatile uint32_t *)DMA_OUT_LENGTH = 0;
                     send_entry_num = 0;
                 }
             }
@@ -582,6 +581,7 @@ void send_response(void *src_addr_v, void *dst_addr_v, void *entries_v, int num_
             *((volatile uint32_t *)DMA_CPU_STB) = 0;
             *(volatile uint8_t*)DMA_OUT_PORT_ID = port;
             _grant_dma_access(DMA_BLOCK_RADDR, size, 0);
+            *(volatile uint32_t *)DMA_OUT_LENGTH = 0;
         }
     }
     else{
@@ -592,6 +592,7 @@ void send_response(void *src_addr_v, void *dst_addr_v, void *entries_v, int num_
             *((volatile uint32_t *)DMA_CPU_STB) = 0;
             *(volatile uint8_t*)DMA_OUT_PORT_ID = port;
             _grant_dma_access(DMA_BLOCK_RADDR, size, 0);
+            *(volatile uint32_t *)DMA_OUT_LENGTH = 0;
             start_entrie += RIPNG_MAX_RTE_NUM;
         }
         int size = assemble(src_addr, dst_addr, &entries[start_entrie], num_entries - start_entrie, port, is_multicast);
@@ -599,6 +600,7 @@ void send_response(void *src_addr_v, void *dst_addr_v, void *entries_v, int num_
         *((volatile uint32_t *)DMA_CPU_STB) = 0;
         *(volatile uint8_t*)DMA_OUT_PORT_ID = port;
         _grant_dma_access(DMA_BLOCK_RADDR, size, 0);
+        *(volatile uint32_t *)DMA_OUT_LENGTH = 0;
     }
 }
 
@@ -609,10 +611,9 @@ void send_response(void *src_addr_v, void *dst_addr_v, void *entries_v, int num_
  */
 void send_unsolicited_response()
 {
-    struct ip6_addr src_addr = {0}; // This is considered in assemble function.
     struct ip6_addr dst_addr = {.s6_addr32 = MULTICAST_ADDR};
     _putchar('M');
     for(int p = 0; p < PORT_NUM; p++){
-        send_response(&src_addr, &dst_addr, NULL, 0, p, 1);
+        send_response(ip_addrs + p, &dst_addr, NULL, 0, p, 1);
     }
 }
