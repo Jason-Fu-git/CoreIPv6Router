@@ -798,7 +798,10 @@ module tanlabs #(
 
       .nexthop_ip6_addr(nexthop_ip6_addr),
       .nexthop_port_id(nexthop_port_id),
-      .nexthop_addr(nexthop_addr)
+      .nexthop_addr(nexthop_addr),
+
+      // DEBUG signal
+      .led(led)
   );
 
 

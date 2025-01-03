@@ -61,7 +61,10 @@ module frame_datapath #(
     // next hop table
     input  wire [127:0] nexthop_ip6_addr,
     input  wire [  1:0] nexthop_port_id,
-    output reg  [  4:0] nexthop_addr
+    output reg  [  4:0] nexthop_addr,
+
+    // DEBUG signals
+    output wire [15:0] led
 );
 
   frame_beat in8, in;
@@ -164,6 +167,10 @@ module frame_datapath #(
   reg [BRAM_ADDR_WIDTH-1:0] bram_addr_w;
   reg [BRAM_DATA_WIDTH-1:0] bram_data_w;
   reg [BRAM_DATA_WIDTH-1:0] bram_data_r;
+
+
+  reg in_handling_ns, in_handling_na, in_handling_fw, in_handling_rip;
+  reg out_handling_ns, out_handling_fw, out_handling_nud, out_handling_rip;
 
 
   always_ff @(posedge eth_clk) begin : CACHE_W_BUFFER
@@ -353,7 +360,11 @@ module frame_datapath #(
       .na_valid(na_in_valid),
       .fw_valid(fw_in_valid),
       .rip_valid(),
-      .in_ready(in_ready)
+      .in_ready(in_ready),
+      .handling_ns_delay(in_handling_ns),
+      .handling_na_delay(in_handling_na),
+      .handling_fw_delay(in_handling_fw),
+      .handling_rip_delay(in_handling_rip)
   );
   out_arbiter out_arbiter_i (
       .clk(eth_clk),
@@ -371,7 +382,11 @@ module frame_datapath #(
       .ns_ready(ns_out_ready),
       .fw_ready(fw_out_ready),
       .nud_ready(nud_out_ready),
-      .rip_ready(rip_out_ready)
+      .rip_ready(rip_out_ready),
+      .handling_ns_delay(out_handling_ns),
+      .handling_fw_delay(out_handling_fw),
+      .handling_nud_delay(out_handling_nud),
+      .handling_rip_delay(out_handling_rip)
   );
   cache_arbiter cache_arbiter_i (
       .clk(eth_clk),
@@ -384,6 +399,24 @@ module frame_datapath #(
       .na_ready(na_cache_ready),
       .out(cache_w),
       .wea_p(cache_wea_p)
+  );
+
+  led_delayer led_delayer_in (
+      .clk(eth_clk),
+      .reset(reset),
+      .in_led({
+        in_handling_fw, in_handling_ns, in_handling_na, in_handling_rip, 1'b0, 1'b0, 1'b1, 1'b1
+      }),
+      .out_led(led[7:0])
+  );
+
+  led_delayer led_delayer_out (
+      .clk(eth_clk),
+      .reset(reset),
+      .in_led({
+        out_handling_nud, out_handling_rip, out_handling_fw, out_handling_ns, 1'b1, 1'b1, 1'b0, 1'b0
+      }),
+      .out_led(led[15:8])
   );
 
   // ======================= Your code end.  =====================================

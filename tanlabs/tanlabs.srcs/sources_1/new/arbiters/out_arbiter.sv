@@ -27,7 +27,13 @@ module out_arbiter (
 
     output reg out_valid,
     input wire out_ready,
-    output frame_beat out
+    output frame_beat out,
+
+    // DEBUG signals
+    output reg handling_ns_delay,
+    output reg handling_fw_delay,
+    output reg handling_nud_delay,
+    output reg handling_rip_delay
 );
 
   reg  handling_ns;
@@ -55,26 +61,26 @@ module out_arbiter (
       handling_nud <= 0;
       handling_rip <= 0;
     end else begin
-        if (idle) begin
-            if (rip_valid && in_rip.is_first) begin
-              handling_rip <= 1;
-            end else if (!handling_rip && ns_valid && in_ns.is_first) begin
-              handling_ns <= 1;
-            end else if (!handling_rip && !handling_ns && nud_valid && in_nud.is_first) begin
-              handling_nud <= 1;
-            end else if (!handling_rip && !handling_ns && !handling_nud && fw_valid && in_fw.is_first) begin
-              handling_fw <= 1;
-            end
+      if (idle) begin
+        if (rip_valid && in_rip.is_first) begin
+          handling_rip <= 1;
+        end else if (!handling_rip && ns_valid && in_ns.is_first) begin
+          handling_ns <= 1;
+        end else if (!handling_rip && !handling_ns && nud_valid && in_nud.is_first) begin
+          handling_nud <= 1;
+        end else if (!handling_rip && !handling_ns && !handling_nud && fw_valid && in_fw.is_first) begin
+          handling_fw <= 1;
         end
-        if (handling_rip && rip_valid && in_rip.last && out_ready) begin
-            handling_rip <= 0;
-        end else if (handling_ns && ns_valid && in_ns.last && out_ready) begin
-            handling_ns <= 0;
-        end else if (handling_nud && nud_valid && in_nud.last && out_ready) begin
-            handling_nud <= 0;
-        end else if (handling_fw && fw_valid && in_fw.last && out_ready) begin
-            handling_fw <= 0;
-        end
+      end
+      if (handling_rip && rip_valid && in_rip.last && out_ready) begin
+        handling_rip <= 0;
+      end else if (handling_ns && ns_valid && in_ns.last && out_ready) begin
+        handling_ns <= 0;
+      end else if (handling_nud && nud_valid && in_nud.last && out_ready) begin
+        handling_nud <= 0;
+      end else if (handling_fw && fw_valid && in_fw.last && out_ready) begin
+        handling_fw <= 0;
+      end
     end
   end
 
@@ -98,6 +104,22 @@ module out_arbiter (
                  || ( (!handling_rip_comb && !handling_ns && !in_ns.is_first && !handling_nud && !in_nud.is_first)
                     && (handling_fw || in_fw.is_first) && fw_valid));
     out_valid = out.valid;
+  end
+
+
+  // DEBUG signals
+  always_ff @(posedge clk) begin
+    if (rst_p) begin
+      handling_ns_delay  <= 0;
+      handling_fw_delay  <= 0;
+      handling_nud_delay <= 0;
+      handling_rip_delay <= 0;
+    end else begin
+      handling_ns_delay  <= handling_ns;
+      handling_fw_delay  <= handling_fw;
+      handling_nud_delay <= handling_nud;
+      handling_rip_delay <= handling_rip;
+    end
   end
 
 endmodule
