@@ -190,6 +190,25 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
             // lookup trie (addr, prefix_length), return index1
             // (trie->memory[index1]->index2
             // memory_rte[index2]->metric
+            int j;
+            for(j = 0; j < NEXTHOP_TABLE_INDEX_NUM; j++){
+                struct ip6_addr nexthop_ip6_addr = read_nexthop_table_ip6_addr(NEXTHOP_TABLE_ADDR(j));
+                if(read_nexthop_table_port_id(NEXTHOP_TABLE_PORT_ID_ADDR(j)) == port
+                && nexthop_ip6_addr.s6_addr32[0] == ip6->src_addr.s6_addr32[0]
+                && nexthop_ip6_addr.s6_addr32[1] == ip6->src_addr.s6_addr32[1]
+                && nexthop_ip6_addr.s6_addr32[2] == ip6->src_addr.s6_addr32[2]
+                && nexthop_ip6_addr.s6_addr32[3] == ip6->src_addr.s6_addr32[3]
+                ){
+                    break;
+                }
+            }
+            if(j == NEXTHOP_TABLE_INDEX_NUM){
+                j = spare_nexthop_index;
+                write_nexthop_table_ip6_addr(&(ip6->src_addr), NEXTHOP_TABLE_ADDR(j));
+                write_nexthop_table_port_id(port, NEXTHOP_TABLE_PORT_ID_ADDR(j));
+                spare_nexthop_index++;
+                if(spare_nexthop_index == NEXTHOP_TABLE_INDEX_NUM) spare_nexthop_index = 0;
+            }
             if (entry_length == 20 && entries[i].metric == 16 && entries[i].prefix_len == 0
             && entries[i].ip6_addr.s6_addr32[0] == 0 && entries[i].ip6_addr.s6_addr32[1] == 0
             && entries[i].ip6_addr.s6_addr32[2] == 0 && entries[i].ip6_addr.s6_addr32[3] == 0
