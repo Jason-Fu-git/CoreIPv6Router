@@ -9,6 +9,15 @@
 #define PORT_NUM 4
 
 /**
+ * @brief Put a direct route into the routing table.
+ * @param ip6_addr The IP address of the direct route.
+ * @param prefix_len The prefix length of the direct route.
+ * @param port The port ID of the direct route.
+ * @author Eason Liu
+ */
+void config_direct_route(struct ip6_addr *ip6_addr, uint8_t prefix_len, uint8_t port);
+
+/**
  * @brief Update one memory_rte's validation by checking its timers.
  * @param memory_rte_v The address of the rte.
  * @return 0 if the rte is NULL, 1 otherwise.

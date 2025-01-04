@@ -20,6 +20,57 @@ extern int TrieDelete(void* prefix, unsigned int length);
 extern int TrieLookup(void* prefix, unsigned int length);
 
 /**
+ * @brief Put a direct route into the routing table.
+ * @param ip6_addr The IP address of the direct route.
+ * @param prefix_len The prefix length of the direct route.
+ * @param port The port ID of the direct route.
+ * @author Eason Liu
+ */
+void config_direct_route(struct ip6_addr *ip6_addr, uint8_t prefix_len, uint8_t port){
+    _putchar('L');
+    int j;
+    for(j = 0; j < NEXTHOP_TABLE_INDEX_NUM; j++){
+        struct ip6_addr nexthop_ip6_addr = read_nexthop_table_ip6_addr(NEXTHOP_TABLE_ADDR(j));
+        if(read_nexthop_table_port_id(NEXTHOP_TABLE_PORT_ID_ADDR(j)) == port
+        && nexthop_ip6_addr.s6_addr32[0] == ip6_addr->s6_addr32[0]
+        && nexthop_ip6_addr.s6_addr32[1] == ip6_addr->s6_addr32[1]
+        && nexthop_ip6_addr.s6_addr32[2] == ip6_addr->s6_addr32[2]
+        && nexthop_ip6_addr.s6_addr32[3] == ip6_addr->s6_addr32[3]
+        ){
+            break;
+        }
+    }
+    if(j == NEXTHOP_TABLE_INDEX_NUM){
+        j = spare_nexthop_index;
+        write_nexthop_table_ip6_addr(ip6_addr, NEXTHOP_TABLE_ADDR(j));
+        write_nexthop_table_port_id(port, NEXTHOP_TABLE_PORT_ID_ADDR(j));
+        spare_nexthop_index++;
+        if(spare_nexthop_index == NEXTHOP_TABLE_INDEX_NUM) spare_nexthop_index = 0;
+    }
+    int trie_index = TrieLookup(ip6_addr, prefix_len);
+    if(trie_index >= 0){
+        return;
+    }
+    int trie_index = TrieInsert(ip6_addr, prefix_len, j);
+    if(trie_index < 0){
+        printf("[TI]%d", trie_index);
+        return;
+    }
+    j = spare_memory_index;
+    printf("%d", j);
+    rte_map[trie_index] = j;
+    memory_rte[j].ip6_addr = *ip6_addr;
+    memory_rte[j].metric = 1;
+    memory_rte[j].lower_timer = *(volatile uint8_t *)MTIME_LADDR; // TODO: No timeout?
+    memory_rte[j].prefix_len = prefix_len;
+    memory_rte[j].nexthop_port = port | 0x80;
+    while((memory_rte[spare_memory_index].nexthop_port & 0x80) != 0){
+        spare_memory_index++;
+        if(spare_memory_index == NUM_MEMORY_RTE) spare_memory_index = 0;
+    }
+}
+
+/**
  * @brief Update one memory_rte's validation by checking its timers.
  * @param memory_rte_v The address of the rte.
  * @return 0 if the rte is NULL, 1 otherwise.

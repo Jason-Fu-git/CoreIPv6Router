@@ -72,21 +72,21 @@ void start(void)
         write_mac_addr(mac_addrs + i, MAC_CONFIG_ADDR(i));
     }
 
-    // TODO: Configurate direct route
+    // config_direct_route();
 
     // Send multicast request.
-    // for(int p = 0; p < PORT_NUM; p++){
+    for(int p = 0; p < PORT_NUM; p++){
         // Appoint out port id
-        // *(volatile uint32_t *)DMA_OUT_PORT_ID = p;
-        // send_multicast_request(p);
+        *(volatile uint32_t *)DMA_OUT_PORT_ID = p;
+        send_multicast_request(p);
         // Grant DMA access (Read) to the memory
-        // _grant_dma_access(DMA_BLOCK_RADDR, *(volatile uint32_t *)DMA_OUT_LENGTH, 0);
+        _grant_dma_access(DMA_BLOCK_RADDR, *(volatile uint32_t *)DMA_OUT_LENGTH, 0);
         // Wait for the DMA to finish
-        // _wait_for_dma();
-        // *(volatile uint32_t *)DMA_CPU_STB = 0;
+        _wait_for_dma();
+        *(volatile uint32_t *)DMA_CPU_STB = 0;
         // Reset the out length
-        // *(volatile uint32_t *)DMA_OUT_LENGTH = 0;
-    // }
+        *(volatile uint32_t *)DMA_OUT_LENGTH = 0;
+    }
 
     _putchar('I');
 
