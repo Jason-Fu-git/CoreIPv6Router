@@ -3,7 +3,6 @@
 *.elf
 *.bin
 *.asm
-*.coe
 *.prm
 *.exe
 *.cache/
