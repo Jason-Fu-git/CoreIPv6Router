@@ -805,7 +805,7 @@ module tanlabs #(
       .nexthop_addr(nexthop_addr),
 
       // DEBUG signal
-      //   .led(led),
+      .led(led),
 
       .dma_stb(dma_stb_delay),
       .dma_wea(dma_we_delay),
@@ -1549,42 +1549,6 @@ module tanlabs #(
       .wbm_stb_i(nxthop_conf_stb),
       .wbm_ack_o(nxthop_conf_ack)
   );
-
-
-  reg [31:0]im_dat_r_delayed;
-  always_ff @(posedge core_clk) begin
-    if (reset_core) begin
-      im_dat_r_delayed <= 32'h0;
-    end else if (im_stb) begin
-      im_dat_r_delayed <= im_dat_r;
-    end
-  end
-
-
-  reg [31:0]im_adr_delayed;
-  always_ff @(posedge core_clk) begin
-    if (reset_core) begin
-      im_adr_delayed <= 32'd1;
-    end else if (im_stb) begin
-      im_adr_delayed <= im_adr;
-    end
-  end
-
-
-  led_delayer led_delayer_in (
-      .clk(eth_clk),
-      .reset(reset),
-      .in_led(im_adr_delayed[7:0]),
-      .out_led(led[7:0])
-  );
-
-  led_delayer led_delayer_out (
-      .clk(eth_clk),
-      .reset(reset),
-      .in_led(im_adr_delayed[15:8]),
-      .out_led(led[15:8])
-  );
-
 
   // =======================================
   // Ethernet

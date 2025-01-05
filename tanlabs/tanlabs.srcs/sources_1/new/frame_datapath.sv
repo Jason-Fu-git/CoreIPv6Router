@@ -412,37 +412,37 @@ module frame_datapath #(
       .wea_p(cache_wea_p)
   );
 
-  // led_delayer led_delayer_in (
-  //     .clk(eth_clk),
-  //     .reset(reset),
-  //     .in_led({
-  //       in_handling_fw,
-  //       in_handling_ns,
-  //       in_handling_na,
-  //       in_handling_rip,
-  //       nexthop_table_stb,
-  //       addr_stb,
-  //       dma_stb,
-  //       dma_wea
-  //     }),
-  //     .out_led(led[7:0])
-  // );
+  led_delayer led_delayer_in (
+      .clk(eth_clk),
+      .reset(reset),
+      .in_led({
+        in_handling_fw,
+        in_handling_ns,
+        in_handling_na,
+        in_handling_rip,
+        nexthop_table_stb,
+        addr_stb,
+        dma_stb,
+        dma_wea
+      }),
+      .out_led(led[7:0])
+  );
 
-  // led_delayer led_delayer_out (
-  //     .clk(eth_clk),
-  //     .reset(reset),
-  //     .in_led({
-  //       out_handling_nud,
-  //       out_handling_rip,
-  //       out_handling_fw,
-  //       out_handling_ns,
-  //       bram_stb,
-  //       uart_stb,
-  //       dm_ack,
-  //       dm_stb
-  //     }),
-  //     .out_led(led[15:8])
-  // );
+  led_delayer led_delayer_out (
+      .clk(eth_clk),
+      .reset(reset),
+      .in_led({
+        out_handling_nud,
+        out_handling_rip,
+        out_handling_fw,
+        out_handling_ns,
+        bram_stb,
+        uart_stb,
+        dm_ack,
+        dm_stb
+      }),
+      .out_led(led[15:8])
+  );
 
   // ======================= Your code end.  =====================================
 
