@@ -68,7 +68,7 @@ module sram_controller #(
   assign wb_ack_o = ((state != CTL_IDLE) && (next_state == CTL_IDLE)) ? 1'b1 : 1'b0;
   assign sram_ce_n = (state == CTL_IDLE) ? 1'b1 : 1'b0;
   assign sram_oe_n = ((state == CTL_RD_1) || (state == CTL_RD_2) || (state == CTL_RD_3)) ? 1'b0 : 1'b1;
-  assign sram_we_n = ((state == CTL_WR_1) || (state == CTL_WR_2) || (state == CTL_WR_3) || (state == CTL_WR_4) || (state == CTL_WE_5)) ? 1'b0 : 1'b1;
+  assign sram_we_n = ((state == CTL_WR_1) || (state == CTL_WR_2) || (state == CTL_WR_3) || (state == CTL_WR_4) || (state == CTL_WR_5)) ? 1'b0 : 1'b1;
   assign sram_data_t = sram_we_n ? 1'b1 : 1'b0;
 
   always_comb begin
