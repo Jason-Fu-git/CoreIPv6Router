@@ -727,6 +727,10 @@ module tanlabs #(
   logic [1:0] nexthop_port_id;
 
   logic checksum_fifo_in_ready;
+
+  reg dma_stb_delay, dma_we_delay, addr_stb_delay, dm_stb_delay;
+  reg nexthop_table_stb_delay, bram_stb_delay, uart_stb_delay, dm_ack_delay;
+
   axis_data_async_fifo_checksum axis_data_async_fifo_checksum_i (
       .s_axis_aresetn(~reset_core),                // input wire s_axis_aresetn
       .s_axis_aclk   (core_clk),                   // input wire s_axis_aclk
@@ -801,7 +805,17 @@ module tanlabs #(
       .nexthop_addr(nexthop_addr),
 
       // DEBUG signal
-      .led(led)
+      .led(led),
+
+      .dma_stb(dma_stb_delay),
+      .dma_wea(dma_we_delay),
+      .addr_stb(addr_stb_delay),
+      .nexthop_table_stb(nexthop_table_stb_delay),
+
+      .dm_stb  (dm_stb_delay),
+      .dm_ack  (dm_ack_delay),
+      .uart_stb(uart_stb_delay),
+      .bram_stb(bram_stb_delay)
   );
 
 
@@ -1054,6 +1068,28 @@ module tanlabs #(
   logic        arbiter_sram_cyc;
   logic        arbiter_sram_stb;
   logic        arbiter_sram_ack;
+
+  always_ff @(posedge core_clk) begin
+    if (reset_core) begin
+      dma_stb_delay <= 1'b0;
+      dma_we_delay <= 1'b0;
+      addr_stb_delay <= 1'b0;
+      nexthop_table_stb_delay <= 1'b0;
+      bram_stb_delay <= 1'b0;
+      uart_stb_delay <= 1'b0;
+      dm_stb_delay <= 1'b0;
+      dm_ack_delay <= 1'b0;
+    end else begin
+      dma_stb_delay <= dma_cpu_stb;
+      dma_we_delay <= dma_cpu_we;
+      addr_stb_delay <= (addr_stb_delay) ? 1'b1 : addr_conf_stb;
+      nexthop_table_stb_delay <= nxthop_conf_stb;
+      bram_stb_delay <= bram_cpu_stb;
+      uart_stb_delay <= wbs1_stb;
+      dm_stb_delay <= dm_stb;
+      dm_ack_delay <= dm_ack;
+    end
+  end
 
   wb_mux_5 #(
       .DATA_WIDTH  (32),
@@ -1377,7 +1413,7 @@ module tanlabs #(
   );
 
   uart_controller #(
-      .CLK_FREQ(50_000_000),
+      .CLK_FREQ(125_000_000),
       .BAUD    (115200)
   ) uart_controller (
       .clk_i(core_clk),

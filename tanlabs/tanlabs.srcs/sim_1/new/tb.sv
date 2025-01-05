@@ -6,7 +6,7 @@ module tb #(
     parameter ID_WIDTH   = 3
 ) ();
 
-  parameter BASE_RAM_INIT_FILE = "D:\\web-2024\\joint-lab-g5\\firmware\\kernel.bin";
+  parameter BASE_RAM_INIT_FILE = "D:\\Programming\\VivadoProjects\\joint-lab-g5\\firmware\\kernel.bin";
 
   wire txd;
   wire rxd;
@@ -167,7 +167,7 @@ module tb #(
       .txd(rxd)
   );
 
-  // 从文件加�? BaseRAM
+  // 从文件加�? BaseRAM
   initial begin
     reg [31:0] tmp_array[0:1048575];
     integer n_File_ID, n_Init_Size;

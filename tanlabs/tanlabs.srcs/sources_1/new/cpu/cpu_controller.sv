@@ -70,7 +70,8 @@ module cpu_controller (
     input  wire        btb_pred_bc
 );
 
-  parameter TIME_1S = 32'd50000000; // 50MHz
+  // parameter TIME_1S = 32'd50000000; // 50MHz
+  parameter TIME_1S = 32'd125000000; // 125 MHz
 
   // =====================================
   // Naming

@@ -64,7 +64,18 @@ module frame_datapath #(
     output reg  [  4:0] nexthop_addr,
 
     // DEBUG signals
-    output wire [15:0] led
+    output wire [15:0] led,
+
+    // DEBUG signals (DMA, address config and data memory)
+    input wire dma_stb,
+    input wire dma_wea,
+    input wire addr_stb,
+    input wire nexthop_table_stb,
+
+    input wire dm_stb,
+    input wire dm_ack,
+    input wire uart_stb,
+    input wire bram_stb
 );
 
   frame_beat in8, in;
@@ -405,7 +416,14 @@ module frame_datapath #(
       .clk(eth_clk),
       .reset(reset),
       .in_led({
-        in_handling_fw, in_handling_ns, in_handling_na, in_handling_rip, 1'b0, 1'b0, 1'b1, 1'b1
+        in_handling_fw,
+        in_handling_ns,
+        in_handling_na,
+        in_handling_rip,
+        nexthop_table_stb,
+        addr_stb,
+        dma_stb,
+        dma_wea
       }),
       .out_led(led[7:0])
   );
@@ -414,7 +432,14 @@ module frame_datapath #(
       .clk(eth_clk),
       .reset(reset),
       .in_led({
-        out_handling_nud, out_handling_rip, out_handling_fw, out_handling_ns, 1'b1, 1'b1, 1'b0, 1'b0
+        out_handling_nud,
+        out_handling_rip,
+        out_handling_fw,
+        out_handling_ns,
+        bram_stb,
+        uart_stb,
+        dm_ack,
+        dm_stb
       }),
       .out_led(led[15:8])
   );
