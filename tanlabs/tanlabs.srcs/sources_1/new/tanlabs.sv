@@ -12,6 +12,9 @@ module tanlabs #(
 
     output wire [15:0] led,
 
+    output wire [6:0] dpy0,
+    output wire [6:0] dpy1,
+
     output wire uart_tx,
     input  wire uart_rx,
 
@@ -1412,6 +1415,27 @@ module tanlabs #(
       .sram_be_n(base_ram_be_n)
   );
 
+//   uart_controller #(
+//       .CLK_FREQ(125_000_000),
+//       .BAUD    (115200)
+//   ) uart_controller (
+//       .clk_i(core_clk),
+//       .rst_i(reset_core),
+
+//       .wb_cyc_i(wbs1_cyc),
+//       .wb_stb_i(wbs1_stb),
+//       .wb_ack_o(wbs1_ack),
+//       .wb_adr_i(wbs1_adr),
+//       .wb_dat_i(wbs1_dat_w),
+//       .wb_dat_o(wbs1_dat_r),
+//       .wb_sel_i(wbs1_sel),
+//       .wb_we_i (wbs1_we),
+
+//       // to UART pins
+//       .uart_txd_o(uart_tx),
+//       .uart_rxd_i(uart_rx)
+//   );
+
   uart_controller #(
       .CLK_FREQ(125_000_000),
       .BAUD    (115200)
@@ -1429,10 +1453,12 @@ module tanlabs #(
       .wb_we_i (wbs1_we),
 
       // to UART pins
-      .uart_txd_o(uart_tx),
-      .uart_rxd_i(uart_rx)
-  );
+      // .uart_txd_o(uart_tx),
+      .uart_rxd_i(uart_rx),
 
+      .dpy0(dpy0),
+      .dpy1(dpy1)
+  );
 
   // wb async
   wb_async wb_async_i (

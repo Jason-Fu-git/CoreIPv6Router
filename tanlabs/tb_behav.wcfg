@@ -12,15 +12,25 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="0fs"></ZoomStartTime>
-      <ZoomEndTime time="4455001fs"></ZoomEndTime>
-      <Cursor1Time time="260000fs"></Cursor1Time>
+      <ZoomStartTime time="435801334fs"></ZoomStartTime>
+      <ZoomEndTime time="827801335fs"></ZoomEndTime>
+      <Cursor1Time time="926468000fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="357"></NameColumnWidth>
-      <ValueColumnWidth column_width="678"></ValueColumnWidth>
+      <ValueColumnWidth column_width="672"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="77" />
+   <WVObjectSize size="79" />
+   <wvobject fp_name="/tb/dpy0" type="array">
+      <obj_property name="ElementShortName">dpy0[6:0]</obj_property>
+      <obj_property name="ObjectShortName">dpy0[6:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dpy1" type="array">
+      <obj_property name="ElementShortName">dpy1[6:0]</obj_property>
+      <obj_property name="ObjectShortName">dpy1[6:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
    <wvobject fp_name="/tb/dut/frame_datapath_i/eth_clk" type="logic">
       <obj_property name="ElementShortName">eth_clk</obj_property>
       <obj_property name="ObjectShortName">eth_clk</obj_property>
