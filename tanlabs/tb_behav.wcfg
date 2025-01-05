@@ -12,15 +12,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="1486581000fs"></ZoomStartTime>
-      <ZoomEndTime time="1488039001fs"></ZoomEndTime>
-      <Cursor1Time time="1487796000fs"></Cursor1Time>
+      <ZoomStartTime time="0fs"></ZoomStartTime>
+      <ZoomEndTime time="4455001fs"></ZoomEndTime>
+      <Cursor1Time time="260000fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="357"></NameColumnWidth>
-      <ValueColumnWidth column_width="686"></ValueColumnWidth>
+      <ValueColumnWidth column_width="678"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="67" />
+   <WVObjectSize size="77" />
    <wvobject fp_name="/tb/dut/frame_datapath_i/eth_clk" type="logic">
       <obj_property name="ElementShortName">eth_clk</obj_property>
       <obj_property name="ObjectShortName">eth_clk</obj_property>
@@ -130,36 +130,6 @@
          <obj_property name="ObjectShortName">dma_in</obj_property>
          <obj_property name="CustomSignalColor">#FFD700</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
-         <wvobject fp_name="/tb/dut/frame_datapath_i/dma_in.data" type="array">
-            <obj_property name="ElementShortName">.data</obj_property>
-            <obj_property name="ObjectShortName">.data</obj_property>
-            <obj_property name="isExpanded"></obj_property>
-         </wvobject>
-         <wvobject fp_name="/tb/dut/frame_datapath_i/dma_in.keep" type="array">
-            <obj_property name="ElementShortName">.keep[55:0]</obj_property>
-            <obj_property name="ObjectShortName">.keep[55:0]</obj_property>
-         </wvobject>
-         <wvobject fp_name="/tb/dut/frame_datapath_i/dma_in.last" type="logic">
-            <obj_property name="ElementShortName">.last</obj_property>
-            <obj_property name="ObjectShortName">.last</obj_property>
-         </wvobject>
-         <wvobject fp_name="/tb/dut/frame_datapath_i/dma_in.user" type="array">
-            <obj_property name="ElementShortName">.user[55:0]</obj_property>
-            <obj_property name="ObjectShortName">.user[55:0]</obj_property>
-         </wvobject>
-         <wvobject fp_name="/tb/dut/frame_datapath_i/dma_in.valid" type="logic">
-            <obj_property name="ElementShortName">.valid</obj_property>
-            <obj_property name="ObjectShortName">.valid</obj_property>
-         </wvobject>
-         <wvobject fp_name="/tb/dut/frame_datapath_i/dma_in.is_first" type="logic">
-            <obj_property name="ElementShortName">.is_first</obj_property>
-            <obj_property name="ObjectShortName">.is_first</obj_property>
-         </wvobject>
-         <wvobject fp_name="/tb/dut/frame_datapath_i/dma_in.meta" type="array">
-            <obj_property name="ElementShortName">.meta</obj_property>
-            <obj_property name="ObjectShortName">.meta</obj_property>
-            <obj_property name="isExpanded"></obj_property>
-         </wvobject>
       </wvobject>
       <wvobject fp_name="/tb/dut/frame_datapath_i/dma_in_ready" type="logic">
          <obj_property name="ElementShortName">dma_in_ready</obj_property>
@@ -1287,48 +1257,6 @@
       <wvobject fp_name="/tb/dut/frame_datapath_i/forward_table_i/out" type="array">
          <obj_property name="ElementShortName">out</obj_property>
          <obj_property name="ObjectShortName">out</obj_property>
-         <wvobject fp_name="/tb/dut/frame_datapath_i/forward_table_i/out.data" type="array">
-            <obj_property name="ElementShortName">.data</obj_property>
-            <obj_property name="ObjectShortName">.data</obj_property>
-            <obj_property name="isExpanded"></obj_property>
-            <wvobject fp_name="/tb/dut/frame_datapath_i/forward_table_i/out.data.data" type="array">
-               <obj_property name="ElementShortName">.data</obj_property>
-               <obj_property name="ObjectShortName">.data</obj_property>
-               <obj_property name="isExpanded"></obj_property>
-            </wvobject>
-            <wvobject fp_name="/tb/dut/frame_datapath_i/forward_table_i/out.data.keep" type="array">
-               <obj_property name="ElementShortName">.keep[55:0]</obj_property>
-               <obj_property name="ObjectShortName">.keep[55:0]</obj_property>
-            </wvobject>
-            <wvobject fp_name="/tb/dut/frame_datapath_i/forward_table_i/out.data.last" type="logic">
-               <obj_property name="ElementShortName">.last</obj_property>
-               <obj_property name="ObjectShortName">.last</obj_property>
-            </wvobject>
-            <wvobject fp_name="/tb/dut/frame_datapath_i/forward_table_i/out.data.user" type="array">
-               <obj_property name="ElementShortName">.user[55:0]</obj_property>
-               <obj_property name="ObjectShortName">.user[55:0]</obj_property>
-            </wvobject>
-            <wvobject fp_name="/tb/dut/frame_datapath_i/forward_table_i/out.data.valid" type="logic">
-               <obj_property name="ElementShortName">.valid</obj_property>
-               <obj_property name="ObjectShortName">.valid</obj_property>
-            </wvobject>
-            <wvobject fp_name="/tb/dut/frame_datapath_i/forward_table_i/out.data.is_first" type="logic">
-               <obj_property name="ElementShortName">.is_first</obj_property>
-               <obj_property name="ObjectShortName">.is_first</obj_property>
-            </wvobject>
-            <wvobject fp_name="/tb/dut/frame_datapath_i/forward_table_i/out.data.meta" type="array">
-               <obj_property name="ElementShortName">.meta</obj_property>
-               <obj_property name="ObjectShortName">.meta</obj_property>
-            </wvobject>
-         </wvobject>
-         <wvobject fp_name="/tb/dut/frame_datapath_i/forward_table_i/out.error" type="array">
-            <obj_property name="ElementShortName">.error[2:0]</obj_property>
-            <obj_property name="ObjectShortName">.error[2:0]</obj_property>
-         </wvobject>
-         <wvobject fp_name="/tb/dut/frame_datapath_i/forward_table_i/out.valid" type="logic">
-            <obj_property name="ElementShortName">.valid</obj_property>
-            <obj_property name="ObjectShortName">.valid</obj_property>
-         </wvobject>
       </wvobject>
       <wvobject fp_name="/tb/dut/frame_datapath_i/forward_table_i/in_valid" type="logic">
          <obj_property name="ElementShortName">in_valid</obj_property>
@@ -1681,36 +1609,6 @@
       <wvobject fp_name="/tb/dut/frame_datapath_i/pipeline_forward_i/out" type="array">
          <obj_property name="ElementShortName">out</obj_property>
          <obj_property name="ObjectShortName">out</obj_property>
-         <obj_property name="isExpanded"></obj_property>
-         <wvobject fp_name="/tb/dut/frame_datapath_i/pipeline_forward_i/out.data" type="array">
-            <obj_property name="ElementShortName">.data</obj_property>
-            <obj_property name="ObjectShortName">.data</obj_property>
-            <obj_property name="isExpanded"></obj_property>
-         </wvobject>
-         <wvobject fp_name="/tb/dut/frame_datapath_i/pipeline_forward_i/out.keep" type="array">
-            <obj_property name="ElementShortName">.keep[55:0]</obj_property>
-            <obj_property name="ObjectShortName">.keep[55:0]</obj_property>
-         </wvobject>
-         <wvobject fp_name="/tb/dut/frame_datapath_i/pipeline_forward_i/out.last" type="logic">
-            <obj_property name="ElementShortName">.last</obj_property>
-            <obj_property name="ObjectShortName">.last</obj_property>
-         </wvobject>
-         <wvobject fp_name="/tb/dut/frame_datapath_i/pipeline_forward_i/out.user" type="array">
-            <obj_property name="ElementShortName">.user[55:0]</obj_property>
-            <obj_property name="ObjectShortName">.user[55:0]</obj_property>
-         </wvobject>
-         <wvobject fp_name="/tb/dut/frame_datapath_i/pipeline_forward_i/out.valid" type="logic">
-            <obj_property name="ElementShortName">.valid</obj_property>
-            <obj_property name="ObjectShortName">.valid</obj_property>
-         </wvobject>
-         <wvobject fp_name="/tb/dut/frame_datapath_i/pipeline_forward_i/out.is_first" type="logic">
-            <obj_property name="ElementShortName">.is_first</obj_property>
-            <obj_property name="ObjectShortName">.is_first</obj_property>
-         </wvobject>
-         <wvobject fp_name="/tb/dut/frame_datapath_i/pipeline_forward_i/out.meta" type="array">
-            <obj_property name="ElementShortName">.meta</obj_property>
-            <obj_property name="ObjectShortName">.meta</obj_property>
-         </wvobject>
       </wvobject>
       <wvobject fp_name="/tb/dut/frame_datapath_i/pipeline_forward_i/cache_r_IPv6_addr" type="array">
          <obj_property name="ElementShortName">cache_r_IPv6_addr[127:0]</obj_property>
@@ -1812,5 +1710,45 @@
          <obj_property name="ElementShortName">src_MAC_addr[47:0]</obj_property>
          <obj_property name="ObjectShortName">src_MAC_addr[47:0]</obj_property>
       </wvobject>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/controller_i/im_adr_o" type="array">
+      <obj_property name="ElementShortName">im_adr_o[31:0]</obj_property>
+      <obj_property name="ObjectShortName">im_adr_o[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/controller_i/im_dat_o" type="array">
+      <obj_property name="ElementShortName">im_dat_o[31:0]</obj_property>
+      <obj_property name="ObjectShortName">im_dat_o[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/controller_i/im_dat_i" type="array">
+      <obj_property name="ElementShortName">im_dat_i[31:0]</obj_property>
+      <obj_property name="ObjectShortName">im_dat_i[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/controller_i/im_we_o" type="logic">
+      <obj_property name="ElementShortName">im_we_o</obj_property>
+      <obj_property name="ObjectShortName">im_we_o</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/controller_i/im_sel_o" type="array">
+      <obj_property name="ElementShortName">im_sel_o[3:0]</obj_property>
+      <obj_property name="ObjectShortName">im_sel_o[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/controller_i/im_stb_o" type="logic">
+      <obj_property name="ElementShortName">im_stb_o</obj_property>
+      <obj_property name="ObjectShortName">im_stb_o</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/controller_i/im_ack_i" type="logic">
+      <obj_property name="ElementShortName">im_ack_i</obj_property>
+      <obj_property name="ObjectShortName">im_ack_i</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/controller_i/im_err_i" type="logic">
+      <obj_property name="ElementShortName">im_err_i</obj_property>
+      <obj_property name="ObjectShortName">im_err_i</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/controller_i/im_rty_i" type="logic">
+      <obj_property name="ElementShortName">im_rty_i</obj_property>
+      <obj_property name="ObjectShortName">im_rty_i</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/dut/controller_i/im_cyc_o" type="logic">
+      <obj_property name="ElementShortName">im_cyc_o</obj_property>
+      <obj_property name="ObjectShortName">im_cyc_o</obj_property>
    </wvobject>
 </wave_config>
