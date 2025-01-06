@@ -190,7 +190,7 @@ public:
 			++node_count;
 			++node_num[stage];
 			if (node_num[stage] >= BRAM_DEPTHS[stage]) {
-				_putchar('U');
+				printf("[TC]E");
 				--node_count;
 				--node_num[stage];
 				return -1;
