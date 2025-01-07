@@ -42,7 +42,8 @@ void start(void)
     // Initialize the UART
     init_uart();
 
-    printf("TAC CA[[ F\n\n\n\n");
+    printf("TAC CA[[ F");
+    _putchar('\0');
 
     // Initialize timers
     *((volatile uint32_t *)MTIMECMP_HADDR) = 0xFFFFFFFF;
@@ -80,7 +81,8 @@ void start(void)
         *(volatile uint32_t *)DMA_OUT_LENGTH = 0;
     }
 
-    printf("I\0");
+    printf("I");
+    _putchar('\0');
 
     // Grant DMA access (Write) to the memory
     _grant_dma_access(DMA_BLOCK_WADDR, MTU, 1);
@@ -89,13 +91,12 @@ void start(void)
     while (true)
     {
         int dma_res = _check_dma_busy();
-        printf("%d", dma_res);
         uint32_t out_length = *(volatile uint32_t *)DMA_OUT_LENGTH;
         if (dma_res == 0)
         { // not busy
             if (out_length)
                 _grant_dma_access(DMA_BLOCK_RADDR, out_length, 0);
-            else
+            else if (*(volatile uint32_t *)DMA_IN_VALID)
                 _grant_dma_access(DMA_BLOCK_WADDR, MTU, 1);
             // Reset the out length
             *(volatile uint32_t *)DMA_OUT_LENGTH = 0;
@@ -105,7 +106,6 @@ void start(void)
         { // out
             if (_check_dma_ack())
             { // ack
-                *(volatile uint32_t *)DMA_CPU_STB = 0;
                 continue;
             }
         }
@@ -129,10 +129,10 @@ void start(void)
                 if (error != SUCCESS)
                 {
                     printf("D%d", error);
+                    _putchar('\0');
                 }
                 else // If SUCCESS, we should continue
                 {
-                    printf("C");
                     continue;
                 }
             }

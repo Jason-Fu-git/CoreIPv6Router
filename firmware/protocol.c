@@ -14,6 +14,7 @@ extern int rte_map[NUM_TRIE_NODE];
 extern struct memory_rte memory_rte[NUM_MEMORY_RTE];
 extern int spare_nexthop_index;
 extern int spare_memory_index;
+extern uint32_t last_triggered_time;
 
 extern int TrieInsert(void* prefix, unsigned int length, uint32_t next_hop);
 extern int TrieDelete(void* prefix, unsigned int length);
@@ -60,7 +61,7 @@ void config_direct_route(struct ip6_addr *ip6_addr, uint8_t prefix_len, uint8_t 
     rte_map[trie_index] = j;
     memory_rte[j].ip6_addr = *ip6_addr;
     memory_rte[j].metric = 1;
-    memory_rte[j].lower_timer = *(volatile uint8_t *)MTIME_LADDR; // TODO: No timeout?
+    memory_rte[j].lower_timer = *((volatile uint8_t *)MTIME_LADDR); // TODO: No timeout?
     memory_rte[j].prefix_len = prefix_len;
     memory_rte[j].nexthop_port = port | 0x80;
     while((memory_rte[spare_memory_index].nexthop_port & 0x80) != 0){
@@ -82,23 +83,25 @@ int update_memory_rte(void *memory_rte_v){
     }
     if(memory_rte->metric != 16){
         if(check_timeout(TIMEOUT_TIME_LIMIT, memory_rte->lower_timer)){
-            printf("180\0");
+            printf("T");
+            _putchar('\0');
             // Start GC Timer
             memory_rte->metric = 16;
-            memory_rte->lower_timer = *(volatile uint8_t *)MTIME_LADDR;
+            memory_rte->lower_timer = *((volatile uint8_t *)MTIME_LADDR);
         }
         return 1;
     }
     else{
         if(check_timeout(GARBAGE_COLLECTION_TIME_LIMIT, memory_rte->lower_timer)){
-            printf("120\0");
+            printf("D");
+            _putchar('\0');
             // Delete the route
             // delete memory_rte
             // trie.delete(addr, prefix_length), return index
             // invalidate (trie->memory[index])
             int trie_index = TrieDelete(&(memory_rte->ip6_addr), memory_rte->prefix_len);
             if(trie_index < 0){
-                printf("[TD]%d\n", trie_index);
+                printf("[TD]%d", trie_index);
                 return 0;
             }
             rte_map[trie_index] = 0;
@@ -347,8 +350,14 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                         memory_rte->lower_timer = 0;
                         memory_rte->nexthop_port = 0;
                         memory_rte[j].metric = 16;
-                        memory_rte[j].lower_timer = *(volatile uint8_t *)MTIME_LADDR;
+                        memory_rte[j].lower_timer = *((volatile uint8_t *)MTIME_LADDR);
                         memory_rte[j].nexthop_port = 0;
+                        if(check_timeout(TRIGGERED_RESPONSE_TIME_INTERVAL, last_triggered_time)){
+                            last_triggered_time = *((volatile uint32_t *)MTIME_LADDR);
+                        }
+                        else{
+                            continue;
+                        }
                         for(int p = 0; p < PORT_NUM; p++){
                             send_entries[p][send_entry_num] = entries[i];
                             send_entries[p][send_entry_num].metric = 16;
@@ -368,7 +377,13 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                     if(port == (memory_rte[j].nexthop_port & 0x1F)){ // next_hop same
                         // Update the route
                         memory_rte[j].metric = new_metric;
-                        memory_rte[j].lower_timer = *(volatile uint8_t *)MTIME_LADDR;
+                        memory_rte[j].lower_timer = *((volatile uint8_t *)MTIME_LADDR);
+                        if(check_timeout(TRIGGERED_RESPONSE_TIME_INTERVAL, last_triggered_time)){
+                            last_triggered_time = *((volatile uint32_t *)MTIME_LADDR);
+                        }
+                        else{
+                            continue;
+                        }
                         for(int p = 0; p < PORT_NUM; p++){
                             send_entries[p][send_entry_num] = entries[i];
                             send_entries[p][send_entry_num].metric = (p == port) ? 16 : new_metric;
@@ -390,7 +405,13 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                     ){ // next_hop NOT same and memory_rte timeout soon
                         // Update the route
                         memory_rte[j].nexthop_port = port | 0x80;
-                        memory_rte[j].lower_timer = *(volatile uint8_t *)MTIME_LADDR;
+                        memory_rte[j].lower_timer = *((volatile uint8_t *)MTIME_LADDR);
+                        if(check_timeout(TRIGGERED_RESPONSE_TIME_INTERVAL, last_triggered_time)){
+                            last_triggered_time = *((volatile uint32_t *)MTIME_LADDR);
+                        }
+                        else{
+                            continue;
+                        }
                         for(int p = 0; p < PORT_NUM; p++){
                             send_entries[p][send_entry_num] = entries[i];
                             send_entries[p][send_entry_num].metric = (p == port) ? 16 : new_metric;
@@ -411,6 +432,12 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                     memory_rte[j].nexthop_port = port | 0x80;
                     memory_rte[j].lower_timer = *(volatile uint8_t *)MTIME_LADDR;
                     memory_rte[j].metric = new_metric;
+                    if(check_timeout(TRIGGERED_RESPONSE_TIME_INTERVAL, last_triggered_time)){
+                        last_triggered_time = *((volatile uint32_t *)MTIME_LADDR);
+                    }
+                    else{
+                        continue;
+                    }
                     for(int p = 0; p < PORT_NUM; p++){
                         send_entries[p][send_entry_num] = entries[i];
                         send_entries[p][send_entry_num].metric = (p == port) ? 16 : new_metric;
@@ -436,12 +463,18 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                 rte_map[trie_index] = j;
                 memory_rte[j].ip6_addr = entries[i].ip6_addr;
                 memory_rte[j].metric = entries[i].metric + 1;
-                memory_rte[j].lower_timer = *(volatile uint8_t *)MTIME_LADDR;
+                memory_rte[j].lower_timer = *((volatile uint8_t *)MTIME_LADDR);
                 memory_rte[j].prefix_len = entries[i].prefix_len;
                 memory_rte[j].nexthop_port = port | 0x80;
                 while((memory_rte[spare_memory_index].nexthop_port & 0x80) != 0){
                     spare_memory_index++;
                     if(spare_memory_index == NUM_MEMORY_RTE) spare_memory_index = 0;
+                }
+                if(check_timeout(TRIGGERED_RESPONSE_TIME_INTERVAL, last_triggered_time)){
+                    last_triggered_time = *((volatile uint32_t *)MTIME_LADDR);
+                }
+                else{
+                    continue;
                 }
                 for(int p = 0; p < PORT_NUM; p++){
                     send_entries[p][send_entry_num] = entries[i];
@@ -454,7 +487,7 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                         send_response(&(ip6->dst_addr), &dst_addr, send_entries[p], RIPNG_MAX_RTE_NUM, p, 1);
                     }
                     send_entry_num = 0;
-                }    
+                }
             }
         }
 
@@ -468,6 +501,12 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
             send_entry_num = 0;
         }
         else if(ripng_hdr->cmd == RIPNG_CMD_RESPONSE){
+            if(check_timeout(TRIGGERED_RESPONSE_TIME_INTERVAL, last_triggered_time)){
+                last_triggered_time = *((volatile uint32_t *)MTIME_LADDR);
+            }
+            else{
+                return SUCCESS;
+            }
             struct ip6_addr dst_addr = {.s6_addr32 = MULTICAST_ADDR};
             for(int p = 0; p < PORT_NUM; p++){
                 send_response(ip_addrs + p, &dst_addr, send_entries[p], send_entry_num, p, 1);
@@ -670,7 +709,8 @@ void send_response(void *src_addr_v, void *dst_addr_v, void *entries_v, int num_
 void send_unsolicited_response()
 {
     struct ip6_addr dst_addr = {.s6_addr32 = MULTICAST_ADDR};
-    printf("30");
+    printf("P");
+    _putchar('\0');
     for(int p = 0; p < PORT_NUM; p++){
         send_response(ip_addrs + p, &dst_addr, NULL, 0, p, 1);
     }

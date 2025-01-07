@@ -9,6 +9,8 @@
 
 #define GARBAGE_COLLECTION_TIME_LIMIT 120
 
+#define TRIGGERED_RESPONSE_TIME_INTERVAL 1
+
 
 #define MTIME_LADDR 0x0200BFF8    // lower 32 bits of mtime
 #define MTIMECMP_LADDR 0x02004000 // lower 32 bits of mtimecmp
