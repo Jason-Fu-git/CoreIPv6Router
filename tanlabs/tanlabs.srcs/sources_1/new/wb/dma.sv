@@ -31,16 +31,17 @@ module dma #(
 
     // Status Registers
     input wire        cpu_stb_i,
-    input wire        cpu_we_i,        // Write Enable
-    input wire [31:0] cpu_adr_i,       // Address
-    input wire [31:0] cpu_dat_width_i, // Data Width (in bytes)
-    input wire [ 1:0] cpu_port_id_i,   // Out Port ID
+    input wire        cpu_we_i,         // Write Enable
+    input wire [31:0] cpu_adr_i,        // Address
+    input wire [31:0] cpu_dat_width_i,  // Data Width (in bytes)
+    input wire [ 1:0] cpu_port_id_i,    // Out Port ID
 
-    output reg        dma_ack_o,  // DMA Acknowledge, will be held until STB is de-asserted
+    output reg dma_ack_o,  // DMA Acknowledge, will be held until STB is de-asserted
     output reg [31:0] dma_dat_width_o,  // Data Width (in bytes)
     output reg [15:0] dma_checksum_o,  // Checksum
-    output reg        dma_checksum_valid_o,  // Checksum Valid
-    output reg [ 1:0] dma_port_id_o  // In Port ID
+    output reg dma_checksum_valid_o,  // Checksum Valid
+    output reg [1:0] dma_port_id_o,  // In Port ID
+    output reg dma_request_o  // DMA Request
 );
 
   // Considering that we only have one SRAM, DMA cannot execute multiple transactions at the same time
@@ -188,6 +189,14 @@ module dma #(
 
       .prog_full(fifo_in_prog_full)  // output wire prog_full
   );
+
+  always_ff @( posedge core_clk ) begin
+    if (core_rst) begin
+      dma_request_o <= 0;
+    end else begin
+      dma_request_o <= fifo_in_valid;
+    end
+  end
 
   always_ff @(posedge core_clk) begin : PORTID
     if (core_rst) begin
@@ -526,12 +535,12 @@ module dma #(
       .s_axis_tlast  (fifo_out_last),   // input wire s_axis_tlast
       .s_axis_tid    (cpu_port_id_i),   // input wire [1 : 0] s_axis_tid
 
-      .m_axis_aclk  (eth_clk),                 // input wire m_axis_aclk
-      .m_axis_tvalid(out_conv_i.valid),        // output wire m_axis_tvalid
-      .m_axis_tready(out_conv_ready),          // input wire m_axis_tready
-      .m_axis_tdata (out_conv_i.data[31:0]),   // output wire [31 : 0] m_axis_tdata
-      .m_axis_tkeep (out_conv_i.keep[3:0]),    // output wire [3 : 0] m_axis_tkeep
-      .m_axis_tlast (out_conv_i.last),         // output wire m_axis_tlast
+      .m_axis_aclk  (eth_clk),                   // input wire m_axis_aclk
+      .m_axis_tvalid(out_conv_i.valid),          // output wire m_axis_tvalid
+      .m_axis_tready(out_conv_ready),            // input wire m_axis_tready
+      .m_axis_tdata (out_conv_i.data[31:0]),     // output wire [31 : 0] m_axis_tdata
+      .m_axis_tkeep (out_conv_i.keep[3:0]),      // output wire [3 : 0] m_axis_tkeep
+      .m_axis_tlast (out_conv_i.last),           // output wire m_axis_tlast
       .m_axis_tid   (out_conv_i.meta.dest[1:0])  // output wire [1 : 0] m_axis_tid
   );
 

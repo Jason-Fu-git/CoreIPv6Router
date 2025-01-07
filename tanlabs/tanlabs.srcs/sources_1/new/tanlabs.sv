@@ -718,6 +718,7 @@ module tanlabs #(
   frame_beat dma_in, dma_out;
 
   logic dma_cpu_stb, dma_cpu_we;
+  logic dma_request;
   logic [31:0] dma_cpu_adr, dma_cpu_dat_width;
   logic dma_ack;
   logic [31:0] dma_dat_width;
@@ -1296,7 +1297,8 @@ module tanlabs #(
       .dma_dat_width_o(dma_dat_width),
       .dma_checksum_o(dma_checksum),
       .dma_checksum_valid_o(dma_checksum_valid),
-      .dma_port_id_o(dma_in_port_id)
+      .dma_port_id_o(dma_in_port_id),
+      .dma_request_o(dma_request)
   );
 
   dma_adapter dma_adapter_i (
@@ -1315,6 +1317,7 @@ module tanlabs #(
       .dma_dat_width_i(dma_dat_width),
       .dma_checksum_i(dma_checksum),
       .dma_port_id_i(dma_in_port_id),
+      .dma_request_i(dma_request),
 
       .dma_port_id_o(dma_out_port_id),
       .dma_cpu_stb_o(dma_cpu_stb),

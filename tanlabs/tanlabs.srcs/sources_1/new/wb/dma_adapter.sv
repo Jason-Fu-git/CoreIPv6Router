@@ -17,6 +17,7 @@ module dma_adapter (
     input wire [31:0] dma_dat_width_i,
     input wire [15:0] dma_checksum_i,
     input wire [ 1:0] dma_port_id_i,
+    input wire        dma_request_i,
 
     output reg [ 1:0] dma_port_id_o,
     output reg [31:0] dma_cpu_addr_o,
@@ -36,6 +37,7 @@ module dma_adapter (
       DMA_DATA_WIDTH:     wbm_dat_o = dma_dat_width_i;
       DMA_CHECKSUM:       wbm_dat_o = {16'd0, dma_checksum_i};
       DMA_IN_PORT_ID:     wbm_dat_o = {30'd0, dma_port_id_i};
+      DMA_REQUEST:        wbm_dat_o = dma_request_i;
       default:            wbm_dat_o = 32'h0;
     endcase
   end
