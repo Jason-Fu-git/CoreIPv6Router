@@ -42,15 +42,7 @@ void start(void)
     // Initialize the UART
     init_uart();
 
-    // Initialize RTEs
-    // for (int i = 0; i < NUM_MEMORY_RTE; i++)
-    // {
-    //     memory_rte[i].ip6_addr.s6_addr32[0] = 0;
-    //     memory_rte[i].ip6_addr.s6_addr32[1] = 0;
-    //     memory_rte[i].ip6_addr.s6_addr32[2] = 0;
-    //     memory_rte[i].ip6_addr.s6_addr32[3] = 0;
-    //     memory_rte[i].nexthop_port = 0;
-    // }
+    printf("TAC CA[[ F\n\n\n\n");
 
     // Initialize timers
     *((volatile uint32_t *)MTIMECMP_HADDR) = 0xFFFFFFFF;
@@ -72,23 +64,23 @@ void start(void)
         write_mac_addr(mac_addrs + i, MAC_CONFIG_ADDR(i));
     }
 
-    // TODO: Configurate direct route
+    // config_direct_route();
 
     // Send multicast request.
-    // for(int p = 0; p < PORT_NUM; p++){
+    for(int p = 0; p < PORT_NUM; p++){
         // Appoint out port id
-        // *(volatile uint32_t *)DMA_OUT_PORT_ID = p;
-        // send_multicast_request(p);
+        *(volatile uint32_t *)DMA_OUT_PORT_ID = p;
+        send_multicast_request(p);
         // Grant DMA access (Read) to the memory
-        // _grant_dma_access(DMA_BLOCK_RADDR, *(volatile uint32_t *)DMA_OUT_LENGTH, 0);
+        _grant_dma_access(DMA_BLOCK_RADDR, *(volatile uint32_t *)DMA_OUT_LENGTH, 0);
         // Wait for the DMA to finish
-        // _wait_for_dma();
-        // *(volatile uint32_t *)DMA_CPU_STB = 0;
+        _wait_for_dma();
+        *(volatile uint32_t *)DMA_CPU_STB = 0;
         // Reset the out length
-        // *(volatile uint32_t *)DMA_OUT_LENGTH = 0;
-    // }
+        *(volatile uint32_t *)DMA_OUT_LENGTH = 0;
+    }
 
-    _putchar('I');
+    printf("I\0");
 
     // Grant DMA access (Write) to the memory
     _grant_dma_access(DMA_BLOCK_WADDR, MTU, 1);
@@ -97,6 +89,7 @@ void start(void)
     while (true)
     {
         int dma_res = _check_dma_busy();
+        printf("%d", dma_res);
         uint32_t out_length = *(volatile uint32_t *)DMA_OUT_LENGTH;
         if (dma_res == 0)
         { // not busy
@@ -139,6 +132,7 @@ void start(void)
                 }
                 else // If SUCCESS, we should continue
                 {
+                    printf("C");
                     continue;
                 }
             }
