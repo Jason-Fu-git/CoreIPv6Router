@@ -204,15 +204,15 @@ def send_forward_packet(iface):
     
     
 
-# def send_ripng(iface):
-#     ether = Ether(src="00:e0:4c:68:13:ab", dst="8c:1f:64:69:10:56")
-#     ipv6 = IPv6(src="fe80::e96f:4759:2482:ba4", dst="fe80::8e1f:64ff:fe69:1056", hlim=255)
-#     udp = UDP(sport=521, dport=521)
-#     ripng = RIPng(cmd=2)
-#     ripng_entry1 = RIPngEntry(prefix_or_nh="2001:db8::9", routetag=0, prefixlen=128, metric=1)
-#     ripng_entry2 = RIPngEntry(prefix_or_nh="2001:db8::10", routetag=0, prefixlen=128, metric=2)
-#     packet = ether / ipv6 / udp / ripng / ripng_entry1 / ripng_entry2
-#     sendp(packet, iface=iface)
+def send_ripng(iface):
+    ether = Ether(src="00:e0:4c:68:13:ab", dst="8c:1f:64:69:10:56")
+    ipv6 = IPv6(src="fe80::e96f:4759:2482:ba4", dst="fe80::1", hlim=255)
+    udp = UDP(sport=521, dport=521)
+    ripng = RIPng(cmd=2)
+    ripng_entry1 = RIPngEntry(prefix_or_nh="2001:db8::9", routetag=0, prefixlen=128, metric=1)
+    ripng_entry2 = RIPngEntry(prefix_or_nh="2001:db8::10", routetag=0, prefixlen=128, metric=2)
+    packet = ether / ipv6 / udp / ripng / ripng_entry1 / ripng_entry2
+    sendp(packet, iface=iface)
 
 
 # def send_packet(iface):
@@ -225,11 +225,11 @@ def send_forward_packet(iface):
 
 
 if __name__ == "__main__":
-    iface = "本地连接* 12"
-    send_ns(iface)
-    send_forward_packet(iface)
+    iface = "以太网 3"
+    # send_ns(iface)
+    # send_forward_packet(iface)
     # while True:
-    #     send_ripng(iface)
+    send_ripng(iface)
     #     time.sleep(10)
     #     send_packet(iface)
     #     time.sleep(10)
