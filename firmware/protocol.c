@@ -61,7 +61,7 @@ void config_direct_route(struct ip6_addr *ip6_addr, uint8_t prefix_len, uint8_t 
     rte_map[trie_index] = j;
     memory_rte[j].ip6_addr = *ip6_addr;
     memory_rte[j].metric = 1;
-    memory_rte[j].lower_timer = *((volatile uint8_t *)MTIME_LADDR); // TODO: No timeout?
+    memory_rte[j].lower_timer = *((volatile uint8_t *)MTIME_LADDR);
     memory_rte[j].prefix_len = prefix_len;
     memory_rte[j].nexthop_port = port | 0xc0;
     while((memory_rte[spare_memory_index].nexthop_port & 0x80) != 0){
@@ -339,17 +339,14 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                 if(new_metric == 16){
                     if(port == (memory_rte[j].nexthop_port & 0x1F)){ // next_hop same
                         // Delete the route
-                        int trie_index = TrieDelete(&(memory_rte->ip6_addr), memory_rte->prefix_len);
+                        int trie_index = TrieDelete(&(memory_rte[j].ip6_addr), memory_rte[j].prefix_len);
                         if(trie_index < 0){
                             printf("[TD]%d", trie_index);
                             return 0;
                         }
                         rte_map[trie_index] = 0;
-                        memory_rte->metric = 16;
-                        memory_rte->lower_timer = 0;
-                        memory_rte->nexthop_port = 0;
                         memory_rte[j].metric = 16;
-                        memory_rte[j].lower_timer = *((volatile uint8_t *)MTIME_LADDR);
+                        memory_rte[j].lower_timer = 0;
                         memory_rte[j].nexthop_port = 0;
                         // if(check_timeout(TRIGGERED_RESPONSE_TIME_INTERVAL, last_triggered_time)){
                         //     last_triggered_time = *((volatile uint32_t *)MTIME_LADDR);
@@ -452,6 +449,7 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                 }
             }
             else{
+                if(entries[i].metric >= 16) { continue; }
                 // Add new route
                 int trie_index = TrieInsert(&(entries[i].ip6_addr), entries[i].prefix_len, j);
                 if(trie_index < 0){
@@ -653,7 +651,7 @@ void send_response(void *src_addr_v, void *dst_addr_v, void *entries_v, int num_
     if (entries == NULL){
         int send_entry_num = 0;
         struct ripng_rte send_entries[RIPNG_MAX_RTE_NUM];
-        for(int i = 0; i < spare_memory_index; i++){
+        for(int i = 0; i < spare_memory_index; i++){ // TODO: index returned to 0?
             if(update_memory_rte(memory_rte + i)){
                 send_entries[send_entry_num].ip6_addr = memory_rte[i].ip6_addr;
                 send_entries[send_entry_num].prefix_len = memory_rte[i].prefix_len;

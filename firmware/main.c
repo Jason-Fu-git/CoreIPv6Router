@@ -13,10 +13,10 @@
 
 // Configurate the MAC and IP addresses
 struct ip6_addr ip_addrs[PORT_NUM] = {
-        {.s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x541069fe}},
-        {.s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x551069fe}},
-        {.s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x561069fe}},
-        {.s6_addr32 = {0x000080fe, 0, 0xff641f8e, 0x571069fe}}
+        {.s6_addr32 = {0x000080fe, 0, 0, 0x01000000}},
+        {.s6_addr32 = {0x000080fe, 0, 0, 0x01000000}},
+        {.s6_addr32 = {0x000080fe, 0, 0, 0x01000000}},
+        {.s6_addr32 = {0x000080fe, 0, 0, 0x01000000}}
 };
 struct ether_addr mac_addrs[PORT_NUM] = {
         {.ether_addr16 = {0x1f8c, 0x6964, 0x5410}},
@@ -65,8 +65,14 @@ void start(void)
         write_mac_addr(mac_addrs + i, MAC_CONFIG_ADDR(i));
     }
 
-    // struct ip6_addr direct_route = {.s6_addr32 = {}};
-    // config_direct_route();
+    struct ip6_addr direct_route;
+    direct_route.s6_addr32[0] = brev8(htonl(0x2A0EAA06));
+    direct_route.s6_addr32[2] = 0;
+    direct_route.s6_addr32[3] = 0;
+    for(int i = 0; i < 3; i++) {
+        direct_route.s6_addr32[1] = brev8(htonl(0x04970000 + (i << 12)));
+        config_direct_route(&direct_route, 64, i);
+    }
 
     // Send multicast request.
     for(int p = 0; p < PORT_NUM; p++){
