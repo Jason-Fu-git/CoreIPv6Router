@@ -33,7 +33,6 @@ extern int TrieLookup(void* prefix, unsigned int length);
  * @author Eason Liu
  */
 void config_direct_route(struct ip6_addr *ip6_addr, uint8_t prefix_len, uint8_t port){
-    _putchar('[');
     int j;
     for(j = 0; j < NEXTHOP_TABLE_INDEX_NUM; j++){
         struct ip6_addr nexthop_ip6_addr = read_nexthop_table_ip6_addr(NEXTHOP_TABLE_ADDR(j));
@@ -95,8 +94,6 @@ int update_memory_rte(void *memory_rte_v){
     if(memory_rte->metric != 16){
         if(check_timeout(TIMEOUT_TIME_LIMIT, memory_rte->lower_timer)){
             // Start GC Timer
-            _putchar('P');
-            _putchar('\0');
             memory_rte->metric = 16;
             memory_rte->lower_timer = *((volatile uint32_t *)MTIME_LADDR);
             memory_rte->nexthop_port = memory_rte->nexthop_port + ((PORT_NUM - 1) << 2);
@@ -109,12 +106,9 @@ int update_memory_rte(void *memory_rte_v){
             // delete memory_rte
             // trie.delete(addr, prefix_length), return index
             // invalidate (trie->memory[index])
-            _putchar('Q');
-            _putchar('\0');
             int trie_index = TrieDelete(&(memory_rte->ip6_addr), memory_rte->prefix_len);
             if(trie_index < 0){
                 printf("[TD]%d", trie_index);
-                return 0;
             }
             rte_map[trie_index] = 0;
             memory_rte->lower_timer = 0;
@@ -354,7 +348,11 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                         int trie_index = TrieDelete(&(memory_rte[mem_id].ip6_addr), memory_rte[mem_id].prefix_len);
                         if(trie_index < 0){
                             printf("[TD]%d", trie_index);
-                            return 0;
+                            rte_map[trie_index] = 0;
+                            memory_rte[mem_id].metric = 16;
+                            memory_rte[mem_id].lower_timer = 0;
+                            memory_rte[mem_id].nexthop_port = 0;
+                            return ERR_TRIE;
                         }
                         rte_map[trie_index] = 0;
                         memory_rte[mem_id].metric = 16;
@@ -466,7 +464,7 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                 int trie_index = TrieInsert(&(entries[i].ip6_addr), entries[i].prefix_len, j);
                 if(trie_index < 0){
                     printf("[TI]%d", trie_index);
-                    continue;
+                    return ERR_TRIE;
                 }
                 rte_map[trie_index] = spare_memory_index;
                 memory_rte[spare_memory_index].ip6_addr = entries[i].ip6_addr;
@@ -664,9 +662,6 @@ void send_response(void *src_addr_v, void *dst_addr_v, void *entries_v, int num_
         struct ripng_rte send_entries[RIPNG_MAX_RTE_NUM];
         for(int i = 1; i < spare_memory_index; i++){ // TODO: index returned to 1?
             if(update_memory_rte(memory_rte + i)){
-                if(i>4){
-                    printf("%d", i);
-                }
                 send_entries[send_entry_num].ip6_addr = memory_rte[i].ip6_addr;
                 send_entries[send_entry_num].prefix_len = memory_rte[i].prefix_len;
                 send_entries[send_entry_num].metric = (PORT_ID(memory_rte + i) == port) ? 16 : memory_rte[i].metric;

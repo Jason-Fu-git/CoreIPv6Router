@@ -79,6 +79,9 @@ typedef enum
     // RIPng 表项的 Prefix 和 Prefix Len 字段不符合要求
     // The Prefix and Prefix Len fields of the RIPng table entry are inconsistent
     ERR_RIPNG_INCONSISTENT_PREFIX_LENGTH,
+    // 解析 RIPng 时Trie报错
+    // Trie error when processing RIPng
+    ERR_TRIE,
 } RipngErrorCode;
 
 #endif // _RIPNG_H_
