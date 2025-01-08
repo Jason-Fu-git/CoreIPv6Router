@@ -85,7 +85,7 @@ module wb_async (
       .s_axis_tready (),                                // output wire s_axis_tready
       .s_axis_tdata  ({wbm_adr_i, wbm_dat_i}),          // input wire [63 : 0] s_axis_tdata
       .s_axis_tuser  (wbm_we_i),                        // input wire [0 : 0] s_axis_tuser
-      .m_axis_aclk   (eth_clk),                         // input wire m_axis_aclk
+      // .m_axis_aclk   (eth_clk),                         // input wire m_axis_aclk
       .m_axis_tvalid (valid_eth),                       // output wire m_axis_tvalid
       .m_axis_tready (1'b1),                            // input wire m_axis_tready
       .m_axis_tdata  ({wbs_adr_o, wbs_dat_o}),          // output wire [63 : 0] m_axis_tdata
@@ -99,7 +99,7 @@ module wb_async (
       .s_axis_tvalid ((!wbs_ack_prev) && (wbs_ack_i)),  // input wire s_axis_tvalid
       .s_axis_tready (),                                // output wire s_axis_tready
       .s_axis_tdata  (wbs_dat_i),                       // input wire [31 : 0] s_axis_tdata
-      .m_axis_aclk   (core_clk),                        // input wire m_axis_aclk
+      // .m_axis_aclk   (core_clk),                        // input wire m_axis_aclk
       .m_axis_tvalid (valid_core),                      // output wire m_axis_tvalid
       .m_axis_tready (1'b1),                            // input wire m_axis_tready
       .m_axis_tdata  (wbm_dat_o)                        // output wire [31 : 0] m_axis_tdata
