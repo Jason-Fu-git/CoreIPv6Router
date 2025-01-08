@@ -98,12 +98,9 @@ void start(void)
     while (true)
     {
         int dma_res = _check_dma_busy();
-        uint32_t out_length = *(volatile uint32_t *)DMA_OUT_LENGTH;
         if (dma_res == 0)
         { // not busy
-            if (out_length)
-                _grant_dma_access(DMA_BLOCK_RADDR, out_length, 0);
-            else if (check_timeout(MULTICAST_TIME_LIMIT, multicast_timer_ldata)) { // check multicast timer (30s)
+            if (check_timeout(MULTICAST_TIME_LIMIT, multicast_timer_ldata)) { // check multicast timer (30s)
                 // Send multicast request.
                 send_unsolicited_response();
                 if(_check_dma_busy()) { _wait_for_dma(); }
@@ -113,8 +110,6 @@ void start(void)
             else if (*(volatile uint32_t *)DMA_IN_VALID) {
                 _grant_dma_access(DMA_BLOCK_WADDR, MTU, 1);
             }
-            // Reset the out length
-            *(volatile uint32_t *)DMA_OUT_LENGTH = 0;
             continue;
         }
         else if (dma_res == 1)
@@ -128,13 +123,6 @@ void start(void)
             { // ack
                 uint32_t data_width = *(volatile uint32_t *)DMA_DATA_WIDTH;
                 uint8_t port_id = *(volatile uint8_t *)DMA_IN_PORT_ID;
-                
-                // Make DMA busy
-                out_length = *(volatile uint32_t *)DMA_OUT_LENGTH;
-                if (out_length)
-                    _grant_dma_access(DMA_BLOCK_RADDR, out_length, 0);
-                // Reset the out length
-                *(volatile uint32_t *)DMA_OUT_LENGTH = 0;
 
                 // Process the packet
                 RipngErrorCode error = disassemble(DMA_BLOCK_WADDR, data_width, port_id);
