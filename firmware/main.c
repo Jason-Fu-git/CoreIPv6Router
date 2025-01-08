@@ -65,6 +65,7 @@ void start(void)
         write_mac_addr(mac_addrs + i, MAC_CONFIG_ADDR(i));
     }
 
+    // struct ip6_addr direct_route = {.s6_addr32 = {}};
     // config_direct_route();
 
     // Send multicast request.
@@ -85,7 +86,7 @@ void start(void)
     _putchar('\0');
 
     // Grant DMA access (Write) to the memory
-    _grant_dma_access(DMA_BLOCK_WADDR, MTU, 1);
+    // _grant_dma_access(DMA_BLOCK_WADDR, MTU, 1);
 
     // Main loop
     while (true)
@@ -96,24 +97,29 @@ void start(void)
         { // not busy
             if (out_length)
                 _grant_dma_access(DMA_BLOCK_RADDR, out_length, 0);
-            else if (*(volatile uint32_t *)DMA_IN_VALID)
+            else if (check_timeout(MULTICAST_TIME_LIMIT, multicast_timer_ldata)) { // check multicast timer (30s)
+                // Send multicast request.
+                send_unsolicited_response();
+                if(_check_dma_busy()) { _wait_for_dma(); }
+                // Reset the multicast timer
+                multicast_timer_ldata = *((volatile uint32_t *)MTIME_LADDR);
+            }
+            else if (*(volatile uint32_t *)DMA_IN_VALID) {
                 _grant_dma_access(DMA_BLOCK_WADDR, MTU, 1);
+            }
             // Reset the out length
             *(volatile uint32_t *)DMA_OUT_LENGTH = 0;
             continue;
         }
         else if (dma_res == 1)
         { // out
-            if (_check_dma_ack())
-            { // ack
-                continue;
-            }
+            _check_dma_ack();
+            continue;
         }
         else // == 2
         {    // in
             if (_check_dma_ack())
             { // ack
-                *(volatile uint32_t *)DMA_CPU_STB = 0;
                 uint32_t data_width = *(volatile uint32_t *)DMA_DATA_WIDTH;
                 uint8_t port_id = *(volatile uint8_t *)DMA_IN_PORT_ID;
                 
@@ -131,20 +137,8 @@ void start(void)
                     printf("D%d", error);
                     _putchar('\0');
                 }
-                else // If SUCCESS, we should continue
-                {
-                    continue;
-                }
+                // If SUCCESS, we should continue
             }
-        }
-
-        // check multicast timer (30s)
-        if (check_timeout(MULTICAST_TIME_LIMIT, multicast_timer_ldata))
-        {
-            // Send multicast request.
-            send_unsolicited_response();
-            // Reset the multicast timer
-            multicast_timer_ldata = *((volatile uint32_t *)MTIME_LADDR);
         }
     }
 }
