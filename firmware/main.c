@@ -69,7 +69,7 @@ void start(void)
     direct_route.s6_addr32[0] = htonl(0x2A0EAA06);
     direct_route.s6_addr32[2] = 0;
     direct_route.s6_addr32[3] = 0;
-    for(int i = 0; i < 3; i++) {
+    for(int i = 0; i < 4; i++) {
         direct_route.s6_addr32[1] = htonl(0x04970000 + i);
         config_direct_route(&direct_route, 64, i);
     }
