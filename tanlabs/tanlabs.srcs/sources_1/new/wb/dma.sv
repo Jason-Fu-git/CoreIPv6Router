@@ -179,7 +179,7 @@ module dma #(
       .s_axis_tlast  (filtered_in_last),   // input wire s_axis_tlast
       .s_axis_tid    (filtered_in_id),     // input wire [1 : 0] s_axis_tid
 
-      .m_axis_aclk  (core_clk),       // input wire m_axis_aclk
+      // .m_axis_aclk  (core_clk),       // input wire m_axis_aclk
       .m_axis_tvalid(fifo_in_valid),  // output wire m_axis_tvalid
       .m_axis_tready(in_dm_ready),    // input wire m_axis_tready
       .m_axis_tdata (fifo_in_data),   // output wire [31 : 0] m_axis_tdata
@@ -535,7 +535,7 @@ module dma #(
       .s_axis_tlast  (fifo_out_last),   // input wire s_axis_tlast
       .s_axis_tid    (cpu_port_id_i),   // input wire [1 : 0] s_axis_tid
 
-      .m_axis_aclk  (eth_clk),                   // input wire m_axis_aclk
+      // .m_axis_aclk  (eth_clk),                   // input wire m_axis_aclk
       .m_axis_tvalid(out_conv_i.valid),          // output wire m_axis_tvalid
       .m_axis_tready(out_conv_ready),            // input wire m_axis_tready
       .m_axis_tdata (out_conv_i.data[31:0]),     // output wire [31 : 0] m_axis_tdata

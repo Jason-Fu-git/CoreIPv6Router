@@ -53,7 +53,7 @@ void config_direct_route(struct ip6_addr *ip6_addr, uint8_t prefix_len, uint8_t 
     }
     trie_index = TrieInsert(ip6_addr, prefix_len, j);
     if(trie_index < 0){
-        printf("[TI]%d", trie_index);
+        // printf("[TI]%d", trie_index);
         return;
     }
     j = spare_memory_index;
@@ -82,7 +82,7 @@ int update_memory_rte(void *memory_rte_v){
     }
     if(memory_rte->metric != 16){
         if(check_timeout(TIMEOUT_TIME_LIMIT, memory_rte->lower_timer)){
-            printf("180\0");
+            // printf("180\0");
             // Start GC Timer
             memory_rte->metric = 16;
             memory_rte->lower_timer = *(volatile uint8_t *)MTIME_LADDR;
@@ -91,14 +91,14 @@ int update_memory_rte(void *memory_rte_v){
     }
     else{
         if(check_timeout(GARBAGE_COLLECTION_TIME_LIMIT, memory_rte->lower_timer)){
-            printf("120\0");
+            // printf("120\0");
             // Delete the route
             // delete memory_rte
             // trie.delete(addr, prefix_length), return index
             // invalidate (trie->memory[index])
             int trie_index = TrieDelete(&(memory_rte->ip6_addr), memory_rte->prefix_len);
             if(trie_index < 0){
-                printf("[TD]%d\n", trie_index);
+                // printf("[TD]%d\n", trie_index);
                 return 0;
             }
             rte_map[trie_index] = 0;
@@ -339,7 +339,7 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                         // Delete the route
                         int trie_index = TrieDelete(&(memory_rte->ip6_addr), memory_rte->prefix_len);
                         if(trie_index < 0){
-                            printf("[TD]%d", trie_index);
+                            // printf("[TD]%d", trie_index);
                             return 0;
                         }
                         rte_map[trie_index] = 0;
@@ -429,7 +429,7 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                 // Add new route
                 int trie_index = TrieInsert(&(entries[i].ip6_addr), entries[i].prefix_len, j);
                 if(trie_index < 0){
-                    printf("[TI]%d", trie_index);
+                    // printf("[TI]%d", trie_index);
                     continue;
                 }
                 j = spare_memory_index;
@@ -670,7 +670,7 @@ void send_response(void *src_addr_v, void *dst_addr_v, void *entries_v, int num_
 void send_unsolicited_response()
 {
     struct ip6_addr dst_addr = {.s6_addr32 = MULTICAST_ADDR};
-    printf("30");
+    // printf("30");
     for(int p = 0; p < PORT_NUM; p++){
         send_response(ip_addrs + p, &dst_addr, NULL, 0, p, 1);
     }

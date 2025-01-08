@@ -732,20 +732,31 @@ module tanlabs #(
 
   logic checksum_fifo_in_ready;
 
-  reg dma_stb_delay, dma_we_delay, addr_stb_delay, dm_stb_delay;
-  reg nexthop_table_stb_delay, bram_stb_delay, uart_stb_delay, dm_ack_delay;
+  reg dma_stb_delay, dma_we_delay, dma_ack_delay, dma_request_delay;
+  reg nexthop_table_stb_delay, bram_stb_delay, dm_ack_delay, dm_stb_delay;
 
-  axis_data_async_fifo_checksum axis_data_async_fifo_checksum_i (
-      .s_axis_aresetn(~reset_core),                // input wire s_axis_aresetn
-      .s_axis_aclk   (core_clk),                   // input wire s_axis_aclk
-      .s_axis_tvalid (dma_checksum_valid),         // input wire s_axis_tvalid
-      .s_axis_tready (checksum_fifo_in_ready),     // output wire s_axis_tready
-      .s_axis_tdata  (dma_checksum),               // input wire [15 : 0] s_axis_tdata
-      .m_axis_aclk   (eth_clk),                    // input wire m_axis_aclk
-      .m_axis_tvalid (dma_checksum_valid_synced),  // output wire m_axis_tvalid
-      .m_axis_tready (1'b1),                       // input wire m_axis_tready
-      .m_axis_tdata  (dma_checksum_synced)         // output wire [15 : 0] m_axis_tdata
-  );
+  //   axis_data_async_fifo_checksum axis_data_async_fifo_checksum_i (
+  //       .s_axis_aresetn(~reset_core),                // input wire s_axis_aresetn
+  //       .s_axis_aclk   (core_clk),                   // input wire s_axis_aclk
+  //       .s_axis_tvalid (dma_checksum_valid),         // input wire s_axis_tvalid
+  //       .s_axis_tready (checksum_fifo_in_ready),     // output wire s_axis_tready
+  //       .s_axis_tdata  (dma_checksum),               // input wire [15 : 0] s_axis_tdata
+  //       .m_axis_aclk   (eth_clk),                    // input wire m_axis_aclk
+  //       .m_axis_tvalid (dma_checksum_valid_synced),  // output wire m_axis_tvalid
+  //       .m_axis_tready (1'b1),                       // input wire m_axis_tready
+  //       .m_axis_tdata  (dma_checksum_synced)         // output wire [15 : 0] m_axis_tdata
+  //   );
+
+  // core clock == dma clock
+  always_ff @(posedge eth_clk) begin : DMA_CHECKSUM
+    if (reset_eth) begin
+      dma_checksum_synced <= 0;
+      dma_checksum_valid_synced <= 0;
+    end else begin
+      dma_checksum_synced <= dma_checksum;
+      dma_checksum_valid_synced <= dma_checksum_valid;
+    end
+  end
 
 
   frame_datapath #(
@@ -813,12 +824,14 @@ module tanlabs #(
 
       .dma_stb(dma_stb_delay),
       .dma_wea(dma_we_delay),
-      .addr_stb(addr_stb_delay),
-      .nexthop_table_stb(nexthop_table_stb_delay),
+      .dma_ack(dma_ack_delay),
+      .dma_request(dma_request_delay),
 
+      //   .addr_stb(addr_stb_delay),
+      .nexthop_table_stb(nexthop_table_stb_delay),
       .dm_stb  (dm_stb_delay),
       .dm_ack  (dm_ack_delay),
-      .uart_stb(uart_stb_delay),
+      //   .uart_stb(uart_stb_delay),
       .bram_stb(bram_stb_delay)
   );
 
@@ -1075,23 +1088,23 @@ module tanlabs #(
 
   always_ff @(posedge core_clk) begin
     if (reset_core) begin
-      dma_stb_delay <= 1'b0;
-      dma_we_delay <= 1'b0;
-      addr_stb_delay <= 1'b0;
+      dma_stb_delay           <= 1'b0;
+      dma_we_delay            <= 1'b0;
+      dma_ack_delay           <= 1'b0;
+      dma_request_delay       <= 1'b0;
       nexthop_table_stb_delay <= 1'b0;
-      bram_stb_delay <= 1'b0;
-      uart_stb_delay <= 1'b0;
-      dm_stb_delay <= 1'b0;
-      dm_ack_delay <= 1'b0;
+      bram_stb_delay          <= 1'b0;
+      dm_stb_delay            <= 1'b0;
+      dm_ack_delay            <= 1'b0;
     end else begin
-      dma_stb_delay <= dma_cpu_stb;
-      dma_we_delay <= dma_cpu_we;
-      addr_stb_delay <= (addr_stb_delay) ? 1'b1 : addr_conf_stb;
+      dma_stb_delay           <= dma_cpu_stb;
+      dma_we_delay            <= dma_cpu_we;
+      dma_ack_delay           <= dma_ack;
+      dma_request_delay       <= dma_request;
       nexthop_table_stb_delay <= nxthop_conf_stb;
-      bram_stb_delay <= bram_cpu_stb;
-      uart_stb_delay <= wbs1_stb;
-      dm_stb_delay <= dm_stb;
-      dm_ack_delay <= dm_ack;
+      bram_stb_delay          <= bram_cpu_stb;
+      dm_stb_delay            <= dm_stb;
+      dm_ack_delay            <= dm_ack;
     end
   end
 
@@ -1418,26 +1431,26 @@ module tanlabs #(
       .sram_be_n(base_ram_be_n)
   );
 
-//   uart_controller #(
-//       .CLK_FREQ(125_000_000),
-//       .BAUD    (115200)
-//   ) uart_controller (
-//       .clk_i(core_clk),
-//       .rst_i(reset_core),
+  //   uart_controller #(
+  //       .CLK_FREQ(125_000_000),
+  //       .BAUD    (115200)
+  //   ) uart_controller (
+  //       .clk_i(core_clk),
+  //       .rst_i(reset_core),
 
-//       .wb_cyc_i(wbs1_cyc),
-//       .wb_stb_i(wbs1_stb),
-//       .wb_ack_o(wbs1_ack),
-//       .wb_adr_i(wbs1_adr),
-//       .wb_dat_i(wbs1_dat_w),
-//       .wb_dat_o(wbs1_dat_r),
-//       .wb_sel_i(wbs1_sel),
-//       .wb_we_i (wbs1_we),
+  //       .wb_cyc_i(wbs1_cyc),
+  //       .wb_stb_i(wbs1_stb),
+  //       .wb_ack_o(wbs1_ack),
+  //       .wb_adr_i(wbs1_adr),
+  //       .wb_dat_i(wbs1_dat_w),
+  //       .wb_dat_o(wbs1_dat_r),
+  //       .wb_sel_i(wbs1_sel),
+  //       .wb_we_i (wbs1_we),
 
-//       // to UART pins
-//       .uart_txd_o(uart_tx),
-//       .uart_rxd_i(uart_rx)
-//   );
+  //       // to UART pins
+  //       .uart_txd_o(uart_tx),
+  //       .uart_rxd_i(uart_rx)
+  //   );
 
   uart_controller #(
       .CLK_FREQ(125_000_000),

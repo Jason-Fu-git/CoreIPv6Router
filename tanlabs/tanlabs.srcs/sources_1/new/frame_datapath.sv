@@ -69,12 +69,14 @@ module frame_datapath #(
     // DEBUG signals (DMA, address config and data memory)
     input wire dma_stb,
     input wire dma_wea,
-    input wire addr_stb,
-    input wire nexthop_table_stb,
+    input wire dma_ack,
+    input wire dma_request,
 
+    // input wire addr_stb,
+    input wire nexthop_table_stb,
     input wire dm_stb,
     input wire dm_ack,
-    input wire uart_stb,
+    // input wire uart_stb,
     input wire bram_stb
 );
 
@@ -420,8 +422,10 @@ module frame_datapath #(
         in_handling_ns,
         in_handling_na,
         in_handling_rip,
-        nexthop_table_stb,
-        addr_stb,
+        // nexthop_table_stb,
+        // addr_stb,
+        dma_request,
+        dma_ack,
         dma_stb,
         dma_wea
       }),
@@ -437,7 +441,8 @@ module frame_datapath #(
         out_handling_fw,
         out_handling_ns,
         bram_stb,
-        uart_stb,
+        nexthop_table_stb,
+        // uart_stb,
         dm_ack,
         dm_stb
       }),
