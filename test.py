@@ -169,6 +169,70 @@ def send_ripng(iface):
     ripng_entry3 = RIPngEntry(prefix_or_nh="2004::2",
                               routetag=0, prefixlen=128, metric=1)
     packet = ether / ipv6 / udp / ripng / ripng_entry1 / ripng_entry2 / ripng_entry3
+    ns_packet = Ether(src="00:e0:4c:68:11:6f", dst="8c:1f:64:69:10:54")/IPv6(src="1000::9", dst="fe80::8e1f:64ff:fe69:1054", hlim=255)/ICMPv6ND_NS(tgt="fe80::8e1f:64ff:fe69:1054")/ICMPv6NDOptSrcLLAddr(lladdr="00:e0:4c:68:11:6f")
+    sendp(ns_packet, iface=iface)
+    
+    #ns_packet2 = Ether(src="8c:1f:64:69:10:01", dst="8c:1f:64:69:10:57")/IPv6(src="fe80::8e1f:64ff:fe69:1001", dst="fe80::8e1f:64ff:fe69:1057", hlim=255)/ICMPv6ND_NS(tgt="fe80::8e1f:64ff:fe69:1057")/ICMPv6NDOptSrcLLAddr(lladdr="8c:1f:64:69:10:01")
+    
+    #sendp(ns_packet2, iface=iface)
+    
+    
+    
+def send_forward_packet(iface):
+    ether = Ether(src="8c:1f:64:69:10:01", dst="8c:1f:64:69:10:54")
+    ipv6 = IPv6(src="fe80::8e1f:64ff:fe69:1001", dst="fe80::8e1f:64ff:fe69:1004", hlim=64)
+    icmpv6 = ICMPv6EchoRequest()
+    payload = Raw(load="Hello 1004!")
+    packet = ether / ipv6 / icmpv6 / payload
+    sendp(packet, iface=iface)
+    
+    ether2 = Ether(src="8c:1f:64:69:10:04", dst="8c:1f:64:69:10:57")
+    ipv62 = IPv6(src="fe80::8e1f:64ff:fe69:1004", dst="fe80::8e1f:64ff:fe69:1001", hlim=64)
+    icmpv62 = ICMPv6EchoRequest()
+    payload2 = Raw(load="Hello 1001!")
+    packet2 = ether2 / ipv62 / icmpv62 / payload2
+    sendp(packet2, iface=iface)
+    
+    # A very long pkt from 1001 to 1004
+    ether3 = Ether(src="8c:1f:64:69:10:01", dst="8c:1f:64:69:10:54")
+    ipv63 = IPv6(src="fe80::8e1f:64ff:fe69:1001", dst="fe80::8e1f:64ff:fe69:1004", hlim=64)
+    icmpv63 = ICMPv6EchoRequest()
+    payload3 = Raw(load="S" + "A"*1000 + "E")
+    packet3 = ether3 / ipv63 / icmpv63 / payload3
+    sendp(packet3, iface=iface)
+    
+    # invalid hop limit
+    ether4 = Ether(src="8c:1f:64:69:10:01", dst="8c:1f:64:69:10:54")
+    ipv64 = IPv6(src="fe80::8e1f:64ff:fe69:1001", dst="fe80::8e1f:64ff:fe69:1004", hlim=1)
+    icmpv64 = ICMPv6EchoRequest()
+    payload4 = Raw(load="S" + "A"*1000 + "E")
+    packet4 = ether4 / ipv64 / icmpv64 / payload4
+    sendp(packet4, iface=iface)
+    
+    # invalid dst
+    ether5 = Ether(src="8c:1f:64:69:10:01", dst="8c:1f:64:69:10:54")
+    ipv65 = IPv6(src="fe80::8e1f:64ff:fe69:1001", dst="fe80::8e1f:64ff:fe69:1111", hlim=64)
+    icmpv65 = ICMPv6EchoRequest()
+    packet5 = ether5 / ipv65 / icmpv65
+    sendp(packet5, iface=iface)
+    
+    # a valid pkt
+    ether6 = Ether(src="8c:1f:64:69:10:04", dst="8c:1f:64:69:10:57")
+    ipv66 = IPv6(src="fe80::8e1f:64ff:fe69:1004", dst="fe80::8e1f:64ff:fe69:1001", hlim=64)
+    icmpv66 = ICMPv6EchoRequest()
+    packet6 = ether6 / ipv66 / icmpv66
+    sendp(packet6, iface=iface)
+    
+    
+
+def send_ripng(iface):
+    ether = Ether(src="00:e0:4c:68:13:ab", dst="8c:1f:64:69:10:55")
+    ipv6 = IPv6(src="1000::9", dst="fe80::1", hlim=255)
+    udp = UDP(sport=521, dport=521)
+    ripng = RIPng(cmd=2)
+    ripng_entry1 = RIPngEntry(prefix_or_nh="1000::", routetag=0, prefixlen=64, metric=1)
+    ripng_entry2 = RIPngEntry(prefix_or_nh="fe80::d3af:2e01:6b1d:452", routetag=0, prefixlen=128, metric=2)
+    packet = ether / ipv6 / udp / ripng / ripng_entry1 / ripng_entry2
     sendp(packet, iface=iface)
 
 
@@ -190,3 +254,8 @@ if __name__ == "__main__":
         time.sleep(10)
         send_packet(iface)
         time.sleep(10)
+        #send_ns(iface)
+        send_ripng(iface)
+        time.sleep(3)
+    #     send_packet(iface)
+    #     time.sleep(10)

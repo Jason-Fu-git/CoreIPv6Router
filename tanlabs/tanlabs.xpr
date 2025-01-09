@@ -731,11 +731,14 @@
           <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
+        <CompFileExtendedInfo CompFileName="axi_ethernet_0.xci" FileRelPathName="ip/ip_5/bd_5d9f_c_shift_ram_0_0.xci">
+          <Proxy FileSetName="bd_5d9f_c_shift_ram_0_0"/>
+        </CompFileExtendedInfo>
         <CompFileExtendedInfo CompFileName="axi_ethernet_0.xci" FileRelPathName="ip/ip_0/bd_5d9f_mac_0.xci">
           <Proxy FileSetName="bd_5d9f_mac_0"/>
         </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="axi_ethernet_0.xci" FileRelPathName="ip/ip_5/bd_5d9f_c_shift_ram_0_0.xci">
-          <Proxy FileSetName="bd_5d9f_c_shift_ram_0_0"/>
+        <CompFileExtendedInfo CompFileName="axi_ethernet_0.xci" FileRelPathName="ip/ip_1/bd_5d9f_pcs_pma_0.xci">
+          <Proxy FileSetName="bd_5d9f_pcs_pma_0"/>
         </CompFileExtendedInfo>
         <CompFileExtendedInfo CompFileName="axi_ethernet_0.xci" FileRelPathName="ip/ip_1/bd_5d9f_pcs_pma_0.xci">
           <Proxy FileSetName="bd_5d9f_pcs_pma_0"/>
