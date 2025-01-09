@@ -42,7 +42,7 @@ void start(void)
     // Initialize the UART
     init_uart();
 
-    // printf("TAC CA[[ F\n\n\n\n");
+    printf("TAC CA[[ F\n\n\n\n");
 
     // Initialize timers
     *((volatile uint32_t *)MTIMECMP_HADDR) = 0xFFFFFFFF;

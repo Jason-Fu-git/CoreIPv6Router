@@ -669,10 +669,17 @@ module trie128(
             cpu_dat_out_raw <= 0;
             cpu_ack_sync <= 0;
         end else begin
-            cpu_adr <= cpu_adr_raw;
-            cpu_dat_in <= cpu_dat_in_raw;
+            if (cpu_stb_raw) begin
+                cpu_adr <= cpu_adr_raw;
+                cpu_dat_in <= cpu_dat_in_raw;
+                cpu_wea <= cpu_wea_raw;
+            end
+            if (cpu_ack) begin
+                cpu_adr <= 0;
+                cpu_dat_in <= 0;
+                cpu_wea <= 0;
+            end
             cpu_stb <= cpu_stb_raw;
-            cpu_wea <= cpu_wea_raw;
             cpu_dat_out_raw <= cpu_dat_out;
             cpu_ack_sync <= cpu_ack;
         end
