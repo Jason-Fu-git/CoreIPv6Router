@@ -266,7 +266,7 @@ public:
 		}
 END: // excessive
 		prefix_raw->toHex(error_buffer);
-		printf("E%s/%d", error_buffer, length);
+		// printf("E%s/%d", error_buffer, length);
         _putchar('\0');
 		++excessive_count;
 		return 0xffffffff;
