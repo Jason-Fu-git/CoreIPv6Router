@@ -6,7 +6,7 @@ module tb #(
     parameter ID_WIDTH   = 3
 ) ();
 
-  parameter BASE_RAM_INIT_FILE = "D:\\Libraries\\Academic\\Vivado\\joint-lab-g5\\tanlabs\\kernel.bin";
+  parameter BASE_RAM_INIT_FILE = "D:\\Programming\\VivadoProjects\\joint-lab-g5\\firmware\\kernel.bin";
 
   wire txd;
   wire rxd;

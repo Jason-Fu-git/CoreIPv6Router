@@ -36,10 +36,14 @@ module pipeline_ns (
   assign in_ip6_hdr   = first_beat.data.ip6;
   assign in_meta_src  = first_beat.meta.id;
 
+  logic [7:0] boot_counter;
+
   typedef enum logic [3:0] {
+    NS_BOOT,
     NS_INIT,
     NS_INIT_SEND_1,
     NS_INIT_SEND_2,
+    NS_INIT_CHECK,
     NS_IDLE,
     NS_WAIT,
     NS_CHECK,
@@ -85,14 +89,15 @@ module pipeline_ns (
    && (ns_checksum_ok)
    && (ipv6_addrs[in_meta_src] == ns_packet.icmpv6.target_addr));
 
-  logic [1:0] init_phase;
+  logic [2:0] init_phase;
 
   always_comb begin
     case (ns_state)
+      NS_BOOT       : ns_next_state = (boot_counter >= 8'd32) ? NS_INIT : NS_BOOT;
       NS_INIT       : ns_next_state = NS_INIT_SEND_1;
       NS_INIT_SEND_1: ns_next_state = ((ready_i          ) ? NS_INIT_CHECK  : NS_INIT_SEND_1);
-      NS_INIT_CHECK : ns_next_state = ((na_checksum_valid) ? NS_INIT_SEND_2 : NS_INIT_CHECK );
-      NS_INIT_SEND_2: ns_next_state = ((ready_i          ) ? ((init_phase == 2'd3) ? NS_IDLE : NS_INIT) : NS_INIT_SEND_2);
+      NS_INIT_CHECK : ns_next_state = ((init_checksum_valid) ? NS_INIT_SEND_2 : NS_INIT_CHECK );
+      NS_INIT_SEND_2: ns_next_state = ((ready_i          ) ? ((init_phase == 3'd7) ? NS_IDLE : NS_INIT) : NS_INIT_SEND_2);
       NS_IDLE       : ns_next_state = ((valid_i          ) ? NS_WAIT        : NS_IDLE       );
       NS_WAIT       : ns_next_state = ((valid_i          ) ? NS_CHECK       : NS_WAIT       );
       NS_CHECK      : ns_next_state = ((ns_checksum_valid) ? NS_SEND_1      : NS_CHECK      );
@@ -107,10 +112,12 @@ module pipeline_ns (
     if (rst_p) begin
       ns_state <= NS_INIT;
       init_phase <= 0;
+      boot_counter <= 0;
     end else begin
       ns_state <= ns_next_state;
+      boot_counter <= boot_counter + 1;
       if ((ns_state == NS_INIT_SEND_2) && (ready_i)) begin
-        init_phase <= init_phase + 2'b1;
+        init_phase <= init_phase + 3'd1;
       end
     end
   end
@@ -126,11 +133,12 @@ module pipeline_ns (
       na_checksum_ea <= 0;
       cache_wea_p <= 0;
       cache_writing <= 0;
+      init_checksum_ea <= 0;
     end else begin
       if (ns_checksum_valid) begin
         ns_checksum_ok <= (ns_checksum == 16'hffff);
       end
-      if ((ns_state == NS_INIT) && (ready_i)) begin
+      if ((ns_state == NS_INIT)) begin
         init_checksum_ea <= 1'b1;
       end else if ((ns_state == NS_INIT_SEND_2) && (ready_i)) begin
         init_checksum_ea <= 0;
@@ -154,7 +162,7 @@ module pipeline_ns (
         out.keep            <= 56'hffffffffffffff;
         out.meta.dont_touch <= 1'b0;
         out.meta.drop_next  <= 1'b0;
-        out.meta.dest       <= init_phase;
+        out.meta.dest       <= init_phase[1:0];
       end else if (ns_state == NS_INIT_SEND_1) begin
         out.valid <= 1;
       end else if (ns_state == NS_INIT_SEND_2) begin
@@ -167,7 +175,7 @@ module pipeline_ns (
         out.meta.drop <= 1'b0;
         out.meta.dont_touch <= 1'b0;
         out.meta.drop_next <= 1'b0;
-        out.meta.dest <= init_phase;
+        out.meta.dest <= init_phase[1:0];
       end else if (ns_state == NS_WAIT) begin
         out.data            <= na_packet[447:0];  // 56 bytes
         out.is_first        <= 1'b1;
@@ -241,8 +249,8 @@ module pipeline_ns (
     init_packet.icmpv6.code           = 8'd0;
     init_packet.icmpv6.checksum       = 16'd0;
     init_packet.icmpv6.R              = 1'b1;  // sent from router
-    init_packet.icmpv6.S              = 1'b1;  // TODO: set the flag, now is default: sent as response to NS
-    init_packet.icmpv6.O              = 1'b1;  // TODO: set the flag
+    init_packet.icmpv6.S              = 1'b0;  // set the flag, now is default: sent as response to NS
+    init_packet.icmpv6.O              = 1'b1;  // set the flag
     init_packet.icmpv6.reserved_lo    = 24'h0;
     init_packet.icmpv6.reserved_hi    = 5'h0;
     init_packet.icmpv6.target_addr    = 128'h010000000000000000000000000002ff;
@@ -257,9 +265,9 @@ module pipeline_ns (
     init_packet.ether.ip6.flow_lo     = 24'b0;
     init_packet.ether.ip6.flow_hi     = 4'b0;
     init_packet.ether.ip6.version     = 4'd6;
-    init_packet.option.mac_addr       = mac_addrs[init_phase];
-    init_packet.ether.src             = mac_addrs[init_phase];
-    init_packet.ether.ip6.src         = ipv6_addrs[init_phase];
+    init_packet.option.mac_addr       = mac_addrs[init_phase[1:0]];
+    init_packet.ether.src             = mac_addrs[init_phase[1:0]];
+    init_packet.ether.ip6.src         = ipv6_addrs[init_phase[1:0]];
   end
 
   // assign valid_o        = ((ns_state == NS_SEND_1) || (ns_state == NS_SEND_2));
