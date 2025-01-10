@@ -88,16 +88,11 @@ int update_memory_rte(void *memory_rte_v){
     if(ISDIRECT(memory_rte)){
         return 1;
     }
-    if((memory_rte->nexthop_port & 0x3C) != 0){ // Just Timeout, need other ports to send it.
-        memory_rte->nexthop_port -= 4;
-        return 1;
-    }
     if(memory_rte->metric != 16){
         if(check_timeout(TIMEOUT_TIME_LIMIT, memory_rte->lower_timer)){
             // Start GC Timer
             memory_rte->metric = 16;
             memory_rte->lower_timer = *((volatile uint32_t *)MTIME_LADDR);
-            memory_rte->nexthop_port = memory_rte->nexthop_port + ((PORT_NUM - 1) << 2);
         }
         return 1;
     }
@@ -117,8 +112,9 @@ int update_memory_rte(void *memory_rte_v){
             rte_map[trie_index] = 0;
             memory_rte->lower_timer = 0;
             memory_rte->nexthop_port = 0;
+            return 0;
         }
-        return 0;
+        return 1;
     }
 }
 
@@ -349,18 +345,16 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                 if(new_metric == 16){
                     if(port == (PORT_ID(memory_rte + mem_id))){ // next_hop same
                         // Delete the route
-                        int trie_index = TrieDelete(&(memory_rte[mem_id].ip6_addr), memory_rte[mem_id].prefix_len);
+                        int trie_index = TrieLookup(&(memory_rte[mem_id].ip6_addr), memory_rte[mem_id].prefix_len);
                         if(trie_index < 0){
-                            printf("[TD]%d", trie_index);
+                            printf("[TF]%d", trie_index);
                             memory_rte[mem_id].metric = 16;
                             memory_rte[mem_id].lower_timer = 0;
                             memory_rte[mem_id].nexthop_port = 0;
                             return ERR_TRIE;
                         }
-                        rte_map[trie_index] = 0;
                         memory_rte[mem_id].metric = 16;
-                        memory_rte[mem_id].lower_timer = 0;
-                        memory_rte[mem_id].nexthop_port = 0;
+                        memory_rte[mem_id].lower_timer = (*((volatile uint32_t *)MTIME_LADDR)) & 0xFF;
                         // if(check_timeout(TRIGGERED_RESPONSE_TIME_INTERVAL, last_triggered_time)){
                         //     last_triggered_time = *((volatile uint32_t *)MTIME_LADDR);
                         // }
