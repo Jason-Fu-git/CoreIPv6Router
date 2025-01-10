@@ -454,7 +454,10 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                             send_entry_num = 0;
                         }
                     }
-                    else; // Do nothing
+                    else{ // Nexthop and metric both same
+                        // Update timer
+                        memory_rte[mem_id].lower_timer = (*((volatile uint32_t *)MTIME_LADDR)) & 0xFF;
+                    }
                 }
                 else{
                     // Update the route
