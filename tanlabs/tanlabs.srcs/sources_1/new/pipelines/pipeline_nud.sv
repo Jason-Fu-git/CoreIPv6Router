@@ -17,7 +17,8 @@ module pipeline_nud (
     input  wire       [  1:0] iface_i,     // interface ID (0, 1, 2, 3)
     input  wire               ready_i,     // out can be sent
     output frame_beat         out,
-    output reg                valid_o
+    output reg                valid_o,
+    output reg                ready_o
 );
 
   NS_packet        NS_o;  // NS packet to be sent by datapath
@@ -157,6 +158,8 @@ module pipeline_nud (
   );
 
   // assign valid_o = (nud_state == NUD_SEND_1) || (nud_state == NUD_SEND_2);
+
+  assign ready_o = (nud_state == NUD_IDLE) || ((nud_state == NUD_SEND_2) && ready_i);
 
 endmodule
 
