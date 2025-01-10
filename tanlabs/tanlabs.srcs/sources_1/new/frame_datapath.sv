@@ -153,17 +153,23 @@ module frame_datapath #(
   logic ns_in_valid, na_in_valid, fw_in_valid, rip_in_valid;
   logic ns_in_ready, na_in_ready, fw_in_ready, rip_in_ready;
   logic ns_out_valid, fw_out_valid, nud_out_valid, rip_out_valid;
-  logic ns_out_ready, fw_out_ready, nud_out_ready, rip_out_ready;
+  logic ns_out_ready, fw_out_ready, nud_out_ready, nud_in_ready, rip_out_ready;
   logic ns_cache_valid, na_cache_valid;
   logic ns_cache_ready, na_cache_ready;
   cache_entry ns_cache_entry, na_cache_entry, cache_w, cache_w_buffer;
   logic cache_wea_p, cache_wea_p_buffer, cache_exists0, cache_exists1;
-  logic nud_we_p;
+  logic nud_we_p, nud_we_p_fwd, nud_we_p_cache, nud_we_p_res;
 
   logic [4:0] trie128_next_hop;
 
-  logic [127:0] nud_exp_addr, cache_ip6_addr0_i, cache_ip6_addr1_i;
-  logic [1:0] nud_iface;
+  logic [127:0]
+      nud_exp_addr,
+      nud_exp_addr_fwd,
+      nud_exp_addr_cache,
+      nud_exp_addr_res,
+      cache_ip6_addr0_i,
+      cache_ip6_addr1_i;
+  logic [1:0] nud_iface, nud_iface_fwd, nud_iface_cache, nud_iface_res;
   logic [47:0] cache_mac_addr0_o, cache_mac_addr1_o;
   logic [1:0] cache_iface0_i, cache_iface1_i;
 
@@ -215,9 +221,9 @@ module frame_datapath #(
       .w_MAC_addr (cache_w_buffer.mac_addr),
       .wea_p      (cache_wea_p_buffer),
 
-      .nud_probe      (nud_we_p),
-      .probe_IPv6_addr(nud_exp_addr),
-      .probe_port_id  (nud_iface)
+      .nud_probe      (nud_we_p_cache),
+      .probe_IPv6_addr(nud_exp_addr_cache),
+      .probe_port_id  (nud_iface_cache)
   );
 
   logic [127:0] fwt_addr;
@@ -316,7 +322,11 @@ module frame_datapath #(
       .nexthop_IPv6_addr(nexthop_ip6_addr),
       .nexthop_port_id  (nexthop_port_id),
 
-      .mac_addrs(mac_addrs)
+      .mac_addrs(mac_addrs),
+
+      .nud_probe      (nud_we_p_fwd),
+      .probe_IPv6_addr(nud_exp_addr_fwd),
+      .probe_port_id  (nud_iface_fwd)
   );
 
   pipeline_ns pipeline_ns_i (
@@ -344,14 +354,46 @@ module frame_datapath #(
       .in(na_in),
       .out(na_cache_entry)
   );
+  always_ff @(posedge eth_clk) begin
+    if (reset) begin
+      nud_we_p <= 0;
+      nud_exp_addr <= 0;
+      nud_iface <= 0;
+    end else if (nud_we_p_cache) begin
+      nud_we_p <= nud_we_p_cache;
+      nud_exp_addr <= nud_exp_addr_cache;
+      nud_iface <= nud_iface_cache;
+    end else if (nud_we_p_fwd) begin
+      nud_we_p <= nud_we_p_fwd;
+      nud_exp_addr <= nud_exp_addr_fwd;
+      nud_iface <= nud_iface_fwd;
+    end else begin
+      nud_we_p <= 0;
+      nud_exp_addr <= 0;
+      nud_iface <= 0;
+    end
+  end
+  axis_data_fifo_nud axis_data_fifo_nud_i (
+      .s_axis_aresetn(~reset),          // input wire s_axis_aresetn
+      .s_axis_aclk   (eth_clk),         // input wire s_axis_aclk
+      .s_axis_tvalid (nud_we_p),        // input wire s_axis_tvalid
+      .s_axis_tready (),                // output wire s_axis_tready
+      .s_axis_tdata  (nud_exp_addr),    // input wire [127 : 0] s_axis_tdata
+      .s_axis_tdest  (nud_iface),       // input wire [1 : 0] s_axis_tdest
+      .m_axis_tvalid (nud_we_p_res),    // output wire m_axis_tvalid
+      .m_axis_tready (nud_in_ready),   // input wire m_axis_tready
+      .m_axis_tdata  (nud_exp_addr_res),// output wire [127 : 0] m_axis_tdata
+      .m_axis_tdest  (nud_iface_res)    // output wire [1 : 0] m_axis_tdest
+  );
   pipeline_nud pipeline_nud_i (
       .clk(eth_clk),
       .rst_p(reset),
-      .we_i(nud_we_p),
-      .tgt_addr_i(nud_exp_addr),
-      .ip6_addr_i(ipv6_addrs[nud_iface]),
-      .mac_addr_i(mac_addrs[nud_iface]),
-      .iface_i(nud_iface),
+      .we_i(nud_we_p_res),
+      .tgt_addr_i(nud_exp_addr_res),
+      .ip6_addr_i(ipv6_addrs[nud_iface_res]),
+      .mac_addr_i(mac_addrs[nud_iface_res]),
+      .iface_i(nud_iface_res),
+      .ready_o(nud_in_ready),
       .ready_i(nud_out_ready),
       .out(nud_out),
       .valid_o(nud_out_valid)

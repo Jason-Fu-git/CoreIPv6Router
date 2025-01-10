@@ -34,7 +34,13 @@ module pipeline_forward (
     input  wire [  1:0] nexthop_port_id,
 
     // Address config
-    input wire [3:0][47:0] mac_addrs  // router MAC address
+    input wire [3:0][47:0] mac_addrs,  // router MAC address
+
+
+    // All NUD signals will be hold for one cycle when cache miss
+    output reg nud_probe,  // FLAG : whether the external module should probe the IPv6 address
+    output reg [127:0] probe_IPv6_addr,  // Key : IPv6 address to probe
+    output reg [1:0] probe_port_id  // Value : port id to probe
 );
 
   fw_error_t in_error_next;
@@ -204,7 +210,12 @@ module pipeline_forward (
 
   always_ff @(posedge clk) begin : FW_CACHE_REG
     if (rst_p) begin
-      cache_beat <= 0;
+      cache_beat      <= 0;
+
+      // NUD
+      nud_probe       <= 0;
+      probe_IPv6_addr <= 0;
+      probe_port_id   <= 0;
     end else begin
       if (cache_ready) begin
         cache_beat.valid <= cache_beat_comb.valid;
@@ -233,13 +244,28 @@ module pipeline_forward (
                 cache_beat.data.data.src        <= cache_beat_comb.data.data.src;
                 cache_beat.data.data.dst        <= cache_r_MAC_addr;
                 cache_beat.data.data.ip6        <= cache_beat_comb.data.data.ip6;
+
+                // NUD
+                nud_probe                       <= 0;
               end else begin
                 cache_beat.error <= ERR_NC_MISS;
                 cache_beat.data  <= cache_beat_comb.data;
+
+                // NUD
+                if (nud_probe) begin
+                  nud_probe        <= 0;
+                end else begin
+                  nud_probe        <= 1;
+                end
+                probe_IPv6_addr  <= cache_r_IPv6_addr;
+                probe_port_id    <= cache_r_port_id;
               end
             end else begin
               cache_beat.error <= cache_beat_comb.error;
               cache_beat.data  <= cache_beat_comb.data;
+
+              // NUD
+              nud_probe        <= 0;
             end
           end else begin
             // Not the first beat
@@ -261,8 +287,15 @@ module pipeline_forward (
 
             // payload
             cache_beat.data.data            <= cache_beat_comb.data.data;
+
+            // NUD
+            nud_probe                       <= 0;
           end
+        end else begin
+          nud_probe <= 0;
         end
+      end else begin
+        nud_probe <= 0;
       end
     end
   end
