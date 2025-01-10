@@ -31,11 +31,12 @@ int TrieInsert(void* prefix, unsigned int length, uint32_t next_hop) {
     for(int i = 0; i < 4; i++) {
 		ip6_prefix.s6_addr32[i] = brev8(ip6->s6_addr32[i]);
 	}
-	int result = VCTrieInsert(&ip6_prefix, length, next_hop);
-	if (result < 0) {
-		return BTrieInsert(&ip6_prefix, length, next_hop);
-	}
-	return result;
+	// int result = VCTrieInsert(&ip6_prefix, length, next_hop);
+	// if (result < 0) {
+	// 	return BTrieInsert(&ip6_prefix, length, next_hop);
+	// }
+	// return result;
+    return BTrieInsert(&ip6_prefix, length, next_hop);
 }
 
 int TrieLookup(void* prefix, unsigned int length) {
@@ -44,11 +45,12 @@ int TrieLookup(void* prefix, unsigned int length) {
     for(int i = 0; i < 4; i++) {
 		ip6_prefix.s6_addr32[i] = brev8(ip6->s6_addr32[i]);
 	}
-	int result = VCTrieLookup(&ip6_prefix, length);
-	if (result < 0) {
-		return BTrieLookup(&ip6_prefix, length);
-	}
-	return (int)result;
+	// int result = VCTrieLookup(&ip6_prefix, length);
+	// if (result < 0) {
+	// 	return BTrieLookup(&ip6_prefix, length);
+	// }
+	// return (int)result;
+    return BTrieLookup(&ip6_prefix, length);
 }
 
 int TrieDelete(void* prefix, unsigned int length) {
@@ -57,12 +59,13 @@ int TrieDelete(void* prefix, unsigned int length) {
     for(int i = 0; i < 4; i++) {
 		ip6_prefix.s6_addr32[i] = brev8(ip6->s6_addr32[i]);
 	}
-	int result = VCTrieLookup(&ip6_prefix, length);
-	if (result < 0) {
-		return BTrieDelete(&ip6_prefix, length);
-	}
-	VCEntryInvalidate(VCTrieIndexToAddress(result));
-	return result;
+	// int result = VCTrieLookup(&ip6_prefix, length);
+	// if (result < 0) {
+	// 	return BTrieDelete(&ip6_prefix, length);
+	// }
+	// VCEntryInvalidate(VCTrieIndexToAddress(result));
+	// return result;
+    return BTrieDelete(&ip6_prefix, length);
 }
 
 void TrieModify(void* prefix, unsigned int length, uint32_t next_hop) {
@@ -71,15 +74,19 @@ void TrieModify(void* prefix, unsigned int length, uint32_t next_hop) {
     for(int i = 0; i < 4; i++) {
 		ip6_prefix.s6_addr32[i] = brev8(ip6->s6_addr32[i]);
 	}
-	int result = VCTrieLookup(&ip6_prefix, length);
-	if (result < 0) {
-	    result = BTrieInsert(&ip6_prefix, length, next_hop);
-		if (result > 0) {
-			printf("[TF]%d", result);
-		}
-        return;
+	// int result = VCTrieLookup(&ip6_prefix, length);
+	// if (result < 0) {
+	//     result = BTrieInsert(&ip6_prefix, length, next_hop);
+	// 	if (result > 0) {
+	// 		printf("[TF]%d", result);
+	// 	}
+    //     return;
+	// }
+    // VCEntryModify(VCTrieIndexToAddress(result), next_hop);
+    int result = BTrieInsert(&ip6_prefix, length, next_hop);
+	if (result > 0) {
+		printf("[TF]%d", result);
 	}
-    VCEntryModify(VCTrieIndexToAddress(result), next_hop);
 }
 
 void TrieReport() {
