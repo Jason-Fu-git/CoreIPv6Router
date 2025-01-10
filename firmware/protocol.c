@@ -19,6 +19,7 @@ extern int spare_memory_index;
 extern int TrieInsert(void* prefix, unsigned int length, uint32_t next_hop);
 extern int TrieDelete(void* prefix, unsigned int length);
 extern int TrieLookup(void* prefix, unsigned int length);
+extern void TrieModify(void* prefix, unsigned int length, uint32_t next_hop);
 
 #define ISVALID(rte) (((rte)->nexthop_port & 0x80) != 0)
 #define ISINVALID(rte) (((rte)->nexthop_port & 0x80) == 0)
@@ -412,6 +413,26 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                     && check_timeout(TIMEOUT_TIME_LIMIT >> 1, memory_rte[mem_id].lower_timer)
                     ){ // next_hop NOT same and memory_rte timeout soon
                         // Update the route
+                        int nexthop_index = 0;
+                        for(nexthop_index = 0; nexthop_index < NEXTHOP_TABLE_INDEX_NUM; nexthop_index++){
+                            struct ip6_addr nexthop_ip6_addr = read_nexthop_table_ip6_addr(NEXTHOP_TABLE_ADDR(nexthop_index));
+                            if(read_nexthop_table_port_id(NEXTHOP_TABLE_PORT_ID_ADDR(nexthop_index)) == port
+                            && nexthop_ip6_addr.s6_addr32[0] == ip6->src_addr.s6_addr32[0]
+                            && nexthop_ip6_addr.s6_addr32[1] == ip6->src_addr.s6_addr32[1]
+                            && nexthop_ip6_addr.s6_addr32[2] == ip6->src_addr.s6_addr32[2]
+                            && nexthop_ip6_addr.s6_addr32[3] == ip6->src_addr.s6_addr32[3]
+                            ){
+                                break;
+                            }
+                        }
+                        if(nexthop_index == NEXTHOP_TABLE_INDEX_NUM){
+                            nexthop_index = spare_nexthop_index;
+                            write_nexthop_table_ip6_addr(&(ip6->src_addr), NEXTHOP_TABLE_ADDR(nexthop_index));
+                            write_nexthop_table_port_id(port, NEXTHOP_TABLE_PORT_ID_ADDR(nexthop_index));
+                            spare_nexthop_index++;
+                            if(spare_nexthop_index == NEXTHOP_TABLE_INDEX_NUM) spare_nexthop_index = 0;
+                        }
+                        TrieModify(&(memory_rte[mem_id].ip6_addr), memory_rte[mem_id].prefix_len, nexthop_index);
                         memory_rte[mem_id].nexthop_port = port | 0x80;
                         memory_rte[mem_id].lower_timer = (*((volatile uint32_t *)MTIME_LADDR)) & 0xFF;
                         // if(check_timeout(TRIGGERED_RESPONSE_TIME_INTERVAL, last_triggered_time)){
@@ -437,6 +458,28 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                 }
                 else{
                     // Update the route
+                    if(port != (PORT_ID(memory_rte + mem_id))){
+                        int nexthop_index = 0;
+                        for(nexthop_index = 0; nexthop_index < NEXTHOP_TABLE_INDEX_NUM; nexthop_index++){
+                            struct ip6_addr nexthop_ip6_addr = read_nexthop_table_ip6_addr(NEXTHOP_TABLE_ADDR(nexthop_index));
+                            if(read_nexthop_table_port_id(NEXTHOP_TABLE_PORT_ID_ADDR(nexthop_index)) == port
+                            && nexthop_ip6_addr.s6_addr32[0] == ip6->src_addr.s6_addr32[0]
+                            && nexthop_ip6_addr.s6_addr32[1] == ip6->src_addr.s6_addr32[1]
+                            && nexthop_ip6_addr.s6_addr32[2] == ip6->src_addr.s6_addr32[2]
+                            && nexthop_ip6_addr.s6_addr32[3] == ip6->src_addr.s6_addr32[3]
+                            ){
+                                break;
+                            }
+                        }
+                        if(nexthop_index == NEXTHOP_TABLE_INDEX_NUM){
+                            nexthop_index = spare_nexthop_index;
+                            write_nexthop_table_ip6_addr(&(ip6->src_addr), NEXTHOP_TABLE_ADDR(nexthop_index));
+                            write_nexthop_table_port_id(port, NEXTHOP_TABLE_PORT_ID_ADDR(nexthop_index));
+                            spare_nexthop_index++;
+                            if(spare_nexthop_index == NEXTHOP_TABLE_INDEX_NUM) spare_nexthop_index = 0;
+                        }
+                        TrieModify(&(memory_rte[mem_id].ip6_addr), memory_rte[mem_id].prefix_len, nexthop_index);
+                    }
                     memory_rte[mem_id].nexthop_port = port | 0x80;
                     memory_rte[mem_id].lower_timer = (*((volatile uint32_t *)MTIME_LADDR)) & 0xFF;
                     memory_rte[mem_id].metric = new_metric;
@@ -662,7 +705,7 @@ void send_response(void *src_addr_v, void *dst_addr_v, void *entries_v, int num_
     if (entries == NULL){
         int send_entry_num = 0;
         struct ripng_rte send_entries[RIPNG_MAX_RTE_NUM];
-        for(int i = 1; i < spare_memory_index; i++){ // TODO: index returned to 1?
+        for(int i = 1; i < spare_memory_index; i++){
             if(update_memory_rte(memory_rte + i)){
                 send_entries[send_entry_num].ip6_addr = memory_rte[i].ip6_addr;
                 send_entries[send_entry_num].prefix_len = memory_rte[i].prefix_len;

@@ -384,3 +384,7 @@ extern "C" uint32_t VCEntryIsInvalid(void* entry_addr) {
 extern "C" void VCEntryInvalidate(void* entry_addr) {
 	((VCEntry*)entry_addr)->invalidate();
 }
+
+extern "C" void VCEntryModify(void* entry_addr, uint32_t next_hop) {
+	((VCEntry*)entry_addr)->next_hop = next_hop;
+}
