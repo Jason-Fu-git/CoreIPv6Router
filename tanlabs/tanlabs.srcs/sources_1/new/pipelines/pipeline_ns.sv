@@ -90,15 +90,15 @@ module pipeline_ns (
   always_comb begin
     case (ns_state)
       NS_INIT       : ns_next_state = NS_INIT_SEND_1;
-      NS_INIT_SEND_1: ns_next_state = ((ready_i          ) ? NS_INIT_SEND_2 : NS_INIT_CHECK );
+      NS_INIT_SEND_1: ns_next_state = ((ready_i          ) ? NS_INIT_CHECK  : NS_INIT_SEND_1);
       NS_INIT_CHECK : ns_next_state = ((na_checksum_valid) ? NS_INIT_SEND_2 : NS_INIT_CHECK );
-      NS_INIT_SEND_2: ns_next_state = ((ready_i          ) ? NS_IDLE        : NS_INIT_SEND_2);
+      NS_INIT_SEND_2: ns_next_state = ((ready_i          ) ? ((init_phase == 2'd3) ? NS_IDLE : NS_INIT) : NS_INIT_SEND_2);
       NS_IDLE       : ns_next_state = ((valid_i          ) ? NS_WAIT        : NS_IDLE       );
       NS_WAIT       : ns_next_state = ((valid_i          ) ? NS_CHECK       : NS_WAIT       );
       NS_CHECK      : ns_next_state = ((ns_checksum_valid) ? NS_SEND_1      : NS_CHECK      );
       NS_SEND_1     : ns_next_state = ((ready_i          ) ? NS_CACHE       : NS_SEND_1     );
       NS_CACHE      : ns_next_state = ((cache_ready      ) ? NS_SEND_2      : NS_CACHE      );
-      NS_SEND_2     : ns_next_state = ((ready_i          ) ? ((init_phase == 2'd3) ? NS_IDLE : NS_INIT) : NS_SEND_2);
+      NS_SEND_2     : ns_next_state = ((ready_i          ) ? NS_IDLE        : NS_SEND_2     );
       default       : ns_next_state = NS_IDLE;
     endcase
   end
