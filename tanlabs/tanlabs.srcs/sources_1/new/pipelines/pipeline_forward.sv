@@ -21,12 +21,12 @@ module pipeline_forward (
     input  wire         cache_r_exists,
 
     // forward table
-    output fw_frame_beat_t       fwt_in,
-    input  fw_frame_beat_t       fwt_out,
-    input  wire            [4:0] fwt_nexthop_addr,
-    input  wire                  fwt_in_ready,
-    output reg                   fwt_out_ready,
-    output reg [127:0]           fwt_addr,
+    output fw_frame_beat_t         fwt_in,
+    input  fw_frame_beat_t         fwt_out,
+    input  wire            [  4:0] fwt_nexthop_addr,
+    input  wire                    fwt_in_ready,
+    output reg                     fwt_out_ready,
+    output reg             [127:0] fwt_addr,
 
     // nexthop lookup
     output reg  [  4:0] nexthop_addr,
@@ -96,53 +96,18 @@ module pipeline_forward (
 
   always_comb begin
     for (int i = 0; i < 16; i = i + 1) begin
-        fwt_addr[i*8 +: 8] = {
-            fwt_addr_rev[i*8+0],
-            fwt_addr_rev[i*8+1],
-            fwt_addr_rev[i*8+2],
-            fwt_addr_rev[i*8+3],
-            fwt_addr_rev[i*8+4],
-            fwt_addr_rev[i*8+5],
-            fwt_addr_rev[i*8+6],
-            fwt_addr_rev[i*8+7]
-        };
+      fwt_addr[i*8+:8] = {
+        fwt_addr_rev[i*8+0],
+        fwt_addr_rev[i*8+1],
+        fwt_addr_rev[i*8+2],
+        fwt_addr_rev[i*8+3],
+        fwt_addr_rev[i*8+4],
+        fwt_addr_rev[i*8+5],
+        fwt_addr_rev[i*8+6],
+        fwt_addr_rev[i*8+7]
+      };
     end
   end
-
-//   assign fwt_addr = {
-//     fwt_addr_rev[123:120],
-//     fwt_addr_rev[127:124],
-//     fwt_addr_rev[115:112],
-//     fwt_addr_rev[119:116],
-//     fwt_addr_rev[107:104],
-//     fwt_addr_rev[111:108],
-//     fwt_addr_rev[99:96],
-//     fwt_addr_rev[103:100],
-//     fwt_addr_rev[91:88],
-//     fwt_addr_rev[95:92],
-//     fwt_addr_rev[83:80],
-//     fwt_addr_rev[87:84],
-//     fwt_addr_rev[75:72],
-//     fwt_addr_rev[79:76],
-//     fwt_addr_rev[67:64],
-//     fwt_addr_rev[71:68],
-//     fwt_addr_rev[59:56],
-//     fwt_addr_rev[63:60],
-//     fwt_addr_rev[51:48],
-//     fwt_addr_rev[55:52],
-//     fwt_addr_rev[43:40],
-//     fwt_addr_rev[47:44],
-//     fwt_addr_rev[35:32],
-//     fwt_addr_rev[39:36],
-//     fwt_addr_rev[27:24],
-//     fwt_addr_rev[31:28],
-//     fwt_addr_rev[19:16],
-//     fwt_addr_rev[23:20],
-//     fwt_addr_rev[11:8],
-//     fwt_addr_rev[15:12],
-//     fwt_addr_rev[3:0],
-//     fwt_addr_rev[7:4]
-//   };
 
   // ======================
   // Nexthop lookup
@@ -159,30 +124,22 @@ module pipeline_forward (
     end
   end
 
-  assign fwt_out_ready = nexthop_ready;
+  assign fwt_out_ready = nexthop_ready || (!fwt_out.valid);
 
-  // =======================
-  // Neighbor Cache
-  // =======================
+
+  // extra pipeline stage for neighbor cache lookup
   fw_frame_beat_t nc_beat;
   logic [127:0] nc_IPv6_addr;
   logic [1:0] nc_port_id;
+  logic nc_ready;
 
-  always_ff @(posedge clk) begin : NEXTHOP_READY
-    if (rst_p) begin
-      nexthop_ready <= 0;
-    end else begin
-      nexthop_ready <= cache_ready;
-    end
-  end
+  assign nexthop_ready = nc_ready || (!nexthop_beat.valid);
 
 
   always_ff @(posedge clk) begin : NC_BEAT
     if (rst_p) begin
       nc_beat <= 0;
-    end else if (cache_ready && (!nexthop_ready)) begin
-      nc_beat.valid <= 0;
-    end else if (nexthop_ready) begin  // Note : this is a buffer for nexthop_beat
+    end else if (nc_ready) begin
       nc_beat      <= nexthop_beat;
       nc_IPv6_addr <= nexthop_IPv6_addr;
       nc_port_id   <= nexthop_port_id;
@@ -190,12 +147,48 @@ module pipeline_forward (
   end
 
 
+  // Buffer for nc_beat
+  fw_frame_beat_t         nc_beat_buffer;
+  logic           [127:0] nc_IPv6_addr_buffer;
+  logic           [  1:0] nc_port_id_buffer;
+
+  always_ff @(posedge clk) begin : NC_BEAT_BUFFER
+    if (rst_p) begin
+      nc_beat_buffer <= 0;
+    end else if (nc_ready) begin
+      nc_beat_buffer      <= nexthop_beat;
+      nc_IPv6_addr_buffer <= nexthop_IPv6_addr;
+      nc_port_id_buffer   <= nexthop_port_id;
+    end
+  end
+
+
+  // =======================
+  // Neighbor Cache
+  // =======================
+
   logic cache_ready;
   fw_frame_beat_t cache_beat;
+  fw_frame_beat_t cache_beat_comb;
+
+
+  always_ff @(posedge clk) begin : NC_READY
+    if (rst_p) begin
+      nc_ready <= 0;
+    end else begin
+      nc_ready <= cache_ready;
+    end
+  end
 
   always_comb begin : FW_CACHE_SIGNALS
     cache_r_IPv6_addr = nc_IPv6_addr;
     cache_r_port_id   = nc_port_id;
+    cache_beat_comb   = nc_beat;
+    if (cache_ready && !nc_ready) begin
+      cache_r_IPv6_addr = nc_IPv6_addr_buffer;
+      cache_r_port_id   = nc_port_id_buffer;
+      cache_beat_comb   = nc_beat_buffer;
+    end
   end
 
   logic [1:0] cache_r_port_id_reg;
@@ -203,7 +196,7 @@ module pipeline_forward (
     if (rst_p) begin
       cache_r_port_id_reg <= 0;
     end else begin
-      if (nc_beat.data.is_first) begin
+      if (cache_beat_comb.data.is_first) begin
         cache_r_port_id_reg <= cache_r_port_id;
       end
     end
@@ -214,60 +207,60 @@ module pipeline_forward (
       cache_beat <= 0;
     end else begin
       if (cache_ready) begin
-        cache_beat.valid <= nc_beat.valid;
-        if (nc_beat.valid) begin
-          if (nc_beat.data.is_first) begin
-            if (nc_beat.error == ERR_NONE) begin
+        cache_beat.valid <= cache_beat_comb.valid;
+        if (cache_beat_comb.valid) begin
+          if (cache_beat_comb.data.is_first) begin
+            if (cache_beat_comb.error == ERR_NONE) begin
               if (cache_r_exists) begin
                 cache_beat.error                <= ERR_NONE;
 
                 // frame_beat properties
-                cache_beat.data.keep            <= nc_beat.data.keep;
-                cache_beat.data.last            <= nc_beat.data.last;
-                cache_beat.data.user            <= nc_beat.data.user;
-                cache_beat.data.valid           <= nc_beat.data.valid;
-                cache_beat.data.is_first        <= nc_beat.data.is_first;
+                cache_beat.data.keep            <= cache_beat_comb.data.keep;
+                cache_beat.data.last            <= cache_beat_comb.data.last;
+                cache_beat.data.user            <= cache_beat_comb.data.user;
+                cache_beat.data.valid           <= cache_beat_comb.data.valid;
+                cache_beat.data.is_first        <= cache_beat_comb.data.is_first;
 
                 // frame_meta properties
-                cache_beat.data.meta.id         <= nc_beat.data.meta.id;
+                cache_beat.data.meta.id         <= cache_beat_comb.data.meta.id;
                 cache_beat.data.meta.dest       <= cache_r_port_id;
-                cache_beat.data.meta.drop       <= nc_beat.data.meta.drop;
-                cache_beat.data.meta.dont_touch <= nc_beat.data.meta.dont_touch;
-                cache_beat.data.meta.drop_next  <= nc_beat.data.meta.drop_next;
+                cache_beat.data.meta.drop       <= cache_beat_comb.data.meta.drop;
+                cache_beat.data.meta.dont_touch <= cache_beat_comb.data.meta.dont_touch;
+                cache_beat.data.meta.drop_next  <= cache_beat_comb.data.meta.drop_next;
 
                 // ether_hdr properties
-                cache_beat.data.data.ethertype  <= nc_beat.data.data.ethertype;
-                cache_beat.data.data.src        <= nc_beat.data.data.src;
+                cache_beat.data.data.ethertype  <= cache_beat_comb.data.data.ethertype;
+                cache_beat.data.data.src        <= cache_beat_comb.data.data.src;
                 cache_beat.data.data.dst        <= cache_r_MAC_addr;
-                cache_beat.data.data.ip6        <= nc_beat.data.data.ip6;
+                cache_beat.data.data.ip6        <= cache_beat_comb.data.data.ip6;
               end else begin
                 cache_beat.error <= ERR_NC_MISS;
-                cache_beat.data  <= nc_beat.data;
+                cache_beat.data  <= cache_beat_comb.data;
               end
             end else begin
-              cache_beat.error <= nc_beat.error;
-              cache_beat.data  <= nc_beat.data;
+              cache_beat.error <= cache_beat_comb.error;
+              cache_beat.data  <= cache_beat_comb.data;
             end
           end else begin
             // Not the first beat
-            cache_beat.error                <= nc_beat.error;
+            cache_beat.error                <= cache_beat_comb.error;
 
             // frame_beat properties
-            cache_beat.data.keep            <= nc_beat.data.keep;
-            cache_beat.data.last            <= nc_beat.data.last;
-            cache_beat.data.user            <= nc_beat.data.user;
-            cache_beat.data.valid           <= nc_beat.data.valid;
-            cache_beat.data.is_first        <= nc_beat.data.is_first;
+            cache_beat.data.keep            <= cache_beat_comb.data.keep;
+            cache_beat.data.last            <= cache_beat_comb.data.last;
+            cache_beat.data.user            <= cache_beat_comb.data.user;
+            cache_beat.data.valid           <= cache_beat_comb.data.valid;
+            cache_beat.data.is_first        <= cache_beat_comb.data.is_first;
 
             // frame_meta properties
-            cache_beat.data.meta.id         <= nc_beat.data.meta.id;
+            cache_beat.data.meta.id         <= cache_beat_comb.data.meta.id;
             cache_beat.data.meta.dest       <= cache_r_port_id_reg;
-            cache_beat.data.meta.drop       <= nc_beat.data.meta.drop;
-            cache_beat.data.meta.dont_touch <= nc_beat.data.meta.dont_touch;
-            cache_beat.data.meta.drop_next  <= nc_beat.data.meta.drop_next;
+            cache_beat.data.meta.drop       <= cache_beat_comb.data.meta.drop;
+            cache_beat.data.meta.dont_touch <= cache_beat_comb.data.meta.dont_touch;
+            cache_beat.data.meta.drop_next  <= cache_beat_comb.data.meta.drop_next;
 
             // payload
-            cache_beat.data.data            <= nc_beat.data.data;
+            cache_beat.data.data            <= cache_beat_comb.data.data;
           end
         end
       end

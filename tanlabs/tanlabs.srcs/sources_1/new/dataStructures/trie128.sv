@@ -630,33 +630,62 @@ module trie128(
     //     .m_axis_tvalid(bram_write_valid)
     // );
 
-    wb_async wb_async_bram_i(
-        .eth_clk(clk),
-        .eth_reset(rst_p),
-        .core_clk(cpu_clk),
-        .core_reset(cpu_rst_p),
-        .wbm_adr_i(cpu_adr_raw),
-        .wbm_dat_i(cpu_dat_in_raw),
-        .wbm_sel_i(4'b1111),
-        .wbm_stb_i(cpu_stb_raw),
-        .wbm_we_i(cpu_wea_raw),
-        .wbm_dat_o(cpu_dat_out_raw),
-        .wbm_ack_o(cpu_ack_raw),
-        // .wbs_adr_o(cpu_adr_delay),
-        // .wbs_dat_o(cpu_dat_in_delay),
-        // .wbs_sel_o(),
-        // .wbs_stb_o(cpu_stb_delay),
-        // .wbs_we_o(cpu_wea_delay),
-        // .wbs_dat_i(cpu_dat_out_delay),
-        // .wbs_ack_i(cpu_ack_delay)
-        .wbs_adr_o(cpu_adr),
-        .wbs_dat_o(cpu_dat_in),
-        .wbs_sel_o(),
-        .wbs_stb_o(cpu_stb),
-        .wbs_we_o(cpu_wea),
-        .wbs_dat_i(cpu_dat_out),
-        .wbs_ack_i(cpu_ack)
-    );
+    // wb_async wb_async_bram_i(
+    //     .eth_clk(clk),
+    //     .eth_reset(rst_p),
+    //     .core_clk(cpu_clk),
+    //     .core_reset(cpu_rst_p),
+    //     .wbm_adr_i(cpu_adr_raw),
+    //     .wbm_dat_i(cpu_dat_in_raw),
+    //     .wbm_sel_i(4'b1111),
+    //     .wbm_stb_i(cpu_stb_raw),
+    //     .wbm_we_i(cpu_wea_raw),
+    //     .wbm_dat_o(cpu_dat_out_raw),
+    //     .wbm_ack_o(cpu_ack_raw),
+    //     // .wbs_adr_o(cpu_adr_delay),
+    //     // .wbs_dat_o(cpu_dat_in_delay),
+    //     // .wbs_sel_o(),
+    //     // .wbs_stb_o(cpu_stb_delay),
+    //     // .wbs_we_o(cpu_wea_delay),
+    //     // .wbs_dat_i(cpu_dat_out_delay),
+    //     // .wbs_ack_i(cpu_ack_delay)
+    //     .wbs_adr_o(cpu_adr),
+    //     .wbs_dat_o(cpu_dat_in),
+    //     .wbs_sel_o(),
+    //     .wbs_stb_o(cpu_stb),
+    //     .wbs_we_o(cpu_wea),
+    //     .wbs_dat_i(cpu_dat_out),
+    //     .wbs_ack_i(cpu_ack)
+    // );
+
+    logic cpu_ack_sync;
+
+    always_ff @(posedge clk) begin
+        if (rst_p) begin
+            cpu_adr <= 0;
+            cpu_dat_in <= 0;
+            cpu_stb <= 0;
+            cpu_wea <= 0;
+            cpu_dat_out_raw <= 0;
+            cpu_ack_sync <= 0;
+        end else begin
+            if (cpu_stb_raw) begin
+                cpu_adr <= cpu_adr_raw;
+                cpu_dat_in <= cpu_dat_in_raw;
+                cpu_wea <= cpu_wea_raw;
+            end
+            if (cpu_ack) begin
+                cpu_adr <= 0;
+                cpu_dat_in <= 0;
+                cpu_wea <= 0;
+            end
+            cpu_stb <= cpu_stb_raw;
+            cpu_dat_out_raw <= cpu_dat_out;
+            cpu_ack_sync <= cpu_ack;
+        end
+    end
+
+    assign cpu_ack_raw = cpu_ack_sync && cpu_stb_raw;
 
     bram_mux bram_mux_i(
         .clk(clk),

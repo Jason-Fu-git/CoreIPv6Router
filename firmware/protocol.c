@@ -59,7 +59,7 @@ void config_direct_route(struct ip6_addr *ip6_addr, uint8_t prefix_len, uint8_t 
     }
     trie_index = TrieInsert(ip6_addr, prefix_len, j);
     if(trie_index < 0){
-        printf("[TI]%d", trie_index);
+        // printf("[TI]%d", trie_index);
         return;
     }
     rte_map[trie_index] = spare_memory_index;

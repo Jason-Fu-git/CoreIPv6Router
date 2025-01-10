@@ -12,6 +12,9 @@ module tanlabs #(
 
     output wire [15:0] led,
 
+    output wire [6:0] dpy0,
+    output wire [6:0] dpy1,
+
     output wire uart_tx,
     input  wire uart_rx,
 
@@ -93,21 +96,25 @@ module tanlabs #(
   wire core_clk;  // 50MHz for the CPU
   wire reset_core;  // reset for the CPU
 
-  clk_wiz_1 clk_wiz_1_i (
-      .core_clk_out(core_clk),
-      .reset(1'b0),
-      .locked(locked1),
-      .clk_in1(gtref_clk)
-  );
+  assign core_clk   = eth_clk;
+  assign reset_core = reset_eth;
+  wire reset_not_sync = reset_in || !locked0;
 
-  wire reset_not_sync = reset_in || !locked0 || !locked1;  // reset components
+  //   clk_wiz_1 clk_wiz_1_i (
+  //       .core_clk_out(core_clk),
+  //       .reset(1'b0),
+  //       .locked(locked1),
+  //       .clk_in1(gtref_clk)
+  //   );
+
+  //   wire reset_not_sync = reset_in || !locked0 || !locked1;  // reset components
 
 
-  reset_sync reset_sync_reset_core (
-      .clk(core_clk),
-      .i  (reset_not_sync),
-      .o  (reset_core)
-  );
+  //   reset_sync reset_sync_reset_core (
+  //       .clk(core_clk),
+  //       .i  (reset_not_sync),
+  //       .o  (reset_core)
+  //   );
 
   wire mmcm_locked_out;
   wire rxuserclk_out;
@@ -711,6 +718,7 @@ module tanlabs #(
   frame_beat dma_in, dma_out;
 
   logic dma_cpu_stb, dma_cpu_we;
+  logic dma_request;
   logic [31:0] dma_cpu_adr, dma_cpu_dat_width;
   logic dma_ack;
   logic [31:0] dma_dat_width;
@@ -723,17 +731,32 @@ module tanlabs #(
   logic [1:0] nexthop_port_id;
 
   logic checksum_fifo_in_ready;
-  axis_data_async_fifo_checksum axis_data_async_fifo_checksum_i (
-      .s_axis_aresetn(~reset_core),                // input wire s_axis_aresetn
-      .s_axis_aclk   (core_clk),                   // input wire s_axis_aclk
-      .s_axis_tvalid (dma_checksum_valid),         // input wire s_axis_tvalid
-      .s_axis_tready (checksum_fifo_in_ready),     // output wire s_axis_tready
-      .s_axis_tdata  (dma_checksum),               // input wire [15 : 0] s_axis_tdata
-      .m_axis_aclk   (eth_clk),                    // input wire m_axis_aclk
-      .m_axis_tvalid (dma_checksum_valid_synced),  // output wire m_axis_tvalid
-      .m_axis_tready (1'b1),                       // input wire m_axis_tready
-      .m_axis_tdata  (dma_checksum_synced)         // output wire [15 : 0] m_axis_tdata
-  );
+
+  reg dma_stb_delay, dma_we_delay, dma_ack_delay, dma_request_delay;
+  reg nexthop_table_stb_delay, bram_stb_delay, dm_ack_delay, dm_stb_delay;
+
+  //   axis_data_async_fifo_checksum axis_data_async_fifo_checksum_i (
+  //       .s_axis_aresetn(~reset_core),                // input wire s_axis_aresetn
+  //       .s_axis_aclk   (core_clk),                   // input wire s_axis_aclk
+  //       .s_axis_tvalid (dma_checksum_valid),         // input wire s_axis_tvalid
+  //       .s_axis_tready (checksum_fifo_in_ready),     // output wire s_axis_tready
+  //       .s_axis_tdata  (dma_checksum),               // input wire [15 : 0] s_axis_tdata
+  //       .m_axis_aclk   (eth_clk),                    // input wire m_axis_aclk
+  //       .m_axis_tvalid (dma_checksum_valid_synced),  // output wire m_axis_tvalid
+  //       .m_axis_tready (1'b1),                       // input wire m_axis_tready
+  //       .m_axis_tdata  (dma_checksum_synced)         // output wire [15 : 0] m_axis_tdata
+  //   );
+
+  // core clock == dma clock
+  always_ff @(posedge eth_clk) begin : DMA_CHECKSUM
+    if (reset_eth) begin
+      dma_checksum_synced <= 0;
+      dma_checksum_valid_synced <= 0;
+    end else begin
+      dma_checksum_synced <= dma_checksum;
+      dma_checksum_valid_synced <= dma_checksum_valid;
+    end
+  end
 
 
   frame_datapath #(
@@ -794,7 +817,22 @@ module tanlabs #(
 
       .nexthop_ip6_addr(nexthop_ip6_addr),
       .nexthop_port_id(nexthop_port_id),
-      .nexthop_addr(nexthop_addr)
+      .nexthop_addr(nexthop_addr),
+
+      // DEBUG signal
+      .led(led),
+
+      .dma_stb(dma_stb_delay),
+      .dma_wea(dma_we_delay),
+      .dma_ack(dma_ack_delay),
+      .dma_request(dma_request_delay),
+
+      //   .addr_stb(addr_stb_delay),
+      .nexthop_table_stb(nexthop_table_stb_delay),
+      .dm_stb  (dm_stb_delay),
+      .dm_ack  (dm_ack_delay),
+      //   .uart_stb(uart_stb_delay),
+      .bram_stb(bram_stb_delay)
   );
 
 
@@ -1048,6 +1086,28 @@ module tanlabs #(
   logic        arbiter_sram_stb;
   logic        arbiter_sram_ack;
 
+  always_ff @(posedge core_clk) begin
+    if (reset_core) begin
+      dma_stb_delay           <= 1'b0;
+      dma_we_delay            <= 1'b0;
+      dma_ack_delay           <= 1'b0;
+      dma_request_delay       <= 1'b0;
+      nexthop_table_stb_delay <= 1'b0;
+      bram_stb_delay          <= 1'b0;
+      dm_stb_delay            <= 1'b0;
+      dm_ack_delay            <= 1'b0;
+    end else begin
+      dma_stb_delay           <= dma_cpu_stb;
+      dma_we_delay            <= dma_cpu_we;
+      dma_ack_delay           <= dma_ack;
+      dma_request_delay       <= dma_request;
+      nexthop_table_stb_delay <= nxthop_conf_stb;
+      bram_stb_delay          <= bram_cpu_stb;
+      dm_stb_delay            <= dm_stb;
+      dm_ack_delay            <= dm_ack;
+    end
+  end
+
   wb_mux_5 #(
       .DATA_WIDTH  (32),
       .ADDR_WIDTH  (32),
@@ -1150,35 +1210,35 @@ module tanlabs #(
       .wbs4_cyc_o(wbs4_cyc)
   );
 
-//   cache #(
-//       .BLOCK_WIDTH(2),
-//       .BLOCK_SIZE (4),
-//       .TAG_WIDTH  (17),
-//       .GROUP_NUM  (16),
-//       .GROUP_WIDTH(4),
-//       .GROUP_SIZE (4)
-//   ) cache_IF (
-//       .clk  (core_clk),
-//       .rst_p(reset_core),
+  //   cache #(
+  //       .BLOCK_WIDTH(2),
+  //       .BLOCK_SIZE (4),
+  //       .TAG_WIDTH  (17),
+  //       .GROUP_NUM  (16),
+  //       .GROUP_WIDTH(4),
+  //       .GROUP_SIZE (4)
+  //   ) cache_IF (
+  //       .clk  (core_clk),
+  //       .rst_p(reset_core),
 
-//       .adr_ctl_i (im_adr),
-//       .stb_ctl_i (im_fence || im_stb),
-//       .sel_ctl_i (4'b1111),
-//       .we_p_ctl_i(1'b0),
-//       .ack_ctl_o (im_ack),
-//       .dat_ctl_i (0),
-//       .dat_ctl_o (im_dat_r),
+  //       .adr_ctl_i (im_adr),
+  //       .stb_ctl_i (im_fence || im_stb),
+  //       .sel_ctl_i (4'b1111),
+  //       .we_p_ctl_i(1'b0),
+  //       .ack_ctl_o (im_ack),
+  //       .dat_ctl_i (0),
+  //       .dat_ctl_o (im_dat_r),
 
-//       .ack_sram_i (icache_sram_ack),
-//       .stb_sram_o (icache_sram_stb),
-//       .adr_sram_o (icache_sram_adr),
-//       .sel_sram_o (icache_sram_sel),
-//       .we_p_sram_o(icache_sram_we),
-//       .dat_sram_i (icache_sram_dat_i),
-//       .dat_sram_o (icache_sram_dat_o),
+  //       .ack_sram_i (icache_sram_ack),
+  //       .stb_sram_o (icache_sram_stb),
+  //       .adr_sram_o (icache_sram_adr),
+  //       .sel_sram_o (icache_sram_sel),
+  //       .we_p_sram_o(icache_sram_we),
+  //       .dat_sram_i (icache_sram_dat_i),
+  //       .dat_sram_o (icache_sram_dat_o),
 
-//       .fence(im_fence)
-//   );
+  //       .fence(im_fence)
+  //   );
 
   //   cache #(
   //       .BLOCK_WIDTH(2),
@@ -1250,7 +1310,8 @@ module tanlabs #(
       .dma_dat_width_o(dma_dat_width),
       .dma_checksum_o(dma_checksum),
       .dma_checksum_valid_o(dma_checksum_valid),
-      .dma_port_id_o(dma_in_port_id)
+      .dma_port_id_o(dma_in_port_id),
+      .dma_request_o(dma_request)
   );
 
   dma_adapter dma_adapter_i (
@@ -1269,6 +1330,7 @@ module tanlabs #(
       .dma_dat_width_i(dma_dat_width),
       .dma_checksum_i(dma_checksum),
       .dma_port_id_i(dma_in_port_id),
+      .dma_request_i(dma_request),
 
       .dma_port_id_o(dma_out_port_id),
       .dma_cpu_stb_o(dma_cpu_stb),
@@ -1314,14 +1376,14 @@ module tanlabs #(
       .wbm1_ack_o(wbs0_ack),
       .wbm1_dat_o(wbs0_dat_r),
 
-    //   .wbm2_adr_i(icache_sram_adr),
-    //   .wbm2_dat_i(icache_sram_dat_o),
-    //   .wbm2_sel_i(icache_sram_sel),
-    //   .wbm2_we_i (icache_sram_we),
-    //   .wbm2_cyc_i(icache_sram_stb),
-    //   .wbm2_stb_i(icache_sram_stb),
-    //   .wbm2_ack_o(icache_sram_ack),
-    //   .wbm2_dat_o(icache_sram_dat_i),
+      //   .wbm2_adr_i(icache_sram_adr),
+      //   .wbm2_dat_i(icache_sram_dat_o),
+      //   .wbm2_sel_i(icache_sram_sel),
+      //   .wbm2_we_i (icache_sram_we),
+      //   .wbm2_cyc_i(icache_sram_stb),
+      //   .wbm2_stb_i(icache_sram_stb),
+      //   .wbm2_ack_o(icache_sram_ack),
+      //   .wbm2_dat_o(icache_sram_dat_i),
 
       .wbm2_adr_i(im_adr),
       .wbm2_dat_i(im_dat_w),
@@ -1369,8 +1431,29 @@ module tanlabs #(
       .sram_be_n(base_ram_be_n)
   );
 
+  //   uart_controller #(
+  //       .CLK_FREQ(125_000_000),
+  //       .BAUD    (115200)
+  //   ) uart_controller (
+  //       .clk_i(core_clk),
+  //       .rst_i(reset_core),
+
+  //       .wb_cyc_i(wbs1_cyc),
+  //       .wb_stb_i(wbs1_stb),
+  //       .wb_ack_o(wbs1_ack),
+  //       .wb_adr_i(wbs1_adr),
+  //       .wb_dat_i(wbs1_dat_w),
+  //       .wb_dat_o(wbs1_dat_r),
+  //       .wb_sel_i(wbs1_sel),
+  //       .wb_we_i (wbs1_we),
+
+  //       // to UART pins
+  //       .uart_txd_o(uart_tx),
+  //       .uart_rxd_i(uart_rx)
+  //   );
+
   uart_controller #(
-      .CLK_FREQ(50_000_000),
+      .CLK_FREQ(125_000_000),
       .BAUD    (115200)
   ) uart_controller (
       .clk_i(core_clk),
@@ -1386,10 +1469,12 @@ module tanlabs #(
       .wb_we_i (wbs1_we),
 
       // to UART pins
-      .uart_txd_o(uart_tx),
-      .uart_rxd_i(uart_rx)
-  );
+      // .uart_txd_o(uart_tx),
+      .uart_rxd_i(uart_rx),
 
+      .dpy0(dpy0),
+      .dpy1(dpy1)
+  );
 
   // wb async
   wb_async wb_async_i (
@@ -1506,7 +1591,6 @@ module tanlabs #(
       .wbm_stb_i(nxthop_conf_stb),
       .wbm_ack_o(nxthop_conf_ack)
   );
-
 
   // =======================================
   // Ethernet
