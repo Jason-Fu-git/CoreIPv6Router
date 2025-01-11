@@ -285,7 +285,7 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                     int mem_id = rte_map[trie_index];
                     // Route found
                     send_entries[port][send_entry_num] = entries[i];
-                    if(update_memory_rte(memory_rte + mem_id) && (PORT_ID(memory_rte + mem_id)) != port){
+                    if(update_memory_rte(memory_rte + mem_id) && (ISDIRECT(memory_rte + mem_id) || (PORT_ID(memory_rte + mem_id)) != port)){
                         send_entries[port][send_entry_num].metric = memory_rte[mem_id].metric;
                     }
                     else{
@@ -389,7 +389,12 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                         // }
                         for(int p = 0; p < PORT_NUM; p++){
                             send_entries[p][send_entry_num] = entries[i];
-                            send_entries[p][send_entry_num].metric = (p == port) ? 16 : new_metric;
+                            if (p != port || ISDIRECT(memory_rte + mem_id)){
+                                send_entries[p][send_entry_num].metric = new_metric;
+                            }
+                            else{
+                                send_entries[p][send_entry_num].metric = 16;
+                            }
                         }
                         send_entry_num++;
                         if(send_entry_num == RIPNG_MAX_RTE_NUM){
@@ -437,7 +442,12 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                         // }
                         for(int p = 0; p < PORT_NUM; p++){
                             send_entries[p][send_entry_num] = entries[i];
-                            send_entries[p][send_entry_num].metric = (p == port) ? 16 : new_metric;
+                            if (p != port || ISDIRECT(memory_rte + mem_id)){
+                                send_entries[p][send_entry_num].metric = new_metric;
+                            }
+                            else{
+                                send_entries[p][send_entry_num].metric = 16;
+                            }
                         }
                         send_entry_num++;
                         if(send_entry_num == RIPNG_MAX_RTE_NUM){
@@ -488,7 +498,12 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                     // }
                     for(int p = 0; p < PORT_NUM; p++){
                         send_entries[p][send_entry_num] = entries[i];
-                        send_entries[p][send_entry_num].metric = (p == port) ? 16 : new_metric;
+                        if (p != port || ISDIRECT(memory_rte + mem_id)){
+                            send_entries[p][send_entry_num].metric = new_metric;
+                        }
+                        else{
+                            send_entries[p][send_entry_num].metric = 16;
+                        }
                     }
                     send_entry_num++;
                     if(send_entry_num == RIPNG_MAX_RTE_NUM){
@@ -501,7 +516,11 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                 }
             }
             else{
-                if(entries[i].metric >= 16) { continue; }
+                if(entries[i].metric >= 16) { 
+                    len += 20;
+                    i++;
+                    continue; 
+                }
                 // Add new route
                 int trie_index = TrieInsert(&(entries[i].ip6_addr), entries[i].prefix_len, j);
                 if(trie_index < 0){
@@ -706,7 +725,7 @@ void send_response(void *src_addr_v, void *dst_addr_v, void *entries_v, int num_
             if(update_memory_rte(memory_rte + i)){
                 send_entries[send_entry_num].ip6_addr = memory_rte[i].ip6_addr;
                 send_entries[send_entry_num].prefix_len = memory_rte[i].prefix_len;
-                send_entries[send_entry_num].metric = (PORT_ID(memory_rte + i) == port) ? 16 : memory_rte[i].metric;
+                send_entries[send_entry_num].metric = (PORT_ID(memory_rte + i) == port && !ISDIRECT(memory_rte + i)) ? 16 : memory_rte[i].metric;
                 send_entries[send_entry_num].route_tag = 0;
                 send_entry_num++;
                 if(send_entry_num == RIPNG_MAX_RTE_NUM){
