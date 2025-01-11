@@ -226,23 +226,23 @@ def send_forward_packet(iface):
     
 
 def send_ripng(iface):
-    ether = Ether(src="00:e0:4c:68:13:ab", dst="8c:1f:64:69:10:55")
-    ipv6 = IPv6(src="1000::9", dst="fe80::1", hlim=255)
+    ether = Ether(src="20:7b:d2:25:b6:34", dst="8c:1f:64:69:10:56")
+    ipv6 = IPv6(src="2004::2", dst="fe80::1", hlim=255)
     udp = UDP(sport=521, dport=521)
     ripng = RIPng(cmd=2)
-    ripng_entry1 = RIPngEntry(prefix_or_nh="1000::", routetag=0, prefixlen=64, metric=1)
-    ripng_entry2 = RIPngEntry(prefix_or_nh="fe80::d3af:2e01:6b1d:452", routetag=0, prefixlen=128, metric=2)
+    ripng_entry1 = RIPngEntry(prefix_or_nh="2004::", routetag=0, prefixlen=64, metric=1)
+    ripng_entry2 = RIPngEntry(prefix_or_nh="fe80::d3af:2e01:6b1d:290", routetag=0, prefixlen=128, metric=2)
     packet = ether / ipv6 / udp / ripng / ripng_entry1 / ripng_entry2
     sendp(packet, iface=iface)
 
 
-def send_packet(iface):
-    ether = Ether(src="20:7b:d2:25:b6:34", dst="8c:1f:64:69:10:56")
-    ipv6 = IPv6(src="fe80::db1a:301:7d9b:6f9", dst="2001:db8::10", hlim=255)
-    icmpv6 = ICMPv6EchoRequest()
-    payload = Raw(load="Hello! This is a test packet.")
-    packet = ether / ipv6 / icmpv6 / payload
-    sendp(packet, iface=iface)
+# def send_packet(iface):
+#     ether = Ether(src="20:7b:d2:25:b6:34", dst="8c:1f:64:69:10:56")
+#     ipv6 = IPv6(src="fe80::db1a:301:7d9b:6f9", dst="1000::8", hlim=255)
+#     icmpv6 = ICMPv6EchoRequest()
+#     payload = Raw(load="Hello! This is a test packet.")
+#     packet = ether / ipv6 / icmpv6 / payload
+#     sendp(packet, iface=iface)
 
 
 if __name__ == "__main__":
@@ -252,10 +252,10 @@ if __name__ == "__main__":
     while True:
         send_ripng(iface)
         time.sleep(10)
-        send_packet(iface)
-        time.sleep(10)
+        # send_packet(iface)
+        # time.sleep(10)
         #send_ns(iface)
-        send_ripng(iface)
-        time.sleep(3)
+        # send_ripng(iface)
+        # time.sleep(3)
     #     send_packet(iface)
     #     time.sleep(10)

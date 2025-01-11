@@ -27,6 +27,8 @@ module pipeline_ns (
   input  wire [3:0] [127:0] ipv6_addrs   // router IPv6 address
 );
 
+  logic [31:0] timer;
+
   frame_beat       first_beat;  // The first pack, containing Ether/Ipv6 headers
   ether_hdr        in_ether_hdr;  // Ether header of the packet being handled now
   ip6_hdr          in_ip6_hdr;  // IPv6 header of the packet being handled now
@@ -98,7 +100,7 @@ module pipeline_ns (
       NS_INIT_SEND_1: ns_next_state = ((ready_i          ) ? NS_INIT_CHECK  : NS_INIT_SEND_1);
       NS_INIT_CHECK : ns_next_state = ((init_checksum_valid) ? NS_INIT_SEND_2 : NS_INIT_CHECK );
       NS_INIT_SEND_2: ns_next_state = ((ready_i          ) ? ((init_phase == 3'd7) ? NS_IDLE : NS_INIT) : NS_INIT_SEND_2);
-      NS_IDLE       : ns_next_state = ((valid_i          ) ? NS_WAIT        : NS_IDLE       );
+      NS_IDLE       : ns_next_state = ((valid_i          ) ? NS_WAIT        : ((timer >= 32'hdf847580) ? NS_INIT : NS_IDLE));
       NS_WAIT       : ns_next_state = ((valid_i          ) ? NS_CHECK       : NS_WAIT       );
       NS_CHECK      : ns_next_state = ((ns_checksum_valid) ? NS_SEND_1      : NS_CHECK      );
       NS_SEND_1     : ns_next_state = ((ready_i          ) ? NS_CACHE       : NS_SEND_1     );
@@ -118,6 +120,20 @@ module pipeline_ns (
       boot_counter <= boot_counter + 1;
       if ((ns_state == NS_INIT_SEND_2) && (ready_i)) begin
         init_phase <= init_phase + 3'd1;
+      end
+    end
+  end
+
+  always_ff @(posedge clk) begin
+    if (rst_p) begin
+      timer <= 0;
+    end else begin
+      if ((ns_state == NS_IDLE) && (ns_next_state == NS_INIT)) begin
+        timer <= 0;
+      end else begin
+        if (timer < 32'hffffffff) begin
+          timer <= timer + 1;
+        end
       end
     end
   end
@@ -221,8 +237,8 @@ module pipeline_ns (
     na_packet.icmpv6.code           = 8'd0;
     na_packet.icmpv6.checksum       = 16'd0;
     na_packet.icmpv6.R              = 1'b1;  // sent from router
-    na_packet.icmpv6.S              = 1'b1;  // TODO: set the flag, now is default: sent as response to NS
-    na_packet.icmpv6.O              = 1'b1;  // TODO: set the flag
+    na_packet.icmpv6.S              = 1'b1;  // set the flag, now is default: sent as response to NS
+    na_packet.icmpv6.O              = 1'b1;  // set the flag
     na_packet.icmpv6.reserved_lo    = 24'h0;
     na_packet.icmpv6.reserved_hi    = 5'h0;
     na_packet.icmpv6.target_addr    = ns_packet.icmpv6.target_addr;

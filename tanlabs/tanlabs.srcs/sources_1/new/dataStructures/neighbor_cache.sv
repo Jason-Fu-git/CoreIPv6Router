@@ -68,7 +68,7 @@ module neighbor_cache #(
     reg valid;
     reg [127:0] IPv6_addr;
     reg [47:0] MAC_addr;
-    reg [35:0] reachable_timer;
+    // reg [35:0] reachable_timer;
   } neighbor_cache_entry_t;
 
   neighbor_cache_entry_t [3:0][NUM_ENTRIES-1:0] neighbor_cache_entries;
@@ -199,7 +199,7 @@ module neighbor_cache #(
       // reset all entries
       for (int j = 0; j < 4; j = j + 1) begin
         for (int i = 0; i < NUM_ENTRIES; i = i + 1) begin
-          neighbor_cache_entries[j][i].reachable_timer <= 0;
+          // neighbor_cache_entries[j][i].reachable_timer <= 0;
           neighbor_cache_entries[j][i].valid <= 0;
         end
       end
@@ -212,67 +212,71 @@ module neighbor_cache #(
               if (i == update_addr) begin
                 // update entry
                 neighbor_cache_entries[j][i].valid <= 1;
-                neighbor_cache_entries[j][i].reachable_timer <= 0;
-              end else begin
-                if (neighbor_cache_entries[j][i].valid) begin
-                  // increment timer
-                  if (neighbor_cache_entries[j][i].reachable_timer >= REACHABLE_LIMIT) begin
-                    neighbor_cache_entries[j][i].reachable_timer <= 0;
-                    neighbor_cache_entries[j][i].valid <= 0;
-                  end else begin
-                    neighbor_cache_entries[j][i].reachable_timer
-                 <= neighbor_cache_entries[j][i].reachable_timer + 1;
-                  end
-                end
+                // neighbor_cache_entries[j][i].reachable_timer <= 0;
               end
+              // else begin
+              //   if (neighbor_cache_entries[j][i].valid) begin
+              //     // increment timer
+              //     if (neighbor_cache_entries[j][i].reachable_timer >= REACHABLE_LIMIT) begin
+              //       neighbor_cache_entries[j][i].reachable_timer <= 0;
+              //       neighbor_cache_entries[j][i].valid <= 0;
+              //     end else begin
+              //       neighbor_cache_entries[j][i].reachable_timer
+              //    <= neighbor_cache_entries[j][i].reachable_timer + 1;
+              //     end
+              //   end
+              // end
             end else if (insertable) begin
               if (i == insert_addr) begin
                 // insert entry
                 neighbor_cache_entries[j][i].valid <= 1;
-                neighbor_cache_entries[j][i].reachable_timer <= 0;
-              end else begin
-                if (neighbor_cache_entries[j][i].valid) begin
-                  // increment timer
-                  if (neighbor_cache_entries[j][i].reachable_timer >= REACHABLE_LIMIT) begin
-                    neighbor_cache_entries[j][i].reachable_timer <= 0;
-                    neighbor_cache_entries[j][i].valid <= 0;
-                  end else begin
-                    neighbor_cache_entries[j][i].reachable_timer
-                 <= neighbor_cache_entries[j][i].reachable_timer + 1;
-                  end
-                end
+                // neighbor_cache_entries[j][i].reachable_timer <= 0;
               end
+              // else begin
+              //   if (neighbor_cache_entries[j][i].valid) begin
+              //     // increment timer
+              //     if (neighbor_cache_entries[j][i].reachable_timer >= REACHABLE_LIMIT) begin
+              //       neighbor_cache_entries[j][i].reachable_timer <= 0;
+              //       neighbor_cache_entries[j][i].valid <= 0;
+              //     end else begin
+              //       neighbor_cache_entries[j][i].reachable_timer
+              //    <= neighbor_cache_entries[j][i].reachable_timer + 1;
+              //     end
+              //   end
+              // end
             end else begin
               if (i == next_replace_addr) begin
                 // replace entry
                 neighbor_cache_entries[j][i].valid <= 1;
-                neighbor_cache_entries[j][i].reachable_timer <= 0;
-              end else begin
-                if (neighbor_cache_entries[j][i].valid) begin
-                  // increment timer
-                  if (neighbor_cache_entries[j][i].reachable_timer >= REACHABLE_LIMIT) begin
-                    neighbor_cache_entries[j][i].reachable_timer <= 0;
-                    neighbor_cache_entries[j][i].valid <= 0;
-                  end else begin
-                    neighbor_cache_entries[j][i].reachable_timer
-                 <= neighbor_cache_entries[j][i].reachable_timer + 1;
-                  end
-                end
+                // neighbor_cache_entries[j][i].reachable_timer <= 0;
               end
-            end
-          end else begin
-            // NOT in save state
-            if (neighbor_cache_entries[j][i].valid) begin
-              // increment timer
-              if (neighbor_cache_entries[j][i].reachable_timer >= REACHABLE_LIMIT) begin
-                neighbor_cache_entries[j][i].reachable_timer <= 0;
-                neighbor_cache_entries[j][i].valid <= 0;
-              end else begin
-                neighbor_cache_entries[j][i].reachable_timer
-                <= neighbor_cache_entries[j][i].reachable_timer + 1;
-              end
+              // else begin
+              //   if (neighbor_cache_entries[j][i].valid) begin
+              //     // increment timer
+              //     if (neighbor_cache_entries[j][i].reachable_timer >= REACHABLE_LIMIT) begin
+              //       neighbor_cache_entries[j][i].reachable_timer <= 0;
+              //       neighbor_cache_entries[j][i].valid <= 0;
+              //     end else begin
+              //       neighbor_cache_entries[j][i].reachable_timer
+              //    <= neighbor_cache_entries[j][i].reachable_timer + 1;
+              //     end
+              //   end
+              // end
             end
           end
+          // else begin
+          // NOT in save state
+          // if (neighbor_cache_entries[j][i].valid) begin
+          //   // increment timer
+          //   if (neighbor_cache_entries[j][i].reachable_timer >= REACHABLE_LIMIT) begin
+          //     neighbor_cache_entries[j][i].reachable_timer <= 0;
+          //     neighbor_cache_entries[j][i].valid <= 0;
+          //   end else begin
+          //     neighbor_cache_entries[j][i].reachable_timer
+          //     <= neighbor_cache_entries[j][i].reachable_timer + 1;
+          //   end
+          // end
+          // end
         end
       end
     end
@@ -281,35 +285,35 @@ module neighbor_cache #(
 
 
   // ========================== probe controller  ==============================
-  logic [3:0][127:0] probe_IPv6_addr_comb;
+  // logic [3:0][127:0] probe_IPv6_addr_comb;
 
-  always_comb begin : Probe
-    for (int j = 0; j < 4; j = j + 1) begin
-      probe_IPv6_addr_comb[j] = 0;
-      for (int i = 0; i < NUM_ENTRIES; i = i + 1) begin
-        if (
-             neighbor_cache_entries[j][i].valid &&
-             (neighbor_cache_entries[j][i].reachable_timer == PROBE_LIMIT)
-            ) begin
-          probe_IPv6_addr_comb[j] = neighbor_cache_entries[j][i].IPv6_addr;
-        end
-      end
-    end
-  end
+  // always_comb begin : Probe
+  //   for (int j = 0; j < 4; j = j + 1) begin
+  //     probe_IPv6_addr_comb[j] = 0;
+  //     for (int i = 0; i < NUM_ENTRIES; i = i + 1) begin
+  //       if (
+  //            neighbor_cache_entries[j][i].valid &&
+  //            (neighbor_cache_entries[j][i].reachable_timer == PROBE_LIMIT)
+  //           ) begin
+  //         probe_IPv6_addr_comb[j] = neighbor_cache_entries[j][i].IPv6_addr;
+  //       end
+  //     end
+  //   end
+  // end
 
 
-  always_comb begin : ProbeController
-    nud_probe = 0;
-    probe_IPv6_addr = 0;
-    probe_port_id = 0;
-    for (int j = 0; j < 4; j = j + 1) begin
-      if (probe_IPv6_addr_comb[j] != 0) begin
-        nud_probe = 1;
-        probe_IPv6_addr = probe_IPv6_addr_comb[j];
-        probe_port_id = j;
-      end
-    end
-  end
+  // always_comb begin : ProbeController
+  //   nud_probe = 0;
+  //   probe_IPv6_addr = 0;
+  //   probe_port_id = 0;
+  //   for (int j = 0; j < 4; j = j + 1) begin
+  //     if (probe_IPv6_addr_comb[j] != 0) begin
+  //       nud_probe = 1;
+  //       probe_IPv6_addr = probe_IPv6_addr_comb[j];
+  //       probe_port_id = j;
+  //     end
+  //   end
+  // end
   // ===========================================================================
 
 

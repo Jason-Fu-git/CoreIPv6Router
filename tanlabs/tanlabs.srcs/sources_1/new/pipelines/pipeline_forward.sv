@@ -197,6 +197,18 @@ module pipeline_forward (
     end
   end
 
+  always_ff @(posedge clk) begin : NUD
+    if (rst_p) begin
+      nud_probe       <= 0;
+      probe_IPv6_addr <= 0;
+      probe_port_id   <= 0;
+    end else begin
+      nud_probe       <= cache_beat_comb.valid && cache_beat_comb.data.is_first && (!cache_r_exists);
+      probe_IPv6_addr <= cache_r_IPv6_addr;
+      probe_port_id   <= cache_r_port_id;
+    end
+  end
+
   logic [1:0] cache_r_port_id_reg;
   always_ff @(posedge clk) begin : FW_CACHE_R_PORT_REG
     if (rst_p) begin
@@ -210,12 +222,7 @@ module pipeline_forward (
 
   always_ff @(posedge clk) begin : FW_CACHE_REG
     if (rst_p) begin
-      cache_beat      <= 0;
-
-      // NUD
-      nud_probe       <= 0;
-      probe_IPv6_addr <= 0;
-      probe_port_id   <= 0;
+      cache_beat <= 0;
     end else begin
       if (cache_ready) begin
         cache_beat.valid <= cache_beat_comb.valid;
@@ -245,27 +252,13 @@ module pipeline_forward (
                 cache_beat.data.data.dst        <= cache_r_MAC_addr;
                 cache_beat.data.data.ip6        <= cache_beat_comb.data.data.ip6;
 
-                // NUD
-                nud_probe                       <= 0;
               end else begin
                 cache_beat.error <= ERR_NC_MISS;
                 cache_beat.data  <= cache_beat_comb.data;
-
-                // NUD
-                if (nud_probe) begin
-                  nud_probe        <= 0;
-                end else begin
-                  nud_probe        <= 1;
-                end
-                probe_IPv6_addr  <= cache_r_IPv6_addr;
-                probe_port_id    <= cache_r_port_id;
               end
             end else begin
               cache_beat.error <= cache_beat_comb.error;
               cache_beat.data  <= cache_beat_comb.data;
-
-              // NUD
-              nud_probe        <= 0;
             end
           end else begin
             // Not the first beat
@@ -287,15 +280,8 @@ module pipeline_forward (
 
             // payload
             cache_beat.data.data            <= cache_beat_comb.data.data;
-
-            // NUD
-            nud_probe                       <= 0;
           end
-        end else begin
-          nud_probe <= 0;
         end
-      end else begin
-        nud_probe <= 0;
       end
     end
   end

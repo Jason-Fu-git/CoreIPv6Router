@@ -30,20 +30,20 @@
     <Option Name="IPUserFilesDir" Val="$PIPUSERFILESDIR"/>
     <Option Name="IPStaticSourceDir" Val="$PIPUSERFILESDIR/ipstatic"/>
     <Option Name="EnableBDX" Val="FALSE"/>
-    <Option Name="WTXSimLaunchSim" Val="1018"/>
+    <Option Name="WTXSimLaunchSim" Val="1021"/>
     <Option Name="WTModelSimLaunchSim" Val="0"/>
     <Option Name="WTQuestaLaunchSim" Val="0"/>
     <Option Name="WTIesLaunchSim" Val="0"/>
     <Option Name="WTVcsLaunchSim" Val="0"/>
     <Option Name="WTRivieraLaunchSim" Val="0"/>
     <Option Name="WTActivehdlLaunchSim" Val="0"/>
-    <Option Name="WTXSimExportSim" Val="179"/>
-    <Option Name="WTModelSimExportSim" Val="179"/>
-    <Option Name="WTQuestaExportSim" Val="179"/>
-    <Option Name="WTIesExportSim" Val="178"/>
-    <Option Name="WTVcsExportSim" Val="178"/>
-    <Option Name="WTRivieraExportSim" Val="178"/>
-    <Option Name="WTActivehdlExportSim" Val="178"/>
+    <Option Name="WTXSimExportSim" Val="180"/>
+    <Option Name="WTModelSimExportSim" Val="180"/>
+    <Option Name="WTQuestaExportSim" Val="180"/>
+    <Option Name="WTIesExportSim" Val="179"/>
+    <Option Name="WTVcsExportSim" Val="179"/>
+    <Option Name="WTRivieraExportSim" Val="179"/>
+    <Option Name="WTActivehdlExportSim" Val="179"/>
     <Option Name="GenerateIPUpgradeLog" Val="TRUE"/>
     <Option Name="XSimRadix" Val="hex"/>
     <Option Name="XSimTimeUnit" Val="ns"/>
@@ -836,12 +836,6 @@
         <Option Name="UseBlackboxStub" Val="1"/>
       </Config>
     </FileSet>
-    <FileSet Name="bd_5d9f_c_shift_ram_0_0" Type="BlockSrcs" RelSrcDir="$PSRCDIR/bd_5d9f_c_shift_ram_0_0">
-      <Config>
-        <Option Name="TopModule" Val="bd_5d9f_c_shift_ram_0_0"/>
-        <Option Name="UseBlackboxStub" Val="1"/>
-      </Config>
-    </FileSet>
     <FileSet Name="bd_5d9f_c_counter_binary_0_0" Type="BlockSrcs" RelSrcDir="$PSRCDIR/bd_5d9f_c_counter_binary_0_0">
       <Config>
         <Option Name="TopModule" Val="bd_5d9f_c_counter_binary_0_0"/>
@@ -1035,6 +1029,7 @@
     <FileSet Name="axis_data_fifo_nud" Type="BlockSrcs" RelSrcDir="$PSRCDIR/axis_data_fifo_nud">
       <File Path="$PSRCDIR/sources_1/ip/axis_data_fifo_nud/axis_data_fifo_nud.xci">
         <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
@@ -1161,15 +1156,6 @@
         <Step Id="synth_design"/>
       </Strategy>
       <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
-      <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2019"/>
-      <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
-      <RQSFiles/>
-    </Run>
-    <Run Id="bd_5d9f_c_shift_ram_0_0_synth_1" Type="Ft3:Synth" SrcSet="bd_5d9f_c_shift_ram_0_0" Part="xc7k325tffg900-2" ConstrsSet="bd_5d9f_c_shift_ram_0_0" Description="Vivado Synthesis Defaults" AutoIncrementalCheckpoint="false" WriteIncrSynthDcp="false" IncludeInArchive="true">
-      <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2019"/>
-        <Step Id="synth_design"/>
-      </Strategy>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2019"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
       <RQSFiles/>
@@ -1539,23 +1525,6 @@
       <RQSFiles/>
     </Run>
     <Run Id="mig_7series_0_impl_1" Type="Ft2:EntireDesign" Part="xc7k325tffg900-2" ConstrsSet="mig_7series_0" Description="Default settings for Implementation." AutoIncrementalCheckpoint="false" WriteIncrSynthDcp="false" SynthRun="mig_7series_0_synth_1" IncludeInArchive="false" GenFullBitstream="true">
-      <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2019"/>
-        <Step Id="init_design"/>
-        <Step Id="opt_design"/>
-        <Step Id="power_opt_design"/>
-        <Step Id="place_design"/>
-        <Step Id="post_place_power_opt_design"/>
-        <Step Id="phys_opt_design" EnableStepBool="1"/>
-        <Step Id="route_design"/>
-        <Step Id="post_route_phys_opt_design"/>
-        <Step Id="write_bitstream"/>
-      </Strategy>
-      <ReportStrategy Name="Vivado Implementation Default Reports" Flow="Vivado Implementation 2019"/>
-      <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
-      <RQSFiles/>
-    </Run>
-    <Run Id="bd_5d9f_c_shift_ram_0_0_impl_1" Type="Ft2:EntireDesign" Part="xc7k325tffg900-2" ConstrsSet="bd_5d9f_c_shift_ram_0_0" Description="Default settings for Implementation." AutoIncrementalCheckpoint="false" WriteIncrSynthDcp="false" SynthRun="bd_5d9f_c_shift_ram_0_0_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
         <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2019"/>
         <Step Id="init_design"/>

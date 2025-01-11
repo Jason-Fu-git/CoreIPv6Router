@@ -354,37 +354,43 @@ module frame_datapath #(
       .in(na_in),
       .out(na_cache_entry)
   );
-  always_ff @(posedge eth_clk) begin
-    if (reset) begin
-      nud_we_p <= 0;
-      nud_exp_addr <= 0;
-      nud_iface <= 0;
-    end else if (nud_we_p_cache) begin
-      nud_we_p <= nud_we_p_cache;
-      nud_exp_addr <= nud_exp_addr_cache;
-      nud_iface <= nud_iface_cache;
-    end else if (nud_we_p_fwd) begin
-      nud_we_p <= nud_we_p_fwd;
-      nud_exp_addr <= nud_exp_addr_fwd;
-      nud_iface <= nud_iface_fwd;
-    end else begin
-      nud_we_p <= 0;
-      nud_exp_addr <= 0;
-      nud_iface <= 0;
-    end
-  end
-  axis_data_fifo_nud axis_data_fifo_nud_i (
-      .s_axis_aresetn(~reset),          // input wire s_axis_aresetn
-      .s_axis_aclk   (eth_clk),         // input wire s_axis_aclk
-      .s_axis_tvalid (nud_we_p),        // input wire s_axis_tvalid
-      .s_axis_tready (),                // output wire s_axis_tready
-      .s_axis_tdata  (nud_exp_addr),    // input wire [127 : 0] s_axis_tdata
-      .s_axis_tdest  (nud_iface),       // input wire [1 : 0] s_axis_tdest
-      .m_axis_tvalid (nud_we_p_res),    // output wire m_axis_tvalid
-      .m_axis_tready (nud_in_ready),   // input wire m_axis_tready
-      .m_axis_tdata  (nud_exp_addr_res),// output wire [127 : 0] m_axis_tdata
-      .m_axis_tdest  (nud_iface_res)    // output wire [1 : 0] m_axis_tdest
-  );
+  // always_ff @(posedge eth_clk) begin
+  //   if (reset) begin
+  //     nud_we_p <= 0;
+  //     nud_exp_addr <= 0;
+  //     nud_iface <= 0;
+  //   end else if (nud_we_p_cache) begin
+  //     nud_we_p <= nud_we_p_cache;
+  //     nud_exp_addr <= nud_exp_addr_cache;
+  //     nud_iface <= nud_iface_cache;
+  //   end else if (nud_we_p_fwd) begin
+  //     nud_we_p <= nud_we_p_fwd;
+  //     nud_exp_addr <= nud_exp_addr_fwd;
+  //     nud_iface <= nud_iface_fwd;
+  //   end else begin
+  //     nud_we_p <= 0;
+  //     nud_exp_addr <= 0;
+  //     nud_iface <= 0;
+  //   end
+  // end
+  assign nud_we_p     = nud_we_p_fwd;
+  assign nud_exp_addr = nud_exp_addr_fwd;
+  assign nud_iface    = nud_iface_fwd;
+  // axis_data_fifo_nud axis_data_fifo_nud_i (
+  //     .s_axis_aresetn(~reset),            // input wire s_axis_aresetn
+  //     .s_axis_aclk   (eth_clk),           // input wire s_axis_aclk
+  //     .s_axis_tvalid (nud_we_p),          // input wire s_axis_tvalid
+  //     .s_axis_tready (),                  // output wire s_axis_tready
+  //     .s_axis_tdata  (nud_exp_addr),      // input wire [127 : 0] s_axis_tdata
+  //     .s_axis_tdest  (nud_iface),         // input wire [1 : 0] s_axis_tdest
+  //     .m_axis_tvalid (nud_we_p_res),      // output wire m_axis_tvalid
+  //     .m_axis_tready (nud_in_ready),      // input wire m_axis_tready
+  //     .m_axis_tdata  (nud_exp_addr_res),  // output wire [127 : 0] m_axis_tdata
+  //     .m_axis_tdest  (nud_iface_res)      // output wire [1 : 0] m_axis_tdest
+  // );
+  assign nud_we_p_res     = nud_we_p;
+  assign nud_exp_addr_res = nud_exp_addr;
+  assign nud_iface_res    = nud_iface;
   pipeline_nud pipeline_nud_i (
       .clk(eth_clk),
       .rst_p(reset),
