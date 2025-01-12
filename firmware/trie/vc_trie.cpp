@@ -24,11 +24,12 @@ static const uint32_t BIN_SIZES[16] = {
 	1, 1, 1, 1, 1, 1, 1, 1
 };
 
-static const uint32_t NODE_SIZE_PREFIX_SUMS[16] = {
+static const uint32_t NODE_SIZE_PREFIX_SUMS[17] = {
 	0, 64, 1856, 94016,
 	201536, 273216, 303936, 304192,
 	304448, 304704, 304960, 305216,
-	305472, 305728, 305984, 306240
+	305472, 305728, 305984, 306240,
+	306496
 };
 
 extern "C" void* VCTrieIndexToAddress(uint32_t index) {
@@ -36,14 +37,37 @@ extern "C" void* VCTrieIndexToAddress(uint32_t index) {
 	while (index >= NODE_SIZE_PREFIX_SUMS[stage]) {
 		++stage;
 	}
-	uint32_t offset = index - NODE_SIZE_PREFIX_SUMS[stage - 1];
-	return (void*)((uint32_t)BRAM_BASE | (stage << 23) | (offset << 10));
+    --stage;
+	uint32_t offset = index - NODE_SIZE_PREFIX_SUMS[stage];
+    uint32_t node = offset / BIN_SIZES[stage];
+    offset = offset % BIN_SIZES[stage];
+	return (void*)((uint32_t)BRAM_BASE | (stage << 23) | (node << 10) | ((offset + 1) << 4));
 }
 
 extern "C" uint32_t VCTrieAddressToIndex(void* address) {
 	uint32_t stage = ((uint32_t)address >> 23) & 0xF;
-	uint32_t offset = ((uint32_t)address >> 10) & 0x1FFF;
-	return NODE_SIZE_PREFIX_SUMS[stage - 1] + offset;
+	uint32_t node = ((uint32_t)address >> 10) & 0x1FFF;
+    uint32_t entry_offset = (((uint32_t)address >> 4) & 0x3F) - 1;
+    uint32_t node_offset = 0;
+    switch(stage) {
+        case 2:
+        case 3:
+            node_offset = (node << 4) - node; // * 15
+            break;
+        case 4:
+            node_offset = (node << 4) - (node << 1); // * 14
+            break;
+        case 5:
+            node_offset = (node << 3) + (node << 1); // * 10
+            break;
+        case 1:
+            node_offset = (node << 3) - node; // * 7
+            break;
+        default:
+            node_offset = node; // * 1
+            break;
+    }
+	return NODE_SIZE_PREFIX_SUMS[stage] + node_offset + entry_offset;
 }
 
 struct IP6 {
@@ -191,6 +215,7 @@ public:
 			++node_num[stage];
 			if (node_num[stage] >= BRAM_DEPTHS[stage]) {
 				printf("[TC]E");
+                _putchar('\0');
 				--node_count;
 				--node_num[stage];
 				return -1;
@@ -237,11 +262,12 @@ public:
 			bin[freeIndex].length = length - stage_level;
 			bin[freeIndex].prefix = prefix.ip[0];
 			bin[freeIndex].next_hop = next_hop;
-			return VCTrieAddressToIndex(now);
+			return VCTrieAddressToIndex(&now->getBin()[freeIndex]);
 		}
 END: // excessive
 		prefix_raw->toHex(error_buffer);
-		printf("E%s/%d\n", error_buffer, length);
+		// printf("E%s/%d", error_buffer, length);
+        // _putchar('\0');
 		++excessive_count;
 		return 0xffffffff;
 #undef stage
@@ -357,4 +383,8 @@ extern "C" uint32_t VCEntryIsInvalid(void* entry_addr) {
 
 extern "C" void VCEntryInvalidate(void* entry_addr) {
 	((VCEntry*)entry_addr)->invalidate();
+}
+
+extern "C" void VCEntryModify(void* entry_addr, uint32_t next_hop) {
+	((VCEntry*)entry_addr)->next_hop = next_hop;
 }

@@ -24,7 +24,7 @@ struct memory_rte
     struct ip6_addr ip6_addr;
     uint8_t prefix_len;
     uint8_t metric; // == 16 ? timer = GC timer : Timeout timer
-    uint8_t nexthop_port; // Upper 1 bit: valid; Lower 5 bits: port number
+    uint8_t nexthop_port; // Upper 1 bit: valid; Second 1 bit: is_direct_route; Lower 2 bits: port number
     uint8_t lower_timer;
 };
 

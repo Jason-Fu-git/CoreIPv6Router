@@ -11,7 +11,7 @@ int check_timeout(uint32_t time_llimit, uint32_t timer_ldata)
     uint32_t added_timer_ldata = timer_ldata + time_llimit;
 
     // Check if the timer has expired
-    if (cur_timer_ldata > added_timer_ldata)
+    if (cur_timer_ldata >= added_timer_ldata)
     {
         return 1;
     }
