@@ -16,19 +16,31 @@ module pipeline_forward (
 
     // neighbor cache
     output reg  [127:0] cache_r_IPv6_addr,
+    output reg  [  1:0] cache_r_port_id,
     input  wire [ 47:0] cache_r_MAC_addr,
-    input  wire [  1:0] cache_r_port_id,
     input  wire         cache_r_exists,
 
     // forward table
-    output fw_frame_beat_t fwt_in,
-    input  fw_frame_beat_t fwt_out,
-    input  wire            fwt_in_ready,
-    output reg             fwt_out_ready,
-    input  wire [127:0]    fwt_next_hop,
+    output fw_frame_beat_t         fwt_in,
+    input  fw_frame_beat_t         fwt_out,
+    input  wire            [  4:0] fwt_nexthop_addr,
+    input  wire                    fwt_in_ready,
+    output reg                     fwt_out_ready,
+    output reg             [127:0] fwt_addr,
+
+    // nexthop lookup
+    output reg  [  4:0] nexthop_addr,
+    input  wire [127:0] nexthop_IPv6_addr,
+    input  wire [  1:0] nexthop_port_id,
 
     // Address config
-    input wire [3:0][47:0] mac_addrs  // router MAC address
+    input wire [3:0][47:0] mac_addrs,  // router MAC address
+
+
+    // All NUD signals will be hold for one cycle when cache miss
+    output reg nud_probe,  // FLAG : whether the external module should probe the IPv6 address
+    output reg [127:0] probe_IPv6_addr,  // Key : IPv6 address to probe
+    output reg [1:0] probe_port_id  // Value : port id to probe
 );
 
   fw_error_t in_error_next;
@@ -74,34 +86,135 @@ module pipeline_forward (
   // =======================
   assign buffer_ready = fwt_in_ready || (!in_buffer.valid);
 
+  logic [127:0] fwt_addr_rev;
+
   always_ff @(posedge clk) begin : FW_FWT_IN_REG
     if (rst_p) begin
       fwt_in <= 0;
+      fwt_addr_rev <= 0;
     end else begin
       if (fwt_in_ready) begin
         fwt_in <= in_buffer;
+        fwt_addr_rev <= in_buffer.data.data.ip6.dst;
       end
     end
   end
 
+  always_comb begin
+    for (int i = 0; i < 16; i = i + 1) begin
+      fwt_addr[i*8+:8] = {
+        fwt_addr_rev[i*8+0],
+        fwt_addr_rev[i*8+1],
+        fwt_addr_rev[i*8+2],
+        fwt_addr_rev[i*8+3],
+        fwt_addr_rev[i*8+4],
+        fwt_addr_rev[i*8+5],
+        fwt_addr_rev[i*8+6],
+        fwt_addr_rev[i*8+7]
+      };
+    end
+  end
+
+  // ======================
+  // Nexthop lookup
+  // ======================
+  fw_frame_beat_t nexthop_beat;
+  logic nexthop_ready;
+
+  always_ff @(posedge clk) begin : NEXTHOP_BEAT
+    if (rst_p) begin
+      nexthop_beat <= 0;
+    end else if (nexthop_ready) begin
+      nexthop_beat <= fwt_out;
+      nexthop_addr <= fwt_nexthop_addr;
+    end
+  end
+
+  assign fwt_out_ready = nexthop_ready || (!fwt_out.valid);
+
+
+  // extra pipeline stage for neighbor cache lookup
+  fw_frame_beat_t nc_beat;
+  logic [127:0] nc_IPv6_addr;
+  logic [1:0] nc_port_id;
+  logic nc_ready;
+
+  assign nexthop_ready = nc_ready || (!nexthop_beat.valid);
+
+
+  always_ff @(posedge clk) begin : NC_BEAT
+    if (rst_p) begin
+      nc_beat <= 0;
+    end else if (nc_ready) begin
+      nc_beat      <= nexthop_beat;
+      nc_IPv6_addr <= nexthop_IPv6_addr;
+      nc_port_id   <= nexthop_port_id;
+    end
+  end
+
+
+  // Buffer for nc_beat
+  fw_frame_beat_t         nc_beat_buffer;
+  logic           [127:0] nc_IPv6_addr_buffer;
+  logic           [  1:0] nc_port_id_buffer;
+
+  always_ff @(posedge clk) begin : NC_BEAT_BUFFER
+    if (rst_p) begin
+      nc_beat_buffer <= 0;
+    end else if (nc_ready) begin
+      nc_beat_buffer      <= nexthop_beat;
+      nc_IPv6_addr_buffer <= nexthop_IPv6_addr;
+      nc_port_id_buffer   <= nexthop_port_id;
+    end
+  end
+
+
   // =======================
   // Neighbor Cache
   // =======================
+
   logic cache_ready;
   fw_frame_beat_t cache_beat;
-  reg [1:0] cache_r_port_id_reg;
-  assign fwt_out_ready = cache_ready;
+  fw_frame_beat_t cache_beat_comb;
 
-  always_comb begin : FW_CACHE_SIGNALS
-    // cache_r_IPv6_addr = fwt_out.data.data.ip6.dst;
-    cache_r_IPv6_addr = fwt_next_hop;
+
+  always_ff @(posedge clk) begin : NC_READY
+    if (rst_p) begin
+      nc_ready <= 0;
+    end else begin
+      nc_ready <= cache_ready;
+    end
   end
 
+  always_comb begin : FW_CACHE_SIGNALS
+    cache_r_IPv6_addr = nc_IPv6_addr;
+    cache_r_port_id   = nc_port_id;
+    cache_beat_comb   = nc_beat;
+    if (cache_ready && !nc_ready) begin
+      cache_r_IPv6_addr = nc_IPv6_addr_buffer;
+      cache_r_port_id   = nc_port_id_buffer;
+      cache_beat_comb   = nc_beat_buffer;
+    end
+  end
+
+  always_ff @(posedge clk) begin : NUD
+    if (rst_p) begin
+      nud_probe       <= 0;
+      probe_IPv6_addr <= 0;
+      probe_port_id   <= 0;
+    end else begin
+      nud_probe       <= cache_beat_comb.valid && cache_beat_comb.data.is_first && (!cache_r_exists);
+      probe_IPv6_addr <= cache_r_IPv6_addr;
+      probe_port_id   <= cache_r_port_id;
+    end
+  end
+
+  logic [1:0] cache_r_port_id_reg;
   always_ff @(posedge clk) begin : FW_CACHE_R_PORT_REG
     if (rst_p) begin
       cache_r_port_id_reg <= 0;
     end else begin
-      if (fwt_out.data.is_first) begin
+      if (cache_beat_comb.data.is_first) begin
         cache_r_port_id_reg <= cache_r_port_id;
       end
     end
@@ -112,61 +225,61 @@ module pipeline_forward (
       cache_beat <= 0;
     end else begin
       if (cache_ready) begin
-        cache_beat.valid <= fwt_out.valid;
-        if (fwt_out.valid) begin
-          if (fwt_out.data.is_first) begin
-            if (fwt_out.error == ERR_NONE) begin
+        cache_beat.valid <= cache_beat_comb.valid;
+        if (cache_beat_comb.valid) begin
+          if (cache_beat_comb.data.is_first) begin
+            if (cache_beat_comb.error == ERR_NONE) begin
               if (cache_r_exists) begin
                 cache_beat.error                <= ERR_NONE;
 
                 // frame_beat properties
-                cache_beat.data.keep            <= fwt_out.data.keep;
-                cache_beat.data.last            <= fwt_out.data.last;
-                cache_beat.data.user            <= fwt_out.data.user;
-                cache_beat.data.valid           <= fwt_out.data.valid;
-                cache_beat.data.is_first        <= fwt_out.data.is_first;
+                cache_beat.data.keep            <= cache_beat_comb.data.keep;
+                cache_beat.data.last            <= cache_beat_comb.data.last;
+                cache_beat.data.user            <= cache_beat_comb.data.user;
+                cache_beat.data.valid           <= cache_beat_comb.data.valid;
+                cache_beat.data.is_first        <= cache_beat_comb.data.is_first;
 
                 // frame_meta properties
-                cache_beat.data.meta.id         <= fwt_out.data.meta.id;
+                cache_beat.data.meta.id         <= cache_beat_comb.data.meta.id;
                 cache_beat.data.meta.dest       <= cache_r_port_id;
-                cache_beat.data.meta.drop       <= fwt_out.data.meta.drop;
-                cache_beat.data.meta.dont_touch <= fwt_out.data.meta.dont_touch;
-                cache_beat.data.meta.drop_next  <= fwt_out.data.meta.drop_next;
+                cache_beat.data.meta.drop       <= cache_beat_comb.data.meta.drop;
+                cache_beat.data.meta.dont_touch <= cache_beat_comb.data.meta.dont_touch;
+                cache_beat.data.meta.drop_next  <= cache_beat_comb.data.meta.drop_next;
 
                 // ether_hdr properties
-                cache_beat.data.data.ethertype  <= fwt_out.data.data.ethertype;
-                cache_beat.data.data.src        <= fwt_out.data.data.src;
+                cache_beat.data.data.ethertype  <= cache_beat_comb.data.data.ethertype;
+                cache_beat.data.data.src        <= cache_beat_comb.data.data.src;
                 cache_beat.data.data.dst        <= cache_r_MAC_addr;
-                cache_beat.data.data.ip6        <= fwt_out.data.data.ip6;
-                cache_beat.data.data.ip6.dst    <= fwt_next_hop;
+                cache_beat.data.data.ip6        <= cache_beat_comb.data.data.ip6;
+
               end else begin
                 cache_beat.error <= ERR_NC_MISS;
-                cache_beat.data  <= fwt_out.data;
+                cache_beat.data  <= cache_beat_comb.data;
               end
             end else begin
-              cache_beat.error <= fwt_out.error;
-              cache_beat.data  <= fwt_out.data;
+              cache_beat.error <= cache_beat_comb.error;
+              cache_beat.data  <= cache_beat_comb.data;
             end
           end else begin
             // Not the first beat
-            cache_beat.error                <= fwt_out.error;
+            cache_beat.error                <= cache_beat_comb.error;
 
             // frame_beat properties
-            cache_beat.data.keep            <= fwt_out.data.keep;
-            cache_beat.data.last            <= fwt_out.data.last;
-            cache_beat.data.user            <= fwt_out.data.user;
-            cache_beat.data.valid           <= fwt_out.data.valid;
-            cache_beat.data.is_first        <= fwt_out.data.is_first;
+            cache_beat.data.keep            <= cache_beat_comb.data.keep;
+            cache_beat.data.last            <= cache_beat_comb.data.last;
+            cache_beat.data.user            <= cache_beat_comb.data.user;
+            cache_beat.data.valid           <= cache_beat_comb.data.valid;
+            cache_beat.data.is_first        <= cache_beat_comb.data.is_first;
 
             // frame_meta properties
-            cache_beat.data.meta.id         <= fwt_out.data.meta.id;
+            cache_beat.data.meta.id         <= cache_beat_comb.data.meta.id;
             cache_beat.data.meta.dest       <= cache_r_port_id_reg;
-            cache_beat.data.meta.drop       <= fwt_out.data.meta.drop;
-            cache_beat.data.meta.dont_touch <= fwt_out.data.meta.dont_touch;
-            cache_beat.data.meta.drop_next  <= fwt_out.data.meta.drop_next;
+            cache_beat.data.meta.drop       <= cache_beat_comb.data.meta.drop;
+            cache_beat.data.meta.dont_touch <= cache_beat_comb.data.meta.dont_touch;
+            cache_beat.data.meta.drop_next  <= cache_beat_comb.data.meta.drop_next;
 
             // payload
-            cache_beat.data.data            <= fwt_out.data.data;
+            cache_beat.data.data            <= cache_beat_comb.data.data;
           end
         end
       end
@@ -180,7 +293,7 @@ module pipeline_forward (
 
   logic [47:0] src_MAC_addr;
   always_comb begin : FW_OUT_SRC
-    case (cache_beat.data.meta.id)
+    case (cache_beat.data.meta.dest)
       2'd0: begin
         src_MAC_addr = mac_addrs[0];
       end

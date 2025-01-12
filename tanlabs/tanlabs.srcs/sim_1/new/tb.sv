@@ -167,7 +167,7 @@ module tb #(
       .txd(rxd)
   );
 
-  // 从文件加载 BaseRAM
+  // 从文件加�? BaseRAM
   initial begin
     reg [31:0] tmp_array[0:1048575];
     integer n_File_ID, n_Init_Size;

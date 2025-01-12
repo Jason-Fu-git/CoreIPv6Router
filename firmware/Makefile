@@ -1,5 +1,6 @@
 TRIPLE = riscv64-unknown-elf-
 GCC = $(TRIPLE)gcc
+GPP = $(TRIPLE)g++
 OBJCOPY = $(TRIPLE)objcopy
 OBJDUMP = $(TRIPLE)objdump
 QEMU = qemu-system-riscv32
@@ -18,8 +19,8 @@ ifeq ($(EN_UART16550), y)
 endif
 
 HEADERS=$(wildcard include/*.h)
-SOURCES=$(wildcard *.c *.S)
-OBJECTS=$(patsubst %.c,%.o,$(wildcard *.c)) $(patsubst %.S,%.o,$(wildcard *.S))
+SOURCES=$(wildcard *.c *.cpp *.S trie/*.c trie/*.cpp)
+OBJECTS=$(patsubst %.c *.cpp trie/*.c trie/*.cpp,%.o,$(wildcard *.c *.cpp trie/*.c trie/*.cpp)) $(patsubst %.S,%.o,$(wildcard *.S))
 TARGET=kernel.elf
 
 .PHONY: all
@@ -31,7 +32,7 @@ viasm: $(TARGET)
 
 .PHONY: inst
 inst: $(TARGET)
-	$(OBJDUMP) -Mno-aliases -d $< | ./inst.py
+	$(OBJDUMP) -Mno-aliases -d $< | python ./inst.py
 
 %.asm: %.elf
 	$(OBJDUMP) -xd $< > $@
@@ -41,6 +42,9 @@ inst: $(TARGET)
 
 %.o: %.c $(HEADERS)
 	$(GCC) $(CFLAGS) -c $< -o $@
+
+%.o: %.cpp $(HEADERS)
+	$(GPP) $(CFLAGS) -c $< -o $@
 
 %.o: %.S $(HEADERS)
 	$(GCC) $(CFLAGS) -c $< -o $@

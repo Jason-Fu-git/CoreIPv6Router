@@ -10,6 +10,8 @@ module frame_datapath #(
 ) (
     input wire eth_clk,
     input wire reset,
+    input wire cpu_clk,
+    input wire cpu_rst_p,
 
     input wire [DATA_WIDTH - 1:0] s_data,
     input wire [DATA_WIDTH / 8 - 1:0] s_keep,
@@ -29,13 +31,9 @@ module frame_datapath #(
 
     // added ip addrs and valids
     input wire [127:0] ip_addr_0,
-    input wire ip_valid_0,
     input wire [127:0] ip_addr_1,
-    input wire ip_valid_1,
     input wire [127:0] ip_addr_2,
-    input wire ip_valid_2,
     input wire [127:0] ip_addr_3,
-    input wire ip_valid_3,
 
     // added mac addrs
     input wire [47:0] mac_addr_0,
@@ -43,15 +41,13 @@ module frame_datapath #(
     input wire [47:0] mac_addr_2,
     input wire [47:0] mac_addr_3,
 
-    input wire cpu_clk,
-    input wire cpu_rst_p,
     input wire [31:0] cpu_adr,
     input wire [31:0] cpu_dat_in,
     output reg [31:0] cpu_dat_out,
     input wire cpu_wea,
     input wire cpu_stb,
     output reg cpu_ack,
-    
+
     // dma interface
     output frame_beat dma_in,
     input wire dma_in_ready,
@@ -60,7 +56,28 @@ module frame_datapath #(
     output reg dma_out_ready,
 
     input wire [15:0] dma_checksum,
-    input wire dma_checksum_valid
+    input wire dma_checksum_valid,
+
+    // next hop table
+    input  wire [127:0] nexthop_ip6_addr,
+    input  wire [  1:0] nexthop_port_id,
+    output reg  [  4:0] nexthop_addr,
+
+    // DEBUG signals
+    output wire [15:0] led,
+
+    // DEBUG signals (DMA, address config and data memory)
+    input wire dma_stb,
+    input wire dma_wea,
+    input wire dma_ack,
+    input wire dma_request,
+
+    // input wire addr_stb,
+    input wire nexthop_table_stb,
+    input wire dm_stb,
+    input wire dm_ack,
+    // input wire uart_stb,
+    input wire bram_stb
 );
 
   frame_beat in8, in;
@@ -116,10 +133,10 @@ module frame_datapath #(
     );
     */
 
-  assign ipv6_addrs[0] = ip_valid_0 ? ip_addr_0 : 128'h0;
-  assign ipv6_addrs[1] = ip_valid_1 ? ip_addr_1 : 128'h0;
-  assign ipv6_addrs[2] = ip_valid_2 ? ip_addr_2 : 128'h0;
-  assign ipv6_addrs[3] = ip_valid_3 ? ip_addr_3 : 128'h0;
+  assign ipv6_addrs[0] = ip_addr_0;
+  assign ipv6_addrs[1] = ip_addr_1;
+  assign ipv6_addrs[2] = ip_addr_2;
+  assign ipv6_addrs[3] = ip_addr_3;
 
   // mac addresses are set when reset and then fixed
   assign mac_addrs[0]  = mac_addr_0;
@@ -136,18 +153,25 @@ module frame_datapath #(
   logic ns_in_valid, na_in_valid, fw_in_valid, rip_in_valid;
   logic ns_in_ready, na_in_ready, fw_in_ready, rip_in_ready;
   logic ns_out_valid, fw_out_valid, nud_out_valid, rip_out_valid;
-  logic ns_out_ready, fw_out_ready, nud_out_ready, rip_out_ready;
+  logic ns_out_ready, fw_out_ready, nud_out_ready, nud_in_ready, rip_out_ready;
   logic ns_cache_valid, na_cache_valid;
   logic ns_cache_ready, na_cache_ready;
-  cache_entry ns_cache_entry, na_cache_entry, cache_w;
-  logic cache_wea_p, cache_exists0, cache_exists1;
-  logic nud_we_p;
-  
-  logic [127:0] trie128_next_hop;
-  logic [127:0] nud_exp_addr, cache_ip6_addr0_o, cache_ip6_addr1_o;
-  logic [1:0] nud_iface;
+  cache_entry ns_cache_entry, na_cache_entry, cache_w, cache_w_buffer;
+  logic cache_wea_p, cache_wea_p_buffer, cache_exists0, cache_exists1;
+  logic nud_we_p, nud_we_p_fwd, nud_we_p_cache, nud_we_p_res;
+
+  logic [4:0] trie128_next_hop;
+
+  logic [127:0]
+      nud_exp_addr,
+      nud_exp_addr_fwd,
+      nud_exp_addr_cache,
+      nud_exp_addr_res,
+      cache_ip6_addr0_i,
+      cache_ip6_addr1_i;
+  logic [1:0] nud_iface, nud_iface_fwd, nud_iface_cache, nud_iface_res;
   logic [47:0] cache_mac_addr0_o, cache_mac_addr1_o;
-  logic [1:0] cache_iface0_o, cache_iface1_o;
+  logic [1:0] cache_iface0_i, cache_iface1_i;
 
   fw_frame_beat_t fwt_in, fwt_out;
   logic fwt_in_ready, fwt_out_ready;
@@ -163,31 +187,46 @@ module frame_datapath #(
   reg [BRAM_DATA_WIDTH-1:0] bram_data_w;
   reg [BRAM_DATA_WIDTH-1:0] bram_data_r;
 
+
+  reg in_handling_ns, in_handling_na, in_handling_fw, in_handling_rip;
+  reg out_handling_ns, out_handling_fw, out_handling_nud, out_handling_rip;
+
+
+  always_ff @(posedge eth_clk) begin : CACHE_W_BUFFER
+    if (reset) begin
+      cache_w_buffer <= 0;
+      cache_wea_p_buffer <= 0;
+    end else begin
+      cache_w_buffer <= cache_w;
+      cache_wea_p_buffer <= cache_wea_p;
+    end
+  end
+
   neighbor_cache neighbor_cache_i (
       .clk  (eth_clk),
       .rst_p(reset),
 
-      .r_IPv6_addr_0(cache_ip6_addr0_o),
+      .r_IPv6_addr_0(cache_ip6_addr0_i),
+      .r_port_id_0  (cache_iface0_i),
       .r_MAC_addr_0 (cache_mac_addr0_o),
-      .r_port_id_0  (cache_iface0_o),
       .r_exists_0   (cache_exists0),
 
-      .r_IPv6_addr_1(cache_ip6_addr1_o),
+      .r_IPv6_addr_1(cache_ip6_addr1_i),
+      .r_port_id_1  (cache_iface1_i),
       .r_MAC_addr_1 (cache_mac_addr1_o),
-      .r_port_id_1  (cache_iface1_o),
       .r_exists_1   (cache_exists1),
 
-      .w_IPv6_addr(cache_w.ip6_addr),
-      .w_MAC_addr (cache_w.mac_addr),
-      .w_port_id  (cache_w.iface),
-      .wea_p      (cache_wea_p),
+      .w_IPv6_addr(cache_w_buffer.ip6_addr),
+      .w_port_id  (cache_w_buffer.iface),
+      .w_MAC_addr (cache_w_buffer.mac_addr),
+      .wea_p      (cache_wea_p_buffer),
 
-      .nud_probe      (nud_we_p),
-      .probe_IPv6_addr(nud_exp_addr),
-      .probe_port_id  (nud_iface)
+      .nud_probe      (nud_we_p_cache),
+      .probe_IPv6_addr(nud_exp_addr_cache),
+      .probe_port_id  (nud_iface_cache)
   );
 
-
+  logic [127:0] fwt_addr;
 
   trie128 forward_table_i (
       .clk  (eth_clk),
@@ -202,9 +241,11 @@ module frame_datapath #(
       .in_valid (fwt_in.valid),
       .out_valid(trie128_out_ready),
 
-      .addr(fwt_in.data.data.ip6.dst),
+      .addr(fwt_addr),
       .next_hop(trie128_next_hop),
-      .default_next_hop(0),
+      // .next_hop_ip6(trie128_ip6_addr),
+      // .next_hop_iface(trie128_port_id),
+      .default_next_hop(5),
 
       .cpu_clk(cpu_clk),
       .cpu_rst_p(cpu_rst_p),
@@ -244,16 +285,15 @@ module frame_datapath #(
       .in (rip_in),
       .out(rip_out),
 
-      .cache_r_IPv6_addr(cache_ip6_addr1_o),
+      .cache_r_IPv6_addr(cache_ip6_addr1_i),
+      .cache_r_port_id  (cache_iface1_i),
       .cache_r_MAC_addr (cache_mac_addr1_o),
-      .cache_r_port_id  (cache_iface1_o),
       .cache_r_exists   (cache_exists1),
-
-      .mac_addrs(mac_addrs),
 
       .checksum(dma_checksum),
       .checksum_valid(dma_checksum_valid)
   );
+
   pipeline_forward pipeline_forward_i (
       .clk  (eth_clk),
       .rst_p(reset),
@@ -266,18 +306,27 @@ module frame_datapath #(
       .in (fw_in),
       .out(fw_out),
 
-      .cache_r_IPv6_addr(cache_ip6_addr0_o),
+      .cache_r_IPv6_addr(cache_ip6_addr0_i),
+      .cache_r_port_id  (cache_iface0_i),
       .cache_r_MAC_addr (cache_mac_addr0_o),
-      .cache_r_port_id  (cache_iface0_o),
       .cache_r_exists   (cache_exists0),
 
-      .fwt_in       (fwt_in),
-      .fwt_out      (fwt_out),
-      .fwt_in_ready (fwt_in_ready),
-      .fwt_out_ready(fwt_out_ready),
-      .fwt_next_hop(trie128_next_hop),
+      .fwt_in          (fwt_in),
+      .fwt_out         (fwt_out),
+      .fwt_nexthop_addr(trie128_next_hop),
+      .fwt_in_ready    (fwt_in_ready),
+      .fwt_out_ready   (fwt_out_ready),
+      .fwt_addr        (fwt_addr),
 
-      .mac_addrs(mac_addrs)
+      .nexthop_addr     (nexthop_addr),
+      .nexthop_IPv6_addr(nexthop_ip6_addr),
+      .nexthop_port_id  (nexthop_port_id),
+
+      .mac_addrs(mac_addrs),
+
+      .nud_probe      (nud_we_p_fwd),
+      .probe_IPv6_addr(nud_exp_addr_fwd),
+      .probe_port_id  (nud_iface_fwd)
   );
 
   pipeline_ns pipeline_ns_i (
@@ -305,14 +354,52 @@ module frame_datapath #(
       .in(na_in),
       .out(na_cache_entry)
   );
+  // always_ff @(posedge eth_clk) begin
+  //   if (reset) begin
+  //     nud_we_p <= 0;
+  //     nud_exp_addr <= 0;
+  //     nud_iface <= 0;
+  //   end else if (nud_we_p_cache) begin
+  //     nud_we_p <= nud_we_p_cache;
+  //     nud_exp_addr <= nud_exp_addr_cache;
+  //     nud_iface <= nud_iface_cache;
+  //   end else if (nud_we_p_fwd) begin
+  //     nud_we_p <= nud_we_p_fwd;
+  //     nud_exp_addr <= nud_exp_addr_fwd;
+  //     nud_iface <= nud_iface_fwd;
+  //   end else begin
+  //     nud_we_p <= 0;
+  //     nud_exp_addr <= 0;
+  //     nud_iface <= 0;
+  //   end
+  // end
+  assign nud_we_p     = nud_we_p_fwd;
+  assign nud_exp_addr = nud_exp_addr_fwd;
+  assign nud_iface    = nud_iface_fwd;
+  // axis_data_fifo_nud axis_data_fifo_nud_i (
+  //     .s_axis_aresetn(~reset),            // input wire s_axis_aresetn
+  //     .s_axis_aclk   (eth_clk),           // input wire s_axis_aclk
+  //     .s_axis_tvalid (nud_we_p),          // input wire s_axis_tvalid
+  //     .s_axis_tready (),                  // output wire s_axis_tready
+  //     .s_axis_tdata  (nud_exp_addr),      // input wire [127 : 0] s_axis_tdata
+  //     .s_axis_tdest  (nud_iface),         // input wire [1 : 0] s_axis_tdest
+  //     .m_axis_tvalid (nud_we_p_res),      // output wire m_axis_tvalid
+  //     .m_axis_tready (nud_in_ready),      // input wire m_axis_tready
+  //     .m_axis_tdata  (nud_exp_addr_res),  // output wire [127 : 0] m_axis_tdata
+  //     .m_axis_tdest  (nud_iface_res)      // output wire [1 : 0] m_axis_tdest
+  // );
+  assign nud_we_p_res     = nud_we_p;
+  assign nud_exp_addr_res = nud_exp_addr;
+  assign nud_iface_res    = nud_iface;
   pipeline_nud pipeline_nud_i (
       .clk(eth_clk),
       .rst_p(reset),
-      .we_i(nud_we_p),
-      .tgt_addr_i(nud_exp_addr),
-      .ip6_addr_i(ipv6_addrs[nud_iface]),
-      .mac_addr_i(mac_addrs[nud_iface]),
-      .iface_i(nud_iface),
+      .we_i(nud_we_p_res),
+      .tgt_addr_i(nud_exp_addr_res),
+      .ip6_addr_i(ipv6_addrs[nud_iface_res]),
+      .mac_addr_i(mac_addrs[nud_iface_res]),
+      .iface_i(nud_iface_res),
+      .ready_o(nud_in_ready),
       .ready_i(nud_out_ready),
       .out(nud_out),
       .valid_o(nud_out_valid)
@@ -325,16 +412,20 @@ module frame_datapath #(
       .ns_ready(ns_in_ready),
       .na_ready(na_in_ready),
       .fw_ready(fw_in_ready),
-      .rip_ready(dma_in_ready),  // FIXME: Attach to FIFO Later
+      .rip_ready(dma_in_ready),
       .out_ns(ns_in),
       .out_na(na_in),
       .out_fw(fw_in),
-      .out_rip(dma_in),  // FIXME: Attach to FIFO Later
+      .out_rip(dma_in),
       .ns_valid(ns_in_valid),
       .na_valid(na_in_valid),
       .fw_valid(fw_in_valid),
       .rip_valid(),
-      .in_ready(in_ready)
+      .in_ready(in_ready),
+      .handling_ns_delay(in_handling_ns),
+      .handling_na_delay(in_handling_na),
+      .handling_fw_delay(in_handling_fw),
+      .handling_rip_delay(in_handling_rip)
   );
   out_arbiter out_arbiter_i (
       .clk(eth_clk),
@@ -352,7 +443,11 @@ module frame_datapath #(
       .ns_ready(ns_out_ready),
       .fw_ready(fw_out_ready),
       .nud_ready(nud_out_ready),
-      .rip_ready(rip_out_ready)
+      .rip_ready(rip_out_ready),
+      .handling_ns_delay(out_handling_ns),
+      .handling_fw_delay(out_handling_fw),
+      .handling_nud_delay(out_handling_nud),
+      .handling_rip_delay(out_handling_rip)
   );
   cache_arbiter cache_arbiter_i (
       .clk(eth_clk),
@@ -365,6 +460,41 @@ module frame_datapath #(
       .na_ready(na_cache_ready),
       .out(cache_w),
       .wea_p(cache_wea_p)
+  );
+
+  led_delayer led_delayer_in (
+      .clk(eth_clk),
+      .reset(reset),
+      .in_led({
+        in_handling_fw,
+        in_handling_ns,
+        in_handling_na,
+        in_handling_rip,
+        // nexthop_table_stb,
+        // addr_stb,
+        dma_request,
+        dma_ack,
+        dma_stb,
+        dma_wea
+      }),
+      .out_led(led[7:0])
+  );
+
+  led_delayer led_delayer_out (
+      .clk(eth_clk),
+      .reset(reset),
+      .in_led({
+        out_handling_nud,
+        out_handling_rip,
+        out_handling_fw,
+        out_handling_ns,
+        bram_stb,
+        nexthop_table_stb,
+        // uart_stb,
+        dm_ack,
+        dm_stb
+      }),
+      .out_led(led[15:8])
   );
 
   // ======================= Your code end.  =====================================

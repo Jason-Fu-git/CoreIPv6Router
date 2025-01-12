@@ -29,7 +29,13 @@ module in_arbiter (
     input wire ns_ready,
     input wire na_ready,
     input wire fw_ready,
-    input wire rip_ready
+    input wire rip_ready,
+
+    // DEBUG signals
+    output reg handling_ns_delay,
+    output reg handling_na_delay,
+    output reg handling_fw_delay,
+    output reg handling_rip_delay
 );
 
   frame_beat in_reg;
@@ -125,6 +131,7 @@ module in_arbiter (
             ns_valid     <= 0;
             na_valid     <= 0;
             fw_valid     <= 1;
+            rip_valid    <= 0;
           end else begin
             handling_ns  <= 0;
             handling_na  <= 0;
@@ -181,5 +188,21 @@ module in_arbiter (
   assign out_na  = na_valid ? in_reg : 0;
   assign out_fw  = fw_valid ? in_reg : 0;
   assign out_rip = rip_valid ? in_reg : 0;
+
+
+  // DEBUG
+  always_ff @(posedge clk) begin
+    if (rst_p) begin
+      handling_ns_delay  <= 0;
+      handling_na_delay  <= 0;
+      handling_fw_delay  <= 0;
+      handling_rip_delay <= 0;
+    end else begin
+      handling_ns_delay  <= handling_ns;
+      handling_na_delay  <= handling_na;
+      handling_fw_delay  <= handling_fw;
+      handling_rip_delay <= handling_rip;
+    end
+  end
 
 endmodule

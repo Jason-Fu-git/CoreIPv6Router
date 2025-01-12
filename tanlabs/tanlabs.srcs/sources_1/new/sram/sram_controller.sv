@@ -2,7 +2,7 @@ module sram_controller #(
     parameter DATA_WIDTH = 32,
     parameter ADDR_WIDTH = 32,
 
-    parameter SRAM_ADDR_WIDTH = 20,
+    parameter SRAM_ADDR_WIDTH = 21,
     parameter SRAM_DATA_WIDTH = 32,
 
     localparam SRAM_BYTES = SRAM_DATA_WIDTH / 8,
@@ -35,7 +35,7 @@ module sram_controller #(
   reg [SRAM_DATA_WIDTH-1:0] sram_data_o;
   reg sram_data_t;
 
-  assign sram_data   = sram_data_t ? 'Z : sram_data_o;
+  assign sram_data = sram_data_t ? 'Z : sram_data_o;
   assign sram_data_o = wb_dat_i;
   assign sram_data_i = sram_data;
   assign wb_dat_o = sram_data_i;
@@ -47,9 +47,12 @@ module sram_controller #(
     CTL_IDLE,  // Controller Idle
     CTL_RD_1,
     CTL_RD_2,
+    CTL_RD_3,
     CTL_WR_1,
     CTL_WR_2,
-    CTL_WR_3
+    CTL_WR_3,
+    CTL_WR_4,
+    CTL_WR_5
   } state_t;
 
   state_t state, next_state;
@@ -64,8 +67,8 @@ module sram_controller #(
 
   assign wb_ack_o = ((state != CTL_IDLE) && (next_state == CTL_IDLE)) ? 1'b1 : 1'b0;
   assign sram_ce_n = (state == CTL_IDLE) ? 1'b1 : 1'b0;
-  assign sram_oe_n = ((state == CTL_RD_1) || (state == CTL_RD_2)) ? 1'b0 : 1'b1;
-  assign sram_we_n = ((state == CTL_WR_1) || (state == CTL_WR_2) || (state == CTL_WR_3)) ? 1'b0 : 1'b1;
+  assign sram_oe_n = ((state == CTL_RD_1) || (state == CTL_RD_2) || (state == CTL_RD_3)) ? 1'b0 : 1'b1;
+  assign sram_we_n = ((state == CTL_WR_1) || (state == CTL_WR_2) || (state == CTL_WR_3) || (state == CTL_WR_4) || (state == CTL_WR_5)) ? 1'b0 : 1'b1;
   assign sram_data_t = sram_we_n ? 1'b1 : 1'b0;
 
   always_comb begin
@@ -81,6 +84,9 @@ module sram_controller #(
         next_state = CTL_RD_2;
       end
       CTL_RD_2: begin
+        next_state = CTL_RD_3;
+      end
+      CTL_RD_3: begin
         next_state = CTL_IDLE;
       end
       CTL_WR_1: begin
@@ -90,6 +96,12 @@ module sram_controller #(
         next_state = CTL_WR_3;
       end
       CTL_WR_3: begin
+        next_state = CTL_WR_4;
+      end
+      CTL_WR_4: begin
+        next_state = CTL_WR_5;
+      end
+      CTL_WR_5: begin
         next_state = CTL_IDLE;
       end
       default: begin

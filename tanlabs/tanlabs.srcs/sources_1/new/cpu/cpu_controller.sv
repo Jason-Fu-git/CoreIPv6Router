@@ -70,6 +70,9 @@ module cpu_controller (
     input  wire        btb_pred_bc
 );
 
+  // parameter TIME_1S = 32'd50000000; // 50MHz
+  parameter TIME_1S = 32'd125000000; // 125 MHz
+
   // =====================================
   // Naming
   // if_ready: means if.out_ready, also means IF/ID Reg is ready to accept new data
@@ -483,8 +486,8 @@ module cpu_controller (
   // =============
 
   always_comb begin : IF_MEM
-    im_adr_o = (im_ack_i) ? pc_next : pc;  // Enable continuous fetch
-    // im_adr_o = pc;
+    // im_adr_o = (im_ack_i) ? pc_next : pc;  // Enable continuous fetch
+    im_adr_o = pc;
     im_dat_o = 0;
     im_we_o  = 0;
     if (!if_idle
@@ -787,12 +790,20 @@ module cpu_controller (
             end
           end
           3'b101: begin
-            if (if_instr[31:25] == 7'b0000000) begin
+            if (if_instr[31:20] == 12'b011010000111) begin
+              id_op_next   = OP_BREV8;
+              id_rd_ea     = 1;
+              id_ex_rs1_ea = 1;
+            end else if (if_instr[31:25] == 7'b0000000) begin
               id_op_next   = OP_SRLI;
               id_rd_ea     = 1;
               id_ex_rs1_ea = 1;
             end else if (if_instr[31:25] == 7'b0100000) begin
               id_op_next   = OP_SRAI;
+              id_rd_ea     = 1;
+              id_ex_rs1_ea = 1;
+            end else if (if_instr[31:27] == 5'b01101) begin
+              id_op_next   = OP_GREVI;
               id_rd_ea     = 1;
               id_ex_rs1_ea = 1;
             end else begin
@@ -1059,6 +1070,8 @@ module cpu_controller (
       || (id_op_next == OP_CSRRCI)
     ) begin
       id_imm_next = {27'd0, if_instr[19:15]};
+    end else if (id_op_next == OP_GREVI) begin
+      id_imm_next = {27'd0, if_instr[24:20]};
     end else begin
       id_imm_next = 0;
     end
@@ -1416,6 +1429,16 @@ module cpu_controller (
         alu_b  = id_imm[4:0];
         alu_op = ALU_SRA;
       end
+      OP_GREVI: begin
+        alu_a  = ex_rs1_fwd;
+        alu_b  = id_imm[4:0];
+        alu_op = ALU_GRV;
+      end
+      OP_BREV8: begin
+        alu_a  = ex_rs1_fwd;
+        alu_b  = 0;
+        alu_op = ALU_BREV8;
+      end
       // R type
       OP_ADD: begin
         alu_a  = ex_rs1_fwd;
@@ -1549,6 +1572,8 @@ module cpu_controller (
           || (ex_op == OP_SRA)
           || (ex_op == OP_OR)
           || (ex_op == OP_AND)
+          || (ex_op == OP_GREVI)
+          || (ex_op == OP_BREV8)
         )
     );
 
@@ -2205,6 +2230,21 @@ module cpu_controller (
   // =====================================
   // Timer
   // =====================================
+
+  reg [31:0] timer_1s;
+  always_ff @( posedge clk ) begin : TIMER_1S
+    if (rst_p) begin
+      timer_1s <= 0;
+    end else begin
+      if (timer_1s >= TIME_1S) begin
+        timer_1s <= 0;
+      end else begin
+        timer_1s <= timer_1s + 1;
+      end
+    end
+  end
+
+
   always_ff @(posedge clk) begin : TIMER
     if (rst_p) begin
       mtime    <= 0;
@@ -2225,7 +2265,7 @@ module cpu_controller (
           mtimecmp[63:32] <= mem_data_o;
         end
       end else begin
-        if ((privilege == PRIVILEGE_U) && (mtime < mtimecmp)) mtime <= mtime + 1;
+        if (timer_1s >= TIME_1S) mtime <= mtime + 1;
       end
     end
   end

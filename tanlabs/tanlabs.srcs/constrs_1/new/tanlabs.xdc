@@ -73,24 +73,24 @@ set_property -dict {PACKAGE_PIN A15 IOSTANDARD LVCMOS33} [get_ports {led[14]}]
 set_property -dict {PACKAGE_PIN B15 IOSTANDARD LVCMOS33} [get_ports {led[15]}]
 
 # DPY0
-set_property -dict {PACKAGE_PIN H19 IOSTANDARD LVCMOS33} [get_ports dpy0[0]] ;# LED16
-set_property -dict {PACKAGE_PIN G19 IOSTANDARD LVCMOS33} [get_ports dpy0[1]] ;# LED17
-set_property -dict {PACKAGE_PIN E18 IOSTANDARD LVCMOS33} [get_ports dpy0[2]] ;# LED18
-set_property -dict {PACKAGE_PIN D18 IOSTANDARD LVCMOS33} [get_ports dpy0[3]] ;# LED19
-set_property -dict {PACKAGE_PIN J17 IOSTANDARD LVCMOS33} [get_ports dpy0[4]] ;# LED20
-set_property -dict {PACKAGE_PIN L18 IOSTANDARD LVCMOS33} [get_ports dpy0[5]] ;# LED21
-set_property -dict {PACKAGE_PIN L17 IOSTANDARD LVCMOS33} [get_ports dpy0[6]] ;# LED22
-set_property -dict {PACKAGE_PIN L13 IOSTANDARD LVCMOS33} [get_ports dpy0[7]] ;# LED23
+set_property -dict {PACKAGE_PIN L13 IOSTANDARD LVCMOS33} [get_ports dpy0[0]] ;# LED16
+set_property -dict {PACKAGE_PIN L17 IOSTANDARD LVCMOS33} [get_ports dpy0[1]] ;# LED17
+set_property -dict {PACKAGE_PIN D18 IOSTANDARD LVCMOS33} [get_ports dpy0[2]] ;# LED18
+set_property -dict {PACKAGE_PIN E18 IOSTANDARD LVCMOS33} [get_ports dpy0[3]] ;# LED19
+set_property -dict {PACKAGE_PIN G19 IOSTANDARD LVCMOS33} [get_ports dpy0[4]] ;# LED20
+set_property -dict {PACKAGE_PIN J17 IOSTANDARD LVCMOS33} [get_ports dpy0[5]] ;# LED21
+set_property -dict {PACKAGE_PIN L18 IOSTANDARD LVCMOS33} [get_ports dpy0[6]] ;# LED22
+set_property -dict {PACKAGE_PIN H19 IOSTANDARD LVCMOS33} [get_ports dpy0[7]] ;# LED23
 
 # DPY1
-set_property -dict {PACKAGE_PIN F13 IOSTANDARD LVCMOS33} [get_ports dpy1[0]] ;# LED24
-set_property -dict {PACKAGE_PIN G13 IOSTANDARD LVCMOS33} [get_ports dpy1[1]] ;# LED25
-set_property -dict {PACKAGE_PIN G12 IOSTANDARD LVCMOS33} [get_ports dpy1[2]] ;# LED26
-set_property -dict {PACKAGE_PIN H12 IOSTANDARD LVCMOS33} [get_ports dpy1[3]] ;# LED27
-set_property -dict {PACKAGE_PIN G15 IOSTANDARD LVCMOS33} [get_ports dpy1[4]] ;# LED28
-set_property -dict {PACKAGE_PIN H15 IOSTANDARD LVCMOS33} [get_ports dpy1[5]] ;# LED29
-set_property -dict {PACKAGE_PIN G14 IOSTANDARD LVCMOS33} [get_ports dpy1[6]] ;# LED30
-set_property -dict {PACKAGE_PIN H14 IOSTANDARD LVCMOS33} [get_ports dpy1[7]] ;# LED31
+set_property -dict {PACKAGE_PIN H14 IOSTANDARD LVCMOS33} [get_ports dpy1[0]] ;# LED24
+set_property -dict {PACKAGE_PIN G14 IOSTANDARD LVCMOS33} [get_ports dpy1[1]] ;# LED25
+set_property -dict {PACKAGE_PIN H12 IOSTANDARD LVCMOS33} [get_ports dpy1[2]] ;# LED26
+set_property -dict {PACKAGE_PIN G12 IOSTANDARD LVCMOS33} [get_ports dpy1[3]] ;# LED27
+set_property -dict {PACKAGE_PIN G13 IOSTANDARD LVCMOS33} [get_ports dpy1[4]] ;# LED28
+set_property -dict {PACKAGE_PIN G15 IOSTANDARD LVCMOS33} [get_ports dpy1[5]] ;# LED29
+set_property -dict {PACKAGE_PIN H15 IOSTANDARD LVCMOS33} [get_ports dpy1[6]] ;# LED30
+set_property -dict {PACKAGE_PIN F14 IOSTANDARD LVCMOS33} [get_ports dpy1[7]] ;# LED31
 
 # DIP Switch
 set_property -dict {PACKAGE_PIN AK25 IOSTANDARD LVCMOS33} [get_ports {dip_sw[0]}]

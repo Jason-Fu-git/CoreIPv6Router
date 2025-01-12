@@ -58,7 +58,7 @@ module csr_file (
       mstatus  <= 0;
       mie      <= 0;
       mip      <= 0;
-      mtvec    <= 0;
+      mtvec    <= 32'h80000000;
       mscratch <= 0;
       mepc     <= 0;
       mcause   <= 0;

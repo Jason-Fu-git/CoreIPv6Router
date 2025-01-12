@@ -17,6 +17,8 @@
  parameter ALU_SLTU= 5'd12;
  parameter ALU_PCNT= 5'd13;
  parameter ALU_CLZ = 5'd14;
+ parameter ALU_GRV = 5'd15;
+ parameter ALU_BREV8 = 5'd16;
 
  parameter OP_NOP  = 6'd0;
  parameter OP_LUI  = 6'd1;
@@ -70,6 +72,8 @@
  parameter OP_CLZ  = 6'd49;
  parameter OP_PACK = 6'd50;
  parameter OP_MRET = 6'd51;
+ parameter OP_GREVI = 6'd53;
+ parameter OP_BREV8= 6'd54;
 
 
 `endif

@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include "bram.h"
 
-static const TrieAddr BRAM_BASE = 0x20000000u;
+const TrieAddr BRAM_BASE = 0x20000000u;
 
 TrieAddr BRAMAddr(uint32_t trie_index, uint32_t trie_type, uint32_t node_index, uint32_t entry_index, uint32_t field) {
 	return BRAM_BASE
