@@ -116,7 +116,7 @@ int update_memory_rte(void *memory_rte_v)
             int trie_index = TrieDelete(&(memory_rte->ip6_addr), memory_rte->prefix_len);
             if (trie_index < 0)
             {
-                printf("[TD]%d", trie_index);
+                // printf("[TD]%d", trie_index);
                 memory_rte->lower_timer = 0;
                 memory_rte->nexthop_port = 0;
                 return 0;
@@ -373,7 +373,7 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                         int trie_index = TrieLookup(&(memory_rte[mem_id].ip6_addr), memory_rte[mem_id].prefix_len);
                         if (trie_index < 0)
                         {
-                            printf("[TF]%d", trie_index);
+                            // printf("[TF]%d", trie_index);
                             memory_rte[mem_id].metric = 16;
                             memory_rte[mem_id].lower_timer = 0;
                             memory_rte[mem_id].nexthop_port = 0;
@@ -555,7 +555,7 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                 int trie_index = TrieInsert(&(entries[i].ip6_addr), entries[i].prefix_len, j);
                 if (trie_index < 0)
                 {
-                    printf("[TI]%d", trie_index);
+                    // printf("[TI]%d", trie_index);
                     return ERR_TRIE;
                 }
                 rte_map[trie_index] = spare_memory_index;
