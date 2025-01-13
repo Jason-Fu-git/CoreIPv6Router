@@ -1,76 +1,124 @@
-# TanLabs
+# Core IPv6 Router Implementation
 
-Tsinghua Advanced Networking Labs
+By Jason Fu, Yuxuan Fan, Eason Liu
 
-目录说明：
+This project is a lesson project of Computer Network course in Tsinghua University.
+Project skeleton is provided by the tanlabs team.
 
-* `tanlabs`：硬件路由器实验框架
-* `firmware`：运行在CPU上的软件的框架（固件框架）
-* `ibert_7series_gtx_1.25G_ex`：1.25Gbps的IBERT测试工具
-* `ibert_7series_gtx_10.3125G_ex`：10.3125Gbps的IBERT测试工具
-* `figures`：仅供参考的图片
+<div align='left'>
+    <img src="https://img.shields.io/badge/License-MIT%20License-purple" alt="Static Badge" />
+</div>
 
-取得实验板后，实验者应当仔细阅读`TEST.md`，并对实验板进行充分测试。
+## 路由器设计
 
-克隆本仓库后，第一次综合实验框架前，实验者需要先选择所有模块，然后执行“Regenerate Output Products”，如下图所示。
+### 1. 总体设计
 
-![regenerate](figures/regenerate.png)
+![dma.drawio](./assets/dma.drawio.png)
 
-此外，开始实验前，请实验者先阅读`tanlabs/tanlabs.srcs/sources_1/new/`、`tanlabs/tanlabs.srcs/sim_1/new/`以及`firmware`中所有文件。以下为每个文件的大致说明。
+### 2. 数据通路部分
 
-`tanlabs/tanlabs.srcs/sources_1/new/`文件说明：
+![datapath.drawio](./assets/datapath.drawio.png)
 
-* `tanlabs.v`：TanLabs实验框架的顶层设计文件，`figures/tanlabs.svg`为实验框架整体设计的示意图。**实验者需要修改此文件来加入CPU，并将CPU和转发引擎连接起来。**
-* `reset_sync.v`：异步复位同步释放的电路。
-* `led_delayer.v`：LED延迟器，将输入的脉冲信号延长为持续时间至少为10ms的脉冲，方便人眼观察。
-* `frame_filter.v`：AXI-Stream协议的丢包器。在某个AXI-Stream包的第一拍将`drop`信号置1即可完整地丢弃当前包。
-* `frame_beat_width_converter.sv`：AXI-Stream协议的宽度转换器，能够将AXI-Stream协议的每一拍数据的宽度扩大或缩小指定倍数，方便数据通路对其进行处理。
-* `frame_datapath_fifo.v`：AXI-Stream协议的FIFO缓冲区，对AXI-Stream FIFO IP核进行了包装，使其能够在FIFO满时完整地丢弃整个新到达的AXI-Stream包。
-* `egress_wrapper.v`：其对出接口进行了包装，加入了FIFO缓冲区以及AXI-Stream宽度转换IP核，并且能够在FIFO满时完整地丢包。
-* `frame_datapath.vh`：转发引擎数据通路的头文件，定义了一些信号的结构体（打包的信号）以及一些常量和宏。**实验者可以修改此文件来加入需要的信号、常量或宏等。**
-* `frame_datapath.sv`：转发引擎的数据通路设计。**实验者需要对此文件添加大量代码来实现转发引擎的功能。**
-* `frame_datapath_example.sv`：实现了若干无用功能的数据通路设计，旨在借助这些无用功能来帮助实验者熟悉实验框架的使用方法。这些无用的功能包括：1）交换一个以太网帧的源MAC地址和目标MAC地址，演示了如何处理并修改以太网帧；2）丢弃所有hop limit为奇数的IP分组，演示了如何丢包；3）浪费三个周期而什么都不做，演示了一个多周期的流水线级（pipeline stage），供实现多周期转发表时参考；4）减少IP分组头部hop limit，又一次演示了如何处理并修改以太网帧；5）将出接口设置为入接口来实现回环功能，演示了如何获得入接口以及如何修改出接口。实验者需要根据路由器的工作流程来实现转发引擎，实现过程中可能会用到某些类似的逻辑。
-* **此外，实验者还需要为邻居缓存、转发表、CPU等模块建立新的设计文件。**
+### 3. 各组件设计
 
-`tanlabs/tanlabs.srcs/sim_1/new/`文件说明：
+#### （1）邻居缓存
 
-* `axis_model.v`：用于仿真时产生AXI-Stream协议输入。其从`frames.txt`中读取以太网帧，并通过AXI-Stream协议发送。
-* `axis_receiver.v`：用于仿真时接收AXI-Stream协议输出，供实验者检查。同时，其会将接收的输出写入`out_frames.txt`文件中。
-* `sim_axis2sfp.sv`：仿真时提供SFP差分信号的模型。
-* `clock.v`：用于产生仿真时使用的时钟。
-* `tb_frame_datapath.v`：转发引擎数据通路的testbench。实验者通过仿真这一文件即可测试转发引擎。
-* `tb.v`：全系统的testbench。实验者通过仿真这一文件即可测试整个实验路由器。
-* `gen_frame`：用于生成测试输入的脚本，其会产生`frames.txt`以及`in_frames.pcap`文件。其中，`frames.txt`用于作为仿真的输入文件（如上所述），`in_frames.pcap`用于方便实验者使用Wireshark打开观察。**建议实验者在该脚本中添加更多测例来测试转发引擎。**
-* `txt2pcap`：用于将仿真得到的输出文件转换为PCAP格式文件，方便实验者使用Wireshark打开观察。其输入`out_frames.txt`文件，输出`out_frames.pcap`文件。
-* `frames.txt`：脚本生成的仿真输入文件，文本格式。
-* `in_frames.pcap`：脚本生成的仿真输入文件，PCAP格式。
-* `refout_frames.pcapng`：默认测试输入对应的参考输出，使用Linux系统生成，具体生成流程请见后文。当实验者的转发引擎基本实现完成后，其输出应当与此文件相似。由于本实验暂时不要求实现ICMP错误消息发送，实验者观察此文件时可暂时忽略ICMP报文。**由于抓包问题，实验者打开此文件观察时，请先按照时间（Time）升序排序。**
-* `create_ns`：在Linux中创建一个含有四个虚拟接口的网络命名空间，用于测试。
-* **此外，实验者还需要为邻居缓存、转发表、CPU等模块建立新的仿真测试文件。**
+- 为4个端口各自设置一个容量为8条的全相联邻居缓存，替换策略为FIFO。
+- 每条entry都设有一个计时器，过期后该条entry失效。计时器将要到期时，发送NUD。
 
-请注意，上述PCAP文件中使用VLAN ID标识入接口以及出接口，实际传输的以太网帧不含有VLAN信息。
+#### （2）转发逻辑
 
-此外，在使用`tb.sv`进行全系统的仿真前，若实验者设置`FAST_BEHAV=1`，则实验者可以直接开始进行快速行为级仿真。这样的仿真配置略去了SFP接口IP核，将实验框架直接接入AXI-Stream协议仿真模块。此处建议实验者设置`FAST_BEHAV=1`。
+- 当一个报文不是NS/NA/RIP时，交由转发逻辑处理
+- 转发逻辑将首先检查该报文IP头版本、Hop Limit的合法性，若非法则丢弃。
+- 若该包合法，转发逻辑将查找转发表（流水线的形式），若没有查到，丢弃该报文。
+- 若查到，从`nexthop`表中查出下一条地址与出端口。
+- 查询对应端口的邻居缓存，若没有查到，丢弃该报文。
+- 若查到，填入出端口号和MAC地址，转发该报文。
 
-若实验者设置`FAST_BEHAV=0`，那么实验者需要先在Tcl Console执行如下命令来开启仿真模式，省略IP核部分初始化等逻辑以加快仿真：
+#### （3）NS/NA/NUD报文处理
 
-```
-set_property CONFIG.SIMULATION_MODE {1} [get_ips axi_ethernet_0 axi_ethernet_noshared]
-```
+##### NS
 
-仿真后，在综合并生成bitstream前需要执行如下命令来恢复设置：
+NS处理模块收到NS报文后检查校验和，若通过，则发送相应的NA报文，并填写ND缓存。校验和的计算使用了单独的模块，通过多级加法实现。
 
-```
-set_property CONFIG.SIMULATION_MODE {0} [get_ips axi_ethernet_0 axi_ethernet_noshared]
-```
+##### NA
 
-另外，`refout_frames.pcapng`的具体生成流程为：
+与处理NS类似，不需发送任何报文。
 
-1. 执行`sudo ./create_ns`；
-2. 执行`sudo ip netns exec tanlabs-test wireshark &`以在`tanlabs-test`网络命名空间中打开Wireshark，然后选中veth0、veth1、veth2以及veth3并开始抓包；
-3. 执行`sudo ./gen_frame send`；
-4. 等待3.5秒；
-5. 停止Wireshark抓包，并保存结果至`refout_frames.pcapng`。
+##### NUD
 
-关于`firmware`，请阅读`firmware/README.md`。
+在ND缓存中设置计时器，若有表项的计时达到30s，则发送NS报文。ND缓存项的超时时间为34s，在正常情况下NUD能够保证ND信息不丢失。
+
+#### （4）转发表
+
+##### 数据结构
+
+采用这篇论文中提出的数据结构Value-Coded Trie（以下简称VCTrie）：
+
+O. Erdem, A. Carus and H. Le, "Value-Coded Trie Structure for High-Performance IPv6 Lookup," in The Computer Journal, vol. 58, no. 2, pp. 204-214, Feb. 2015, doi: 10.1093/comjnl/bxt153.
+
+这是一种“后缀压缩”树，在普通Trie的节点上添加了remaining prefix和remaining length两个关键字段，用从根节点到某一节点的路径与该节点存储的remaining prefix的拼接表示一个IPv6前缀。通过增大节点的大小，我们可以在一个节点中存储多个remaining prefix，相当于每个节点都能保存一个路径压缩的子树。
+
+为提高性能和避免一些愚蠢情形，VCTrie限制一个节点能存储的remaining prefix的最大长度为28。一个长度为64的前缀必须从根节点向下探索至少36层才能存储。然而，这条路径可能被完全填满，以至于向下探索64层后发现无处存储表项。此时该前缀被标记为excessive node，移交给一个较小的普通Trie存储。
+
+##### 硬件实现
+
+根据全网路由表的模拟测试，我们将128层Trie分为16级流水线，每级分配一块BRAM，负责8层的存储查询。具体参数如下：
+
+| level | nodes required | nodes provided | node size | bin size | address width |
+| ----- | -------------- | -------------- | --------- | -------- | ------------- |
+| 0     | 22             | 64             | 54        | 1        | 8             |
+| 1     | 159            | 256            | 306       | 7        | 13            |
+| 2     | 6083           | 6144           | 612       | 15       | 13            |
+| 3     | 7070           | 7168           | 612       | 15       | 13            |
+| 4     | 5026           | 5120           | 558       | 14       | 13            |
+| 5     | 3032           | 3072           | 414       | 10       | 12            |
+| 6~15  | -              | 256            | 54        | 1        | 8             |
+
+其中每个节点对应BRAM的一行，存储以下项目：
+
+- 左子节点地址
+- 右子节点地址
+- bin size个路由前缀表项
+
+由于0~14级的最后一次查询结果对应下一级的地址，要求0~14级节点的地址宽度必须能够覆盖下一级的所有节点地址。例如，第0级仅有64个节点，但地址位宽为8，以能够表示第1级的所有节点。
+
+每级流水线将查到的局部最长前缀匹配结果向下传递，最终得到正确的下一跳地址。
+
+#### （5）DMA
+
+
+##### 软硬件接口
+
+CPU通过以下几个状态寄存器与DMA交互：
+
+| 寄存器名             | 功能                                                         |
+| -------------------- | ------------------------------------------------------------ |
+| `DMA_CPU_STB`        | 若为非零值，则代表CPU向DMA发出一次请求                       |
+| `DMA_CPU_WE`         | 若为非零值，则代表CPU予以DMA内存写权限，否则为读权限。       |
+| `DMA_CPU_ADDR`       | CPU允许DMA读写的基地址。                                     |
+| `DMA_CPU_DATA_WIDTH` | CPU允许DMA读写的地址空间大小                                 |
+| `DMA_ACK`            | 若为非零值，代表DMA完成了一次请求。                          |
+| `DMA_DATA_WIDTH`     | 仅在DMA向内存写入报文时有效，代表报文的长度，四字节对齐。    |
+| `DMA_CHECKSUM`       | 仅在DMA向内存写入报文时有效，代表DMA计算出的，该报文的校验和。 |
+| `DMA_IN_PORT_ID`     | 仅在DMA向内存写入报文时有效，代表读入的RIPng报文的入端口号   |
+| `DMA_OUT_PORT_ID`    | 仅在DMA从内存读出报文时有效，代表将要发送的RIPng报文的出端口号 |
+
+##### 读入`RIPng`报文
+
+- 数据通路中的`Input arbiter`发现读入的报文为`RIPng`报文时，将送至`DMA`的入`FIFO`，进行缓存及时钟同步处理。
+- `DMA`得到CPU授权后，将把报文写入`SRAM`，同时修改状态寄存器的值。
+- `DMA`将在写入报文的同时检查校验和。
+
+##### 发送`RIPng`报文
+
+- CPU将要发送`RIPng`报文时，会授权`DMA`读取对应SRAM区域的内容。
+- `DMA`得到CPU授权后，将从`SRAM`读出报文，写到`DMA`的出`FIFO`，进行缓存及时钟同步处理。
+- `DMA`将在读出报文的同时计算校验和。
+- `RIP pipeline`发现出`FIFO`中有合法报文时，将读出该报文，发送至CPU指定的出端口。
+
+
+#### （6）CPU
+
+![CPU.drawio](./assets/CPU.drawio.png)
 
