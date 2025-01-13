@@ -36,7 +36,7 @@ extern void TrieModify(void *prefix, unsigned int length, uint32_t next_hop);
 void config_direct_route(struct ip6_addr *ip6_addr, uint8_t prefix_len, uint8_t port)
 {
     int j;
-    for (j = 0; j < NEXTHOP_TABLE_INDEX_NUM; j++)
+    for (j = 6; j < NEXTHOP_TABLE_INDEX_NUM; j++)
     {
         struct ip6_addr nexthop_ip6_addr = read_nexthop_table_ip6_addr(NEXTHOP_TABLE_ADDR(j));
         if (read_nexthop_table_port_id(NEXTHOP_TABLE_PORT_ID_ADDR(j)) == port && nexthop_ip6_addr.s6_addr32[0] == ip6_addr->s6_addr32[0] && nexthop_ip6_addr.s6_addr32[1] == ip6_addr->s6_addr32[1] && nexthop_ip6_addr.s6_addr32[2] == ip6_addr->s6_addr32[2] && nexthop_ip6_addr.s6_addr32[3] == ip6_addr->s6_addr32[3])
@@ -51,7 +51,7 @@ void config_direct_route(struct ip6_addr *ip6_addr, uint8_t prefix_len, uint8_t 
         write_nexthop_table_port_id(port, NEXTHOP_TABLE_PORT_ID_ADDR(j));
         spare_nexthop_index++;
         if (spare_nexthop_index == NEXTHOP_TABLE_INDEX_NUM)
-            spare_nexthop_index = 0;
+            spare_nexthop_index = 6;
     }
     int trie_index = TrieLookup(ip6_addr, prefix_len);
     if (trie_index >= 0)
@@ -264,7 +264,7 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
             // (trie->memory[index1]->index2
             // memory_rte[index2]->metric
             int j;
-            for (j = 0; j < NEXTHOP_TABLE_INDEX_NUM; j++)
+            for (j = 5; j < NEXTHOP_TABLE_INDEX_NUM; j++)
             {
                 struct ip6_addr nexthop_ip6_addr = read_nexthop_table_ip6_addr(NEXTHOP_TABLE_ADDR(j));
                 if (read_nexthop_table_port_id(NEXTHOP_TABLE_PORT_ID_ADDR(j)) == port && nexthop_ip6_addr.s6_addr32[0] == ip6->src_addr.s6_addr32[0] && nexthop_ip6_addr.s6_addr32[1] == ip6->src_addr.s6_addr32[1] && nexthop_ip6_addr.s6_addr32[2] == ip6->src_addr.s6_addr32[2] && nexthop_ip6_addr.s6_addr32[3] == ip6->src_addr.s6_addr32[3])
@@ -279,7 +279,7 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                 write_nexthop_table_port_id(port, NEXTHOP_TABLE_PORT_ID_ADDR(j));
                 spare_nexthop_index++;
                 if (spare_nexthop_index == NEXTHOP_TABLE_INDEX_NUM)
-                    spare_nexthop_index = 0;
+                    spare_nexthop_index = 6;
             }
             if (entry_length == 20 && entries[i].metric == 16 && entries[i].prefix_len == 0 && entries[i].ip6_addr.s6_addr32[0] == 0 && entries[i].ip6_addr.s6_addr32[1] == 0 && entries[i].ip6_addr.s6_addr32[2] == 0 && entries[i].ip6_addr.s6_addr32[3] == 0)
             {
@@ -334,7 +334,7 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
             // memory: find a space, return index2
             // (trie->memory)[index1]: insert index2
             int j;
-            for (j = 0; j < NEXTHOP_TABLE_INDEX_NUM; j++)
+            for (j = 5; j < NEXTHOP_TABLE_INDEX_NUM; j++)
             {
                 struct ip6_addr nexthop_ip6_addr = read_nexthop_table_ip6_addr(NEXTHOP_TABLE_ADDR(j));
                 if (read_nexthop_table_port_id(NEXTHOP_TABLE_PORT_ID_ADDR(j)) == port && nexthop_ip6_addr.s6_addr32[0] == ip6->src_addr.s6_addr32[0] && nexthop_ip6_addr.s6_addr32[1] == ip6->src_addr.s6_addr32[1] && nexthop_ip6_addr.s6_addr32[2] == ip6->src_addr.s6_addr32[2] && nexthop_ip6_addr.s6_addr32[3] == ip6->src_addr.s6_addr32[3])
@@ -345,11 +345,14 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
             if (j == NEXTHOP_TABLE_INDEX_NUM)
             {
                 j = spare_nexthop_index;
+                if (len == 0){
+                    j = 5;
+                }
                 write_nexthop_table_ip6_addr(&(ip6->src_addr), NEXTHOP_TABLE_ADDR(j));
                 write_nexthop_table_port_id(port, NEXTHOP_TABLE_PORT_ID_ADDR(j));
                 spare_nexthop_index++;
                 if (spare_nexthop_index == NEXTHOP_TABLE_INDEX_NUM)
-                    spare_nexthop_index = 0;
+                    spare_nexthop_index = 6;
             }
             int trie_index = TrieLookup(&(entries[i].ip6_addr), entries[i].prefix_len);
             if (trie_index > 0)
@@ -444,7 +447,7 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                     { // next_hop NOT same and memory_rte timeout soon
                         // Update the route
                         int nexthop_index = 0;
-                        for (nexthop_index = 0; nexthop_index < NEXTHOP_TABLE_INDEX_NUM; nexthop_index++)
+                        for (nexthop_index = 5; nexthop_index < NEXTHOP_TABLE_INDEX_NUM; nexthop_index++)
                         {
                             struct ip6_addr nexthop_ip6_addr = read_nexthop_table_ip6_addr(NEXTHOP_TABLE_ADDR(nexthop_index));
                             if (read_nexthop_table_port_id(NEXTHOP_TABLE_PORT_ID_ADDR(nexthop_index)) == port && nexthop_ip6_addr.s6_addr32[0] == ip6->src_addr.s6_addr32[0] && nexthop_ip6_addr.s6_addr32[1] == ip6->src_addr.s6_addr32[1] && nexthop_ip6_addr.s6_addr32[2] == ip6->src_addr.s6_addr32[2] && nexthop_ip6_addr.s6_addr32[3] == ip6->src_addr.s6_addr32[3])
@@ -459,7 +462,7 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                             write_nexthop_table_port_id(port, NEXTHOP_TABLE_PORT_ID_ADDR(nexthop_index));
                             spare_nexthop_index++;
                             if (spare_nexthop_index == NEXTHOP_TABLE_INDEX_NUM)
-                                spare_nexthop_index = 0;
+                                spare_nexthop_index = 6;
                         }
                         TrieModify(&(memory_rte[mem_id].ip6_addr), memory_rte[mem_id].prefix_len, nexthop_index);
                         memory_rte[mem_id].nexthop_port = port | 0x80;
@@ -498,7 +501,7 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                     if (port != (PORT_ID(memory_rte + mem_id)))
                     {
                         int nexthop_index = 0;
-                        for (nexthop_index = 0; nexthop_index < NEXTHOP_TABLE_INDEX_NUM; nexthop_index++)
+                        for (nexthop_index = 5; nexthop_index < NEXTHOP_TABLE_INDEX_NUM; nexthop_index++)
                         {
                             struct ip6_addr nexthop_ip6_addr = read_nexthop_table_ip6_addr(NEXTHOP_TABLE_ADDR(nexthop_index));
                             if (read_nexthop_table_port_id(NEXTHOP_TABLE_PORT_ID_ADDR(nexthop_index)) == port && nexthop_ip6_addr.s6_addr32[0] == ip6->src_addr.s6_addr32[0] && nexthop_ip6_addr.s6_addr32[1] == ip6->src_addr.s6_addr32[1] && nexthop_ip6_addr.s6_addr32[2] == ip6->src_addr.s6_addr32[2] && nexthop_ip6_addr.s6_addr32[3] == ip6->src_addr.s6_addr32[3])
@@ -513,7 +516,7 @@ RipngErrorCode disassemble(uint32_t base_addr, uint32_t length, uint8_t port)
                             write_nexthop_table_port_id(port, NEXTHOP_TABLE_PORT_ID_ADDR(nexthop_index));
                             spare_nexthop_index++;
                             if (spare_nexthop_index == NEXTHOP_TABLE_INDEX_NUM)
-                                spare_nexthop_index = 0;
+                                spare_nexthop_index = 6;
                         }
                         TrieModify(&(memory_rte[mem_id].ip6_addr), memory_rte[mem_id].prefix_len, nexthop_index);
                     }

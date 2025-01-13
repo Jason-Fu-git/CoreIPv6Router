@@ -3,11 +3,11 @@
 
 #include "stdint.h"
 
-#define MULTICAST_TIME_LIMIT 30
+#define MULTICAST_TIME_LIMIT 5
 
-#define TIMEOUT_TIME_LIMIT 18000
+#define TIMEOUT_TIME_LIMIT 30
 
-#define GARBAGE_COLLECTION_TIME_LIMIT 12000
+#define GARBAGE_COLLECTION_TIME_LIMIT 60
 
 
 #define MTIME_LADDR 0x0200BFF8    // lower 32 bits of mtime

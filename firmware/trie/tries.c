@@ -5,6 +5,7 @@
 #include <ip6.h>
 #include <stdio.h>
 #include <packet.h>
+#include <memory.h>
 
 extern void         BTrieInitBram();
 extern int          BTrieLookup(void*, int);
@@ -20,6 +21,9 @@ extern void         VCEntryInvalidate(void*);
 extern void         VCEntryModify(void*, unsigned int);
 extern void*        VCTrieIndexToAddress(unsigned int);
 
+
+int default_prefix_inserted = 0;
+
 void TrieInit() {
 	BTrieInitBram();
     VCTrieInit();
@@ -28,6 +32,10 @@ void TrieInit() {
 int TrieInsert(void* prefix, unsigned int length, uint32_t next_hop) {
     struct ip6_addr ip6_prefix;
     struct ip6_addr* ip6 = (struct ip6_addr*)prefix;
+	if (length == 0) {
+		default_prefix_inserted = 1;
+		return NUM_TRIE_NODE - 1;
+	}
     for(int i = 0; i < 4; i++) {
 		ip6_prefix.s6_addr32[i] = brev8(ip6->s6_addr32[i]);
 	}
@@ -42,6 +50,12 @@ int TrieInsert(void* prefix, unsigned int length, uint32_t next_hop) {
 int TrieLookup(void* prefix, unsigned int length) {
     struct ip6_addr ip6_prefix;
     struct ip6_addr* ip6 = (struct ip6_addr*)prefix;
+	if (length == 0) {
+		if (default_prefix_inserted) {
+			return NUM_TRIE_NODE - 1;
+		}
+		return -1;
+	}
     for(int i = 0; i < 4; i++) {
 		ip6_prefix.s6_addr32[i] = brev8(ip6->s6_addr32[i]);
 	}
@@ -56,6 +70,10 @@ int TrieLookup(void* prefix, unsigned int length) {
 int TrieDelete(void* prefix, unsigned int length) {
     struct ip6_addr ip6_prefix;
     struct ip6_addr* ip6 = (struct ip6_addr*)prefix;
+	if (length == 0) {
+		default_prefix_inserted = 0;
+		return NUM_TRIE_NODE - 1;
+	}
     for(int i = 0; i < 4; i++) {
 		ip6_prefix.s6_addr32[i] = brev8(ip6->s6_addr32[i]);
 	}
@@ -71,6 +89,9 @@ int TrieDelete(void* prefix, unsigned int length) {
 void TrieModify(void* prefix, unsigned int length, uint32_t next_hop) {
     struct ip6_addr ip6_prefix;
     struct ip6_addr* ip6 = (struct ip6_addr*)prefix;
+	if (length == 0) {
+		return;
+	}
     for(int i = 0; i < 4; i++) {
 		ip6_prefix.s6_addr32[i] = brev8(ip6->s6_addr32[i]);
 	}

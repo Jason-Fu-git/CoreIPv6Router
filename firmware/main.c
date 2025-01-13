@@ -13,10 +13,10 @@
 
 // Configurate the MAC and IP addresses
 struct ip6_addr ip_addrs[PORT_NUM] = {
-        {.s6_addr32 = {0x000080fe, 0, 0, 0x01000000}},
-        {.s6_addr32 = {0x000080fe, 0, 0, 0x01000000}},
-        {.s6_addr32 = {0x000080fe, 0, 0, 0x01000000}},
-        {.s6_addr32 = {0x000080fe, 0, 0, 0x01000000}}
+        {.s6_addr32 = {0x000080fe, 0, 0, 0x50000000}},
+        {.s6_addr32 = {0x000080fe, 0, 0, 0x51000000}},
+        {.s6_addr32 = {0x000080fe, 0, 0, 0x52000000}},
+        {.s6_addr32 = {0x000080fe, 0, 0, 0x53000000}}
 };
 struct ether_addr mac_addrs[PORT_NUM] = {
         {.ether_addr16 = {0x1f8c, 0x6964, 0x5410}},
@@ -70,9 +70,11 @@ void start(void)
     direct_route.s6_addr32[2] = 0;
     direct_route.s6_addr32[3] = 0;
     for(int i = 0; i < 4; i++) {
-        direct_route.s6_addr32[1] = htonl(0x04970000 + i);
+        direct_route.s6_addr32[1] = htonl(0x04950000 + i);
         config_direct_route(&direct_route, 64, i);
     }
+
+    write_nexthop_table_ip6_addr(&direct_route, NEXTHOP_TABLE_ADDR(5)); 
 
     // Send multicast request.
     for(int p = 0; p < PORT_NUM; p++){
